@@ -21,8 +21,8 @@ sequenceDiagram
 To achieve this we need the following componts:
 
 ```mermaid
-flowchart LR    
-    Frontend -- Backend
-    AIs -- Backend
-    Backend --Database[(Database)]
+flowchart LR
+    Frontend --- Backend
+    AIs --- Backend
+    Backend --- Database[(Database)]
 ```
