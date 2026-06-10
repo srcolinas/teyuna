@@ -17,3 +17,12 @@ sequenceDiagram
     Game Server-->>Viewer: game state
     Note over Viewer, Game Server: any viewer gets state of the game.
 ```
+
+To achieve this we need the following componts:
+
+```mermaid
+flowchart LR    
+    Frontend -- Backend
+    AIs -- Backend
+    Backend --Database[(Database)]
+```
