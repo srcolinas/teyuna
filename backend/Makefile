@@ -14,6 +14,7 @@ format:
 	uv run ruff check --fix src tests
 
 lint:
+	uv run ruff format . --check
 	uv run ruff check src tests
 	uv run mypy .
 
