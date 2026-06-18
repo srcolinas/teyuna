@@ -68,6 +68,7 @@ class EdgeCoordinate(pydantic.BaseModel):
     direction: Annotated[int, pydantic.Field(ge=0, le=5)]
 
     model_config = pydantic.ConfigDict(frozen=True)
+    
 
 
 class Hex(pydantic.BaseModel):
