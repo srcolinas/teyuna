@@ -9,12 +9,12 @@ import pydantic
 class HexType(str, Enum):
     """Types of hex tiles on the board."""
 
-    SIERRA = "sierra"  # Mountains - produces Gold
-    CANTERAS = "canteras"  # Quarries - produces Stone
-    TIERRAS_ALTAS = "tierras_altas"  # Highlands - produces Cotton
-    VALLES = "valles"  # Valleys - produces Maize
-    SELVA = "selva"  # Jungle - produces Wood
-    DESERT = "desert"  # Desert - produces nothing
+    MOUNTAINS = "mountains"
+    QUARRIES = "quarries"
+    HIGHLANDS = "highlands"
+    VALLEYS = "valleys"
+    JUNGLE = "jungle"
+    DESERT = "desert"
 
 
 class HexCoordinate(pydantic.BaseModel):
