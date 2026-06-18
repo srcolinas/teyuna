@@ -2,7 +2,7 @@ from enum import Enum
 
 import pydantic
 
-from ._board import EdgeCoordinate, VertexCoordinate
+from ._board import VertexCoordinate
 
 
 class SettlementType(str, Enum):
@@ -13,6 +13,3 @@ class SettlementType(str, Enum):
 class Settlement(pydantic.BaseModel):
     location: VertexCoordinate
     type: SettlementType
-
-
-type StonePath = EdgeCoordinate
