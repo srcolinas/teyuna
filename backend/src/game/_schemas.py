@@ -75,7 +75,7 @@ class Hex(pydantic.BaseModel):
 
     coordinate: HexCoordinate
     type: HexType
-    number_token: Annotated[int | None, pydantic.Field(default=None, ge=2, le=12)]
+    number: Annotated[int, pydantic.Field(default=None, ge=2, le=12)]
 
     model_config = pydantic.ConfigDict(frozen=True)
 
