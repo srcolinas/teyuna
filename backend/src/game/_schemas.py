@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+import datetime
 import uuid
 from enum import Enum
 from typing import Annotated
@@ -126,9 +125,27 @@ class PlayedStonePath(pydantic.BaseModel):
     location: EdgeCoordinate
 
 
-class Game(pydantic.BaseModel):
+type Map = list[Hex]
+
+
+class CreateGameRequest(pydantic.BaseModel):
+    num_players: Annotated[int, pydantic.Field(ge=3, le=4)]
+
+
+class GameCreated(pydantic.BaseModel):
     id: uuid.UUID
-    map: list[Hex]
+    map: Map
+    expiration: Annotated[
+        datetime.datetime,
+        pydantic.Field(
+            description="participants should join before this or the game should be discarded"
+        ),
+    ]
+
+
+class ActiveGame(pydantic.BaseModel):
+    id: uuid.UUID
+    map: Map
     conquistator_location: Hex
     players: list[Player]
     settlements: list[PlayedSettlement]

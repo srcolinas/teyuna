@@ -11,30 +11,38 @@ router = fastapi.APIRouter(prefix="/games", tags=["games"])
 # --- Games ---
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=_schemas.Game)
-def create_game(game: _schemas.Game) -> _schemas.Game:
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_game(payload: _schemas.CreateGameRequest) -> _schemas.GameCreated:
     raise NotImplementedError
 
 
-@router.get("/{game_id}", response_model=_schemas.Game)
-def get_game(game_id: uuid.UUID) -> _schemas.Game:
+@router.get("/{game_id}")
+def get_game(game_id: uuid.UUID) -> _schemas.ActiveGame:
+    raise NotImplementedError
+
+
+# --- Games ---
+
+
+@router.get("/{game_id}/map")
+def get_game_map(game_id: uuid.UUID) -> list[_schemas.Hex]:
     raise NotImplementedError
 
 
 # --- Players ---
 
 
-@router.get("/{game_id}/players", response_model=list[_schemas.Player])
+@router.get("/{game_id}/players")
 def list_players(game_id: uuid.UUID) -> list[_schemas.Player]:
     raise NotImplementedError
 
 
-@router.put("/{game_id}/players", response_model=list[_schemas.Player])
+@router.put("/{game_id}/players")
 def add_new_player(game_id: uuid.UUID) -> list[_schemas.Player]:
     raise NotImplementedError
 
 
-@router.get("/{game_id}/players/{player_id}", response_model=_schemas.Player)
+@router.get("/{game_id}/players/{player_id}")
 def get_player(game_id: uuid.UUID, player_id: uuid.UUID) -> _schemas.Player:
     raise NotImplementedError
 
@@ -42,15 +50,12 @@ def get_player(game_id: uuid.UUID, player_id: uuid.UUID) -> _schemas.Player:
 # --- Settlements (buildings) ---
 
 
-@router.get("/{game_id}/settlements", response_model=list[_schemas.PlayedSettlement])
+@router.get("/{game_id}/settlements")
 def list_settlements(game_id: uuid.UUID) -> list[_schemas.PlayedSettlement]:
     raise NotImplementedError
 
 
-@router.get(
-    "/{game_id}/settlements/{q}/{r}/{direction}",
-    response_model=_schemas.PlayedSettlement,
-)
+@router.get("/{game_id}/settlements/{q}/{r}/{direction}")
 def get_settlement(
     game_id: uuid.UUID,
     q: int,
@@ -63,7 +68,7 @@ def get_settlement(
 # --- Stone paths (buildings) ---
 
 
-@router.get("/{game_id}/paths", response_model=list[_schemas.PlayedStonePath])
+@router.get("/{game_id}/paths")
 def list_paths(game_id: uuid.UUID) -> list[_schemas.PlayedStonePath]:
     raise NotImplementedError
 
