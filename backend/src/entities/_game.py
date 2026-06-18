@@ -11,7 +11,7 @@ class PlayedSettlement(Settlement):
     owner: uuid.UUID
 
 
-class PlayedStonePath:
+class PlayedStonePath(pydantic.BaseModel):
     owner: uuid.UUID
     location: EdgeCoordinate
 
