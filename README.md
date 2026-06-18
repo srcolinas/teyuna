@@ -18,7 +18,6 @@ Learn the rules of the game in the [rulebook](rulebook.md).
 
 - 🎲 **Classic Strategy Gameplay** - Familiar mechanics with original Tayrona theming
 - 👥 **Multiplayer Support** - Play with 3-4 players, through UI for humans and API for AIs.
-- 🔐 **User Accounts** - Track your stats and game history
 - 📱 **Real-time Updates** - Whatch any live game in real time.
 
 From the server point of view, there is no difference between a human player and an AI player, it is just another client connected to it.
