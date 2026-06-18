@@ -34,24 +34,24 @@ When a 7 is rolled:
 ## Game Elements
 
 ## Resources
-| Resource | Name | Source | Icon |
-|----------|------|--------|------|
-| Gold | Oro | Sierra (Mountains) | 🥇 |
-| Stone | Piedra | Canteras (Quarries) | 🪨 |
-| Cotton | Algodón | Tierras Altas (Highlands) | ☁️ |
-| Maize | Maíz | Valles (Valleys) | 🌽 |
-| Wood | Madera | Selva (Jungle) | 🌳 |
+| Resource | Source |
+|----------|--------|
+| Gold | Mountains |
+| Stone | Quarries |
+| Cotton | Highlands |
+| Maize | Valleys |
+| Wood | Jungle |
 
 ## Buildings
-| Building | Name | Cost | Victory Points |
-|----------|------|------|----------------|
-| 🛤️ | Camino de Piedra (Stone Path) | 1 Stone + 1 Wood | 0 |
-| 🏠 | Bohío (Traditional House) | 1 Stone + 1 Wood + 1 Cotton + 1 Maize | 1 |
-| 🏛️ | Templo (Temple) | 3 Gold + 2 Maize | 2 |
+| Building | Cost | Victory Points |
+|----------|------|----------------|
+| Stone Path | 1 Stone + 1 Wood | 0 |
+| Terrace | 1 Stone + 1 Wood + 1 Cotton + 1 Maize | 1 |
+| Great Terrace | 3 Gold + 2 Maize | 2 |
 
 ## Special Cards
-- ⚔️ **Guerrero Naoma** - Warrior cards (move the Conquistador)
-- 🌾 **Abundancia de la Tierra** - Take 2 resources
-- 🔮 **Sabiduría del Mama** - Monopoly on a resource
-- 🛤️ **Nuevos Caminos** - Build 2 free roads
-- 🏆 **Avance Ancestral** - Victory point
+- Manikato Warrior - Move the Conquistador
+- Blessing of Aluna - Take 2 resources
+- Wisdom of the Mama - Monopoly on a resource
+- Pathfinder - Build 2 free roads
+- Legacy of the Elders - 1 Victory point
