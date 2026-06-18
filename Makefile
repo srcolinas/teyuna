@@ -1,7 +1,7 @@
 # Teyuna - The Lost City
 # Root Makefile
 
-.PHONY: all install format lint test check run clean
+.PHONY: all setup format lint test check run clean
 
 # Default target
 all: check

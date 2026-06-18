@@ -4,7 +4,8 @@ clean:
 	rm -rf .venv __pycache__ src/__pycache__ src/**/__pycache__ .mypy_cache .ruff_cache
 	
 setup:
-	uv sync
+	uv sync --dev
+	uv run pre-commit install
 
 dev:
 	uv sync --dev
