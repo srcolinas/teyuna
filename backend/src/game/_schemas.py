@@ -74,7 +74,7 @@ class Hex(pydantic.BaseModel):
     """A hex tile on the game board."""
 
     coordinate: HexCoordinate
-    hex_type: HexType
+    type: HexType
     number_token: Annotated[int | None, pydantic.Field(default=None, ge=2, le=12)]
 
     model_config = pydantic.ConfigDict(frozen=True)
