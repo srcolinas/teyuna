@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from enum import Enum
 from typing import Annotated
 
@@ -78,3 +79,57 @@ class Hex(pydantic.BaseModel):
     number_token: Annotated[int | None, pydantic.Field(default=None, ge=2, le=12)]
 
     model_config = pydantic.ConfigDict(frozen=True)
+
+
+class ResourceCard(str, Enum):
+    GOLD = "gold"
+    STONE = "stone"
+    COTTON = "cotton"
+    MAIZE = "maize"
+    WOOD = "wood"
+
+
+class WisdomCard(str, Enum):
+    WARRIOR = "warrior"
+    BLESSING_OF_ALUNA = "blessing of aluna"
+    WINDOM_OF_MAMO = "wisdom of mamo"
+    PATHFINDER = "pathfinder"
+    LEGACY_OF_THE_ELDERS = "legacy of the elders"
+
+
+class SettlementType(str, Enum):
+    TERRACE = "terrace"
+    GREAT_TERRACE = "great terrace"
+
+
+class Settlement(pydantic.BaseModel):
+    location: VertexCoordinate
+    type: SettlementType
+
+
+class Player(pydantic.BaseModel):
+    id: uuid.UUID
+    username: str
+    played_wisdom_cards: list[WisdomCard]
+    num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0, default=0)]
+    num_resources: Annotated[int, pydantic.Field(ge=0)]
+    available_settlements: list[Settlement]
+    available_paths: Annotated[int, pydantic.Field(ge=0, le=15)]
+
+
+class PlayedSettlement(Settlement):
+    owner: uuid.UUID
+
+
+class PlayedStonePath(pydantic.BaseModel):
+    owner: uuid.UUID
+    location: EdgeCoordinate
+
+
+class Game(pydantic.BaseModel):
+    id: uuid.UUID
+    map: list[Hex]
+    conquistator_location: Hex
+    players: list[Player]
+    settlements: list[PlayedSettlement]
+    paths: list[PlayedStonePath]

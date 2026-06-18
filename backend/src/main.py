@@ -7,7 +7,7 @@ import fastapi
 from fastapi import status
 
 from . import dependencies, settings
-from .routes import game
+from .game.routes import router as game_router
 
 
 def create_app(settings_: settings.Settings) -> fastapi.FastAPI:
@@ -29,7 +29,7 @@ def create_app(settings_: settings.Settings) -> fastapi.FastAPI:
     print(f"Setting log level to: {settings_.loglevel} ({loglevel})")
     logging.basicConfig(level=loglevel)
 
-    app.include_router(game.router)
+    app.include_router(game_router)
 
     return app
 
