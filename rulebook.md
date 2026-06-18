@@ -18,8 +18,8 @@ Be the first player to reach **10 Victory Points**.
 4. **End Turn** - Pass to the next player
 
 ## Victory Points
-- Each Bohío = 1 VP
-- Each Templo = 2 VP
+- Each Terrace = 1 VP
+- Each Great Terrace = 2 VP
 - Longest Path (5+ roads) = 2 VP
 - Largest Army (3+ warriors) = 2 VP
 - Certain Wisdom Cards = 1 VP each
@@ -49,7 +49,7 @@ When a 7 is rolled:
 | Terrace | 1 Stone + 1 Wood + 1 Cotton + 1 Maize | 1 |
 | Great Terrace | 3 Gold + 2 Maize | 2 |
 
-## Special Cards
+## Wisdom Cards
 - Manikato Warrior - Move the Conquistador
 - Blessing of Aluna - Take 2 resources
 - Wisdom of the Mama - Monopoly on a resource
