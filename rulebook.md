@@ -50,8 +50,8 @@ When a 7 is rolled:
 | Great Terrace | 3 Gold + 2 Maize | 2 |
 
 ## Wisdom Cards
-- Manikato Warrior - Move the Conquistador
+- Warrior - Move the Conquistador
 - Blessing of Aluna - Take 2 resources
-- Wisdom of the Mama - Monopoly on a resource
+- Wisdom of the Mamo - Monopoly on a resource
 - Pathfinder - Build 2 free roads
 - Legacy of the Elders - 1 Victory point
