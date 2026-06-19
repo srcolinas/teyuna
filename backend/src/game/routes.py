@@ -1,3 +1,5 @@
+import datetime
+import random
 import uuid
 
 import fastapi
@@ -13,7 +15,43 @@ router = fastapi.APIRouter(prefix="/games", tags=["games"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_game(payload: _schemas.CreateGameRequest) -> _schemas.GameCreated:
-    raise NotImplementedError
+    types = (
+        [_schemas.HexType.MOUNTAINS] * 3
+        + [_schemas.HexType.QUARRIES] * 3
+        + [_schemas.HexType.HIGHLANDS] * 4
+        + [_schemas.HexType.VALLEYS] * 4
+        + [_schemas.HexType.JUNGLE] * 4
+        + [_schemas.HexType.DESERT]
+    )
+    random.shuffle(types)
+    numbers = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
+    random.shuffle(numbers)
+
+    map = []
+    for q in range(-2, 3):
+        for r in range(-2, 3):
+            try:
+                coord = _schemas.HexCoordinate(q=q, r=r)
+            except ValueError:
+                continue
+            type = types.pop()
+            if type is _schemas.HexType.DESERT:
+                number = 7
+            else:
+                number = numbers.pop()
+            map.append(
+                _schemas.Hex(
+                    coordinate=coord,
+                    type=type,
+                    number=number,
+                )
+            )
+    return _schemas.GameCreated(
+        id=uuid.uuid4(),
+        map=map,
+        num_players=payload.num_players,
+        expiration=datetime.datetime.now() + datetime.timedelta(seconds=60),
+    )
 
 
 @router.get("/{game_id}")

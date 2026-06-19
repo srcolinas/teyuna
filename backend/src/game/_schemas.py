@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Self
 
 import pydantic
 
@@ -42,6 +42,12 @@ class HexCoordinate(pydantic.BaseModel):
     ]
 
     model_config = pydantic.ConfigDict(frozen=True)
+
+    @pydantic.model_validator(mode="after")
+    def check_hex_is_valid(self) -> Self:
+        if (self.q, self.r) in {(-2, -2), (-2, -1), (-1, -2), (1, 2), (2, 1), (2, 2)}:
+            raise ValueError("Hex coordinate is invalid")
+        return self
 
 
 class VertexCoordinate(pydantic.BaseModel):
@@ -135,6 +141,7 @@ class CreateGameRequest(pydantic.BaseModel):
 class GameCreated(pydantic.BaseModel):
     id: uuid.UUID
     map: Map
+    num_players: Annotated[int, pydantic.Field(ge=3, le=4)]
     expiration: Annotated[
         datetime.datetime,
         pydantic.Field(
