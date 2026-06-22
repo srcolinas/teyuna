@@ -30,7 +30,7 @@ def create_game(
 
 
 @router.get("/{game_id}")
-def get_game(game_id: uuid.UUID) -> entities.ActiveGame:
+def get_game(game_id: uuid.UUID) -> ports.ActiveGame:
     raise NotImplementedError
 
 
@@ -69,6 +69,10 @@ def join_game(
     except services.GameAlreadyFullError:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="game already full"
+        )
+    except services.GameExpiredError:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="game expired"
         )
     return game
 

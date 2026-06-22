@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from typing import Protocol
 
@@ -5,6 +6,9 @@ from .. import entities
 
 
 class GameAlreadyFullError(Exception): ...
+
+
+class GameExpiredError(Exception): ...
 
 
 class AddPlayerGameRepository(Protocol):
@@ -16,6 +20,7 @@ class AddPlayerGameRepository(Protocol):
 
 
 def add_player(
+    *,
     game_id: uuid.UUID,
     username: str,
     repository: AddPlayerGameRepository,
@@ -23,5 +28,8 @@ def add_player(
     game = repository.retrieve_proposed(game_id)
     if len(game.players) >= game.max_players:
         raise GameAlreadyFullError
+
+    if game.expires_at < datetime.datetime.now():
+        raise GameExpiredError
 
     return repository.add_player(game_id=game_id, username=username)

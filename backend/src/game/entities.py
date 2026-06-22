@@ -126,7 +126,3 @@ class ProposedGame(pydantic.BaseModel):
     max_players: int
     expires_at: datetime.datetime
     players: list[AwaitingPlayer]
-
-
-class ActiveGame(pydantic.BaseModel):
-    id: uuid.UUID

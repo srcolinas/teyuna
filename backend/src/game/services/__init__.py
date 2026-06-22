@@ -1,4 +1,9 @@
-from ._add_player import AddPlayerGameRepository, GameAlreadyFullError, add_player
+from ._add_player import (
+    AddPlayerGameRepository,
+    GameAlreadyFullError,
+    GameExpiredError,
+    add_player,
+)
 from ._create import CreateGameRepository, create_game
 
 __ALL__ = [
@@ -7,4 +12,5 @@ __ALL__ = [
     add_player,
     AddPlayerGameRepository,
     GameAlreadyFullError,
+    GameExpiredError,
 ]
