@@ -1,8 +1,11 @@
 import datetime
+import functools
 import random
 import uuid
+from typing import Annotated
 
 import fastapi
+import pydantic
 from fastapi import status
 
 from . import _schemas
@@ -10,11 +13,23 @@ from . import _schemas
 router = fastapi.APIRouter(prefix="/games", tags=["games"])
 
 
+type ActivePlayers = int
+type InMemoryGameRepository = dict[uuid.UUID, tuple[_schemas.GameCreated, int]]
+
+
+@functools.cache
+def repository() -> InMemoryGameRepository:
+    return {}
+
+
 # --- Games ---
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_game(payload: _schemas.CreateGameRequest) -> _schemas.GameCreated:
+def create_game(
+    payload: _schemas.CreateGameRequest,
+    repo: Annotated[InMemoryGameRepository, fastapi.Depends(repository)],
+) -> _schemas.GameCreated:
     types = (
         [_schemas.HexType.MOUNTAINS] * 3
         + [_schemas.HexType.QUARRIES] * 3
@@ -46,12 +61,14 @@ def create_game(payload: _schemas.CreateGameRequest) -> _schemas.GameCreated:
                     number=number,
                 )
             )
-    return _schemas.GameCreated(
+    game = _schemas.GameCreated(
         id=uuid.uuid4(),
         map=map,
         num_players=payload.num_players,
         expiration=datetime.datetime.now() + datetime.timedelta(seconds=60),
     )
+    repo[game.id] = (game, 0)
+    return game
 
 
 @router.get("/{game_id}")
@@ -75,9 +92,29 @@ def list_players(game_id: uuid.UUID) -> list[_schemas.Player]:
     raise NotImplementedError
 
 
+class JoinGameRequest(pydantic.BaseModel):
+    username: str
+
+
 @router.put("/{game_id}/players")
-def add_new_player(game_id: uuid.UUID) -> list[_schemas.Player]:
-    raise NotImplementedError
+def join_game(
+    game_id: uuid.UUID,
+    payload: JoinGameRequest,
+    repo: Annotated[InMemoryGameRepository, fastapi.Depends(repository)],
+) -> _schemas.Player:
+    game, active_players = repo[game_id]
+    if active_players >= game.num_players:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="game already full"
+        )
+
+    active_players += 1
+    repo[game_id] = (game, active_players)
+
+    return _schemas.Player(
+        id=uuid.uuid4(),
+        username=payload.username,
+    )
 
 
 @router.get("/{game_id}/players/{player_id}")
