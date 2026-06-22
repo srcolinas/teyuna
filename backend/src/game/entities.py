@@ -1,4 +1,3 @@
-import dataclasses
 import datetime
 import uuid
 from enum import Enum
@@ -111,6 +110,11 @@ class SettlementType(str, Enum):
     GREAT_TERRACE = "great terrace"
 
 
+class Settlement(pydantic.BaseModel):
+    location: VertexCoordinate
+    type: SettlementType
+
+
 class AwaitingPlayer(pydantic.BaseModel):
     id: uuid.UUID
     username: str
@@ -124,12 +128,5 @@ class ProposedGame(pydantic.BaseModel):
     players: list[AwaitingPlayer]
 
 
-@dataclasses.dataclass(slots=True)
-class ActiveGame:
-    max_players: int
-    expires_at: datetime.datetime
-
-
-class Settlement(pydantic.BaseModel):
-    location: VertexCoordinate
-    type: SettlementType
+class ActiveGame(pydantic.BaseModel):
+    id: uuid.UUID

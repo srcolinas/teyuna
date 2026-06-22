@@ -3,7 +3,7 @@ from typing import Annotated
 
 import pydantic
 
-from .. import entities
+from . import entities
 
 
 class PlayedSettlement(entities.Settlement):
