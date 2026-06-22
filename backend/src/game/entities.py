@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import uuid
 from enum import Enum
@@ -86,6 +87,9 @@ class Hex(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True)
 
 
+type Map = list[Hex]
+
+
 class ResourceCard(str, Enum):
     GOLD = "gold"
     STONE = "stone"
@@ -107,53 +111,25 @@ class SettlementType(str, Enum):
     GREAT_TERRACE = "great terrace"
 
 
+class AwaitingPlayer(pydantic.BaseModel):
+    id: uuid.UUID
+    username: str
+
+
+class ProposedGame(pydantic.BaseModel):
+    id: uuid.UUID
+    map: Map
+    max_players: int
+    expires_at: datetime.datetime
+    players: list[AwaitingPlayer]
+
+
+@dataclasses.dataclass(slots=True)
+class ActiveGame:
+    max_players: int
+    expires_at: datetime.datetime
+
+
 class Settlement(pydantic.BaseModel):
     location: VertexCoordinate
     type: SettlementType
-
-
-class Player(pydantic.BaseModel):
-    id: uuid.UUID
-    username: str
-    played_wisdom_cards: list[WisdomCard] = []
-    num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0
-    num_resources: Annotated[int, pydantic.Field(ge=0)] = 0
-    available_settlements: list[Settlement] = []
-    available_paths: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
-
-
-class PlayedSettlement(Settlement):
-    owner: uuid.UUID
-
-
-class PlayedStonePath(pydantic.BaseModel):
-    owner: uuid.UUID
-    location: EdgeCoordinate
-
-
-type Map = list[Hex]
-
-
-class CreateGameRequest(pydantic.BaseModel):
-    num_players: Annotated[int, pydantic.Field(ge=3, le=4, default=3)]
-
-
-class GameCreated(pydantic.BaseModel):
-    id: uuid.UUID
-    map: Map
-    num_players: Annotated[int, pydantic.Field(ge=3, le=4)]
-    expiration: Annotated[
-        datetime.datetime,
-        pydantic.Field(
-            description="participants should join before this or the game should be discarded"
-        ),
-    ]
-
-
-class ActiveGame(pydantic.BaseModel):
-    id: uuid.UUID
-    map: Map
-    conquistator_location: Hex
-    players: list[Player]
-    settlements: list[PlayedSettlement]
-    paths: list[PlayedStonePath]

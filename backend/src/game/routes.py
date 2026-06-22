@@ -1,6 +1,4 @@
-import datetime
 import functools
-import random
 import uuid
 from typing import Annotated
 
@@ -8,18 +6,14 @@ import fastapi
 import pydantic
 from fastapi import status
 
-from . import _schemas
+from . import entities, ports, repository, services
 
 router = fastapi.APIRouter(prefix="/games", tags=["games"])
 
 
-type ActivePlayers = int
-type InMemoryGameRepository = dict[uuid.UUID, tuple[_schemas.GameCreated, int]]
-
-
 @functools.cache
-def repository() -> InMemoryGameRepository:
-    return {}
+def get_repository() -> repository.InMemoryRepository:
+    return repository.InMemoryRepository()
 
 
 # --- Games ---
@@ -27,52 +21,16 @@ def repository() -> InMemoryGameRepository:
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_game(
-    payload: _schemas.CreateGameRequest,
-    repo: Annotated[InMemoryGameRepository, fastapi.Depends(repository)],
-) -> _schemas.GameCreated:
-    types = (
-        [_schemas.HexType.MOUNTAINS] * 3
-        + [_schemas.HexType.QUARRIES] * 3
-        + [_schemas.HexType.HIGHLANDS] * 4
-        + [_schemas.HexType.VALLEYS] * 4
-        + [_schemas.HexType.JUNGLE] * 4
-        + [_schemas.HexType.DESERT]
-    )
-    random.shuffle(types)
-    numbers = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
-    random.shuffle(numbers)
-
-    map = []
-    for q in range(-2, 3):
-        for r in range(-2, 3):
-            try:
-                coord = _schemas.HexCoordinate(q=q, r=r)
-            except ValueError:
-                continue
-            type = types.pop()
-            if type is _schemas.HexType.DESERT:
-                number = 7
-            else:
-                number = numbers.pop()
-            map.append(
-                _schemas.Hex(
-                    coordinate=coord,
-                    type=type,
-                    number=number,
-                )
-            )
-    game = _schemas.GameCreated(
-        id=uuid.uuid4(),
-        map=map,
-        num_players=payload.num_players,
-        expiration=datetime.datetime.now() + datetime.timedelta(seconds=60),
-    )
-    repo[game.id] = (game, 0)
-    return game
+    payload: ports.CreateGameRequest,
+    repository: Annotated[
+        services.CreateGameRepository, fastapi.Depends(get_repository)
+    ],
+) -> entities.ProposedGame:
+    return services.create_game(params=payload, repository=repository)
 
 
 @router.get("/{game_id}")
-def get_game(game_id: uuid.UUID) -> _schemas.ActiveGame:
+def get_game(game_id: uuid.UUID) -> entities.ActiveGame:
     raise NotImplementedError
 
 
@@ -80,7 +38,7 @@ def get_game(game_id: uuid.UUID) -> _schemas.ActiveGame:
 
 
 @router.get("/{game_id}/map")
-def get_game_map(game_id: uuid.UUID) -> list[_schemas.Hex]:
+def get_game_map(game_id: uuid.UUID) -> list[entities.Hex]:
     raise NotImplementedError
 
 
@@ -88,7 +46,7 @@ def get_game_map(game_id: uuid.UUID) -> list[_schemas.Hex]:
 
 
 @router.get("/{game_id}/players")
-def list_players(game_id: uuid.UUID) -> list[_schemas.Player]:
+def list_players(game_id: uuid.UUID) -> list[ports.Player]:
     raise NotImplementedError
 
 
@@ -100,25 +58,23 @@ class JoinGameRequest(pydantic.BaseModel):
 def join_game(
     game_id: uuid.UUID,
     payload: JoinGameRequest,
-    repo: Annotated[InMemoryGameRepository, fastapi.Depends(repository)],
-) -> _schemas.Player:
-    game, active_players = repo[game_id]
-    if active_players >= game.num_players:
+    repository: Annotated[
+        services.AddPlayerGameRepository, fastapi.Depends(get_repository)
+    ],
+) -> entities.ProposedGame:
+    try:
+        game = services.add_player(
+            game_id=game_id, username=payload.username, repository=repository
+        )
+    except services.GameAlreadyFullError:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="game already full"
         )
-
-    active_players += 1
-    repo[game_id] = (game, active_players)
-
-    return _schemas.Player(
-        id=uuid.uuid4(),
-        username=payload.username,
-    )
+    return game
 
 
 @router.get("/{game_id}/players/{player_id}")
-def get_player(game_id: uuid.UUID, player_id: uuid.UUID) -> _schemas.Player:
+def get_player(game_id: uuid.UUID, player_id: uuid.UUID) -> ports.Player:
     raise NotImplementedError
 
 
@@ -126,7 +82,7 @@ def get_player(game_id: uuid.UUID, player_id: uuid.UUID) -> _schemas.Player:
 
 
 @router.get("/{game_id}/settlements")
-def list_settlements(game_id: uuid.UUID) -> list[_schemas.PlayedSettlement]:
+def list_settlements(game_id: uuid.UUID) -> list[ports.PlayedSettlement]:
     raise NotImplementedError
 
 
@@ -136,7 +92,7 @@ def get_settlement(
     q: int,
     r: int,
     direction: int,
-) -> _schemas.PlayedSettlement:
+) -> ports.PlayedSettlement:
     raise NotImplementedError
 
 
@@ -144,18 +100,18 @@ def get_settlement(
 
 
 @router.get("/{game_id}/paths")
-def list_paths(game_id: uuid.UUID) -> list[_schemas.PlayedStonePath]:
+def list_paths(game_id: uuid.UUID) -> list[ports.PlayedStonePath]:
     raise NotImplementedError
 
 
 @router.get(
     "/{game_id}/paths/{q}/{r}/{direction}",
-    response_model=_schemas.PlayedStonePath,
+    response_model=ports.PlayedStonePath,
 )
 def get_path(
     game_id: uuid.UUID,
     q: int,
     r: int,
     direction: int,
-) -> _schemas.PlayedStonePath:
+) -> ports.PlayedStonePath:
     raise NotImplementedError

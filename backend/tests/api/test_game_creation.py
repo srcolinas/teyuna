@@ -18,7 +18,7 @@ def test_status_code(
 def test_num_players(num_players: int, client: testclient.TestClient) -> None:
     response = client.post("/games", json={"num_players": num_players})
     payload = response.json()
-    assert payload["num_players"] == num_players
+    assert payload["max_players"] == num_players
 
 
 def test_game_id_is_included(client: testclient.TestClient) -> None:

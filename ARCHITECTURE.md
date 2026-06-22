@@ -40,3 +40,7 @@ flowchart LR
     AIs --- Backend
     Backend --- Database[(Database)]
 ```
+
+Any code changes should follow the [hexagonal architecture](https://www.happycoders.eu/software-craftsmanship/hexagonal-architecture/) style. Keep in mind the following rules:
+* Use `dataclasses.dataclass` for anything that is just an internal entity.
+* * Use `pydantic.BaseModel` for anything that is part of the API, even if it is also an internal entity. 
