@@ -22,14 +22,15 @@ def test_num_players(num_players: int, client: testclient.TestClient) -> None:
 
 
 def test_game_id_is_included(client: testclient.TestClient) -> None:
-    response = client.post("/games", json={"num_players": 3})
+    response = client.post("/games", json={})
+    print(response.text)
     payload = response.json()
     with not_raises(ValueError):
         uuid.UUID(payload["id"])
 
 
 def test_quantities_of_resources(client: testclient.TestClient) -> None:
-    response = client.post("/games", json={"num_players": 3})
+    response = client.post("/games", json={})
     payload = response.json()
     counts = collections.Counter(hex["type"] for hex in payload["map"])
     assert counts == {
@@ -43,7 +44,7 @@ def test_quantities_of_resources(client: testclient.TestClient) -> None:
 
 
 def test_distribution_of_numbers(client: testclient.TestClient) -> None:
-    response = client.post("/games", json={"num_players": 3})
+    response = client.post("/games", json={})
     payload = response.json()
     counts = collections.Counter(hex["number"] for hex in payload["map"])
     assert counts == {
