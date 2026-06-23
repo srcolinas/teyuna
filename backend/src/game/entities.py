@@ -1,3 +1,5 @@
+import collections
+import dataclasses
 import datetime
 import uuid
 from enum import Enum
@@ -126,3 +128,21 @@ class ProposedGame(pydantic.BaseModel):
     max_players: int
     expires_at: datetime.datetime
     players: list[AwaitingPlayer]
+
+
+@dataclasses.dataclass
+class Player:
+    cards: collections.Counter[WisdomCard]
+    played_cards: collections.Counter[WisdomCard]
+    resources: collections.Counter[ResourceCard]
+    settlements: list[Settlement]
+    paths: list[EdgeCoordinate]
+
+
+type Username = str
+
+
+@dataclasses.dataclass
+class ActiveGame:
+    map: Map
+    players: dict[Username, Player]

@@ -58,13 +58,13 @@ class JoinGameRequest(pydantic.BaseModel):
 def join_game(
     game_id: uuid.UUID,
     payload: JoinGameRequest,
-    repository: Annotated[
+    repository_: Annotated[
         services.AddPlayerGameRepository, fastapi.Depends(get_repository)
     ],
 ) -> entities.ProposedGame:
     try:
         game = services.add_player(
-            game_id=game_id, username=payload.username, repository=repository
+            game_id=game_id, username=payload.username, repository=repository_
         )
     except services.GameAlreadyFullError:
         raise fastapi.HTTPException(
@@ -74,11 +74,15 @@ def join_game(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="game expired"
         )
+    except repository.GameDoesNotExistError:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="game doesn't exist"
+        )
     return game
 
 
-@router.get("/{game_id}/players/{player_id}")
-def get_player(game_id: uuid.UUID, player_id: uuid.UUID) -> ports.Player:
+@router.get("/{game_id}/players/{username}")
+def get_player(game_id: uuid.UUID, username: str) -> ports.Player:
     raise NotImplementedError
 
 
@@ -96,7 +100,7 @@ def get_settlement(
     q: int,
     r: int,
     direction: int,
-) -> ports.PlayedSettlement:
+) -> ports.PlayedSettlement | None:
     raise NotImplementedError
 
 

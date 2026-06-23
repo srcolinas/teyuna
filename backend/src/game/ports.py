@@ -20,7 +20,6 @@ class CreateGameRequest(pydantic.BaseModel):
 
 
 class Player(pydantic.BaseModel):
-    id: uuid.UUID
     username: str
     played_wisdom_cards: list[entities.WisdomCard] = []
     num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0

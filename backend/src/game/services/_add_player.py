@@ -18,6 +18,8 @@ class AddPlayerGameRepository(Protocol):
         self, game_id: uuid.UUID, username: str
     ) -> entities.ProposedGame: ...
 
+    def start(self, id: uuid.UUID) -> None: ...
+
 
 def add_player(
     *,
@@ -32,4 +34,7 @@ def add_player(
     if game.expires_at < datetime.datetime.now():
         raise GameExpiredError
 
-    return repository.add_player(game_id=game_id, username=username)
+    proposed = repository.add_player(game_id=game_id, username=username)
+    if proposed.max_players == len(proposed.players):
+        repository.start(game_id)
+    return proposed
