@@ -117,9 +117,7 @@ class Settlement(pydantic.BaseModel):
     type: SettlementType
 
 
-class AwaitingPlayer(pydantic.BaseModel):
-    id: uuid.UUID
-    username: str
+type Username = str
 
 
 class ProposedGame(pydantic.BaseModel):
@@ -127,7 +125,7 @@ class ProposedGame(pydantic.BaseModel):
     map: Map
     max_players: int
     expires_at: datetime.datetime
-    players: list[AwaitingPlayer]
+    players: list[Username]
 
 
 @dataclasses.dataclass
@@ -137,9 +135,6 @@ class Player:
     resources: collections.Counter[ResourceCard]
     settlements: list[Settlement]
     paths: list[EdgeCoordinate]
-
-
-type Username = str
 
 
 @dataclasses.dataclass

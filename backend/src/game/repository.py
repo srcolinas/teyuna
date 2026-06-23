@@ -34,14 +34,14 @@ class InMemoryRepository:
         active = entities.ActiveGame(
             map=proposed.map,
             players={
-                player.username: entities.Player(
+                username: entities.Player(
                     cards=collections.Counter(),
                     played_cards=collections.Counter(),
                     resources=collections.Counter(),
                     settlements=[],
                     paths=[],
                 )
-                for player in proposed.players
+                for username in proposed.players
             },
         )
         self._active[id] = active
@@ -53,7 +53,7 @@ class InMemoryRepository:
     def add_player(self, game_id: uuid.UUID, username: str) -> entities.ProposedGame:
         self._validate_game_exists(game_id)
         game = self._proposed[game_id]
-        game.players.append(entities.AwaitingPlayer(id=uuid.uuid4(), username=username))
+        game.players.append(username)
         return game
 
     def _validate_game_exists(self, id: uuid.UUID) -> None:
