@@ -122,7 +122,6 @@ type Username = str
 
 class ProposedGame(pydantic.BaseModel):
     id: uuid.UUID
-    map: Map
     max_players: int
     expires_at: datetime.datetime
     players: set[Username]

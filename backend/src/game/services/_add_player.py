@@ -3,6 +3,7 @@ import uuid
 from typing import Protocol
 
 from .. import entities
+from ._generate_map import generate_map
 
 
 class GameAlreadyFullError(Exception): ...
@@ -18,7 +19,7 @@ class AddPlayerGameRepository(Protocol):
         self, game_id: uuid.UUID, username: str
     ) -> entities.ProposedGame: ...
 
-    def start(self, id: uuid.UUID) -> None: ...
+    def start(self, id: uuid.UUID, map: entities.Map) -> None: ...
 
 
 def add_player(
@@ -36,5 +37,5 @@ def add_player(
 
     proposed = repository.add_player(game_id=game_id, username=username)
     if proposed.max_players == len(proposed.players):
-        repository.start(game_id)
+        repository.start(game_id, generate_map())
     return proposed

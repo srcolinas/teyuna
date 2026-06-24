@@ -1,4 +1,3 @@
-import collections
 import contextlib
 import uuid
 
@@ -27,39 +26,6 @@ def test_game_id_is_included(client: testclient.TestClient) -> None:
     payload = response.json()
     with not_raises(ValueError):
         uuid.UUID(payload["id"])
-
-
-def test_quantities_of_resources(client: testclient.TestClient) -> None:
-    response = client.post("/games", json={})
-    payload = response.json()
-    counts = collections.Counter(hex["type"] for hex in payload["map"])
-    assert counts == {
-        "mountains": 3,
-        "quarries": 3,
-        "highlands": 4,
-        "valleys": 4,
-        "jungle": 4,
-        "desert": 1,
-    }
-
-
-def test_distribution_of_numbers(client: testclient.TestClient) -> None:
-    response = client.post("/games", json={})
-    payload = response.json()
-    counts = collections.Counter(hex["number"] for hex in payload["map"])
-    assert counts == {
-        2: 1,
-        3: 2,
-        4: 2,
-        5: 2,
-        6: 2,
-        7: 1,
-        8: 2,
-        9: 2,
-        10: 2,
-        11: 2,
-        12: 1,
-    }
 
 
 @contextlib.contextmanager

@@ -17,11 +17,10 @@ class InMemoryRepository:
         self._active: dict[uuid.UUID, entities.ActiveGame] = {}
 
     def add(
-        self, *, num_players: int, map: entities.Map, expires_at: datetime.datetime
+        self, *, num_players: int, expires_at: datetime.datetime
     ) -> entities.ProposedGame:
         game = entities.ProposedGame(
             id=uuid.uuid4(),
-            map=map,
             max_players=num_players,
             expires_at=expires_at,
             players=set(),
@@ -32,10 +31,10 @@ class InMemoryRepository:
     def retrieve(self, id: uuid.UUID) -> entities.ActiveGame | None:
         return self._active.get(id)
 
-    def start(self, id: uuid.UUID) -> None:
+    def start(self, id: uuid.UUID, map: entities.Map) -> None:
         proposed = self._proposed.pop(id)
         active = entities.ActiveGame(
-            map=proposed.map,
+            map=map,
             players={
                 username: entities.Player(
                     cards=collections.Counter(),
