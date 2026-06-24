@@ -8,9 +8,9 @@ def test_status_code(
 ) -> None:
     response = client.post("/games", json={"num_players": num_players})
     game_id = response.json()["id"]
-    for _ in range(num_players):
+    for i in range(num_players):
         response = client.put(
-            f"/games/{game_id}/players", json={"username": "srcolinas"}
+            f"/games/{game_id}/players", json={"username": f"srcolinas-{i}"}
         )
         assert response.status_code == status, response.text
     response = client.put(f"/games/{game_id}/players", json={"username": "failure"})

@@ -125,7 +125,7 @@ class ProposedGame(pydantic.BaseModel):
     map: Map
     max_players: int
     expires_at: datetime.datetime
-    players: list[Username]
+    players: set[Username]
 
 
 @dataclasses.dataclass

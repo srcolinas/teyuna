@@ -8,6 +8,9 @@ from . import entities
 class GameDoesNotExistError(Exception): ...
 
 
+class UsernameAlreadyExists(Exception): ...
+
+
 class InMemoryRepository:
     def __init__(self) -> None:
         self._proposed: dict[uuid.UUID, entities.ProposedGame] = {}
@@ -21,7 +24,7 @@ class InMemoryRepository:
             map=map,
             max_players=num_players,
             expires_at=expires_at,
-            players=[],
+            players=set(),
         )
         self._proposed[game.id] = game
         return game
@@ -53,7 +56,9 @@ class InMemoryRepository:
     def add_player(self, game_id: uuid.UUID, username: str) -> entities.ProposedGame:
         self._validate_game_exists(game_id)
         game = self._proposed[game_id]
-        game.players.append(username)
+        if username in game.players:
+            raise UsernameAlreadyExists
+        game.players.add(username)
         return game
 
     def _validate_game_exists(self, id: uuid.UUID) -> None:

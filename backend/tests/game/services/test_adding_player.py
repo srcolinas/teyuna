@@ -18,7 +18,7 @@ def test_player_can_be_added_before_expiration(
         game_id=game_id, username="srcolinas", repository=repository_
     )
     assert len(game.players) == 1
-    assert game.players[0] == "srcolinas"
+    assert list(game.players)[0] == "srcolinas"
 
 
 def test_player_cannot_be_added_after_expiration(
