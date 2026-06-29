@@ -1,4 +1,5 @@
 import datetime
+import random
 import uuid
 from typing import Protocol
 
@@ -44,9 +45,10 @@ def add_player(
     proposed = repository.add_player(game_id=game_id, username=username)
     if proposed.max_players == len(proposed.players):
         map = generate_map()
+        deserts = [hex for hex in map if hex.type == entities.HexType.DESERT]
         repository.start(
             game_id,
             map=map,
-            conquistator_location=entities.HexCoordinate(q=0, r=0),
+            conquistator_location=random.choice(deserts).coordinate,
         )
     return proposed

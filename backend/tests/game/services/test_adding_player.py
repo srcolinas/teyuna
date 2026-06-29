@@ -10,7 +10,7 @@ from src.game import entities, repository, services
 
 def test_player_can_be_added_before_expiration(
     repository_: repository.InMemoryRepository,
-):
+) -> None:
     game_id = repository_.add(
         num_players=3,
         expires_at=datetime.datetime.now() + datetime.timedelta(seconds=1),
@@ -24,7 +24,7 @@ def test_player_can_be_added_before_expiration(
 
 def test_player_cannot_be_added_after_expiration(
     repository_: repository.InMemoryRepository,
-):
+) -> None:
     game_id = repository_.add(
         num_players=3,
         expires_at=datetime.datetime.now() - datetime.timedelta(seconds=100),
@@ -37,7 +37,7 @@ def test_player_cannot_be_added_after_expiration(
 
 def test_active_game_exists_after_all_players_joined(
     repository_: repository.InMemoryRepository,
-):
+) -> None:
     game_id = _create_game_and_add_players(repository_=repository_)
 
     game = repository_.retrieve(game_id)
@@ -46,7 +46,7 @@ def test_active_game_exists_after_all_players_joined(
 
 def test_active_game_correctly_initialize_players(
     repository_: repository.InMemoryRepository,
-):
+) -> None:
     game_id = _create_game_and_add_players(
         repository_=repository_,
         usernames=[
@@ -71,7 +71,7 @@ def test_active_game_correctly_initialize_players(
 
 def test_map_has_correct_resource_quantities(
     repository_: repository.InMemoryRepository,
-):
+) -> None:
     game_id = _create_game_and_add_players(repository_=repository_)
 
     game = cast(entities.ActiveGame, repository_.retrieve(game_id))
@@ -88,7 +88,7 @@ def test_map_has_correct_resource_quantities(
 
 def test_map_has_correct_number_distribution(
     repository_: repository.InMemoryRepository,
-):
+) -> None:
     game_id = _create_game_and_add_players(repository_=repository_)
 
     game = cast(entities.ActiveGame, repository_.retrieve(game_id))
@@ -106,6 +106,17 @@ def test_map_has_correct_number_distribution(
         11: 2,
         12: 1,
     }
+
+
+def test_conquistator_is_located_in_desert_when_game_starts(
+    repository_: repository.InMemoryRepository,
+) -> None:
+    game_id = _create_game_and_add_players(repository_=repository_)
+    game = cast(entities.ActiveGame, repository_.retrieve(game_id))
+    deserts = [
+        hex.coordinate for hex in game.map if hex.type == entities.HexType.DESERT
+    ]
+    assert game.conquistator_location in deserts
 
 
 @pytest.fixture
