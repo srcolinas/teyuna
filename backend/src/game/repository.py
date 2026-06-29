@@ -31,10 +31,17 @@ class InMemoryRepository:
     def retrieve(self, id: uuid.UUID) -> entities.ActiveGame | None:
         return self._active.get(id)
 
-    def start(self, id: uuid.UUID, map: entities.Map) -> None:
+    def start(
+        self,
+        id: uuid.UUID,
+        *,
+        map: entities.Map,
+        conquistator_location: entities.HexCoordinate,
+    ) -> None:
         proposed = self._proposed.pop(id)
-        active = entities.ActiveGame(
+        game = entities.ActiveGame(
             map=map,
+            conquistator_location=conquistator_location,
             players={
                 username: entities.Player(
                     cards=collections.Counter(),
@@ -46,7 +53,7 @@ class InMemoryRepository:
                 for username in proposed.players
             },
         )
-        self._active[id] = active
+        self._active[id] = game
 
     def retrieve_proposed(self, id: uuid.UUID) -> entities.ProposedGame:
         self._validate_game_exists(id)

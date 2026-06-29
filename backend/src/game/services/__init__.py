@@ -5,6 +5,7 @@ from ._add_player import (
     add_player,
 )
 from ._create import CreateGameRepository, create_game
+from ._retrieve import RetrieveGameRepository, retrieve_game
 
 __ALL__ = [
     create_game,
@@ -13,4 +14,6 @@ __ALL__ = [
     AddPlayerGameRepository,
     GameAlreadyFullError,
     GameExpiredError,
+    retrieve_game,
+    RetrieveGameRepository,
 ]

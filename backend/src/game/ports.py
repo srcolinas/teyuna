@@ -31,7 +31,7 @@ class Player(pydantic.BaseModel):
 class ActiveGame(pydantic.BaseModel):
     id: uuid.UUID
     map: entities.Map
-    conquistator_location: entities.Hex
+    conquistator_location: entities.HexCoordinate
     players: list[Player]
     settlements: list[PlayedSettlement]
     paths: list[PlayedStonePath]

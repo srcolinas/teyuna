@@ -140,3 +140,4 @@ class Player:
 class ActiveGame:
     map: Map
     players: dict[Username, Player]
+    conquistator_location: HexCoordinate

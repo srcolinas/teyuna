@@ -30,8 +30,17 @@ def create_game(
 
 
 @router.get("/{game_id}")
-def get_game(game_id: uuid.UUID) -> ports.ActiveGame:
-    raise NotImplementedError
+def get_game(
+    game_id: uuid.UUID,
+    repository: Annotated[
+        services.RetrieveGameRepository, fastapi.Depends(get_repository)
+    ],
+) -> ports.ActiveGame:
+    game = services.retrieve_game(game_id, repository=repository)
+    if game is None:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    return game
 
 
 # --- Games ---

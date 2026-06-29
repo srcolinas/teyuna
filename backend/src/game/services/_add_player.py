@@ -19,7 +19,13 @@ class AddPlayerGameRepository(Protocol):
         self, game_id: uuid.UUID, username: str
     ) -> entities.ProposedGame: ...
 
-    def start(self, id: uuid.UUID, map: entities.Map) -> None: ...
+    def start(
+        self,
+        id: uuid.UUID,
+        *,
+        map: entities.Map,
+        conquistator_location: entities.HexCoordinate,
+    ) -> None: ...
 
 
 def add_player(
@@ -37,5 +43,10 @@ def add_player(
 
     proposed = repository.add_player(game_id=game_id, username=username)
     if proposed.max_players == len(proposed.players):
-        repository.start(game_id, generate_map())
+        map = generate_map()
+        repository.start(
+            game_id,
+            map=map,
+            conquistator_location=entities.HexCoordinate(q=0, r=0),
+        )
     return proposed
