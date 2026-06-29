@@ -7,11 +7,11 @@ from . import entities
 
 
 class PlayedSettlement(entities.Settlement):
-    owner: uuid.UUID
+    owner: str
 
 
 class PlayedStonePath(pydantic.BaseModel):
-    owner: uuid.UUID
+    owner: str
     location: entities.EdgeCoordinate
 
 
