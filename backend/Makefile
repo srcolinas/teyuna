@@ -20,7 +20,7 @@ lint:
 	uv run mypy .
 
 test:
-	uv run pytest tests -v
+	uv run pytest tests -vv
 
 check: lint test
 	@echo "All checks passed!"
