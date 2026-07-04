@@ -2,6 +2,7 @@ import collections
 import dataclasses
 import datetime
 import uuid
+from collections.abc import Mapping
 from enum import Enum
 from typing import Annotated, Self
 
@@ -139,5 +140,5 @@ class Player:
 @dataclasses.dataclass
 class ActiveGame:
     map: Map
-    players: dict[Username, Player]
+    players: Mapping[Username, Player]
     conquistator_location: HexCoordinate
