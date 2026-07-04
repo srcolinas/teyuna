@@ -1,7 +1,6 @@
 from typing import cast
 
 from src import active
-from src.active import _entities, _ports
 from tests import utils
 
 
@@ -20,7 +19,7 @@ def test_map(
     repository: active.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
-    entity_game = cast(active.ActiveGame, repository.retrieve(game_id))
+    entity_game = cast(active.entities.ActiveGame, repository.retrieve(game_id))
 
     game = active.retrieve_game(game_id, repository=repository)
 
@@ -32,7 +31,7 @@ def test_conquistator_location(
     repository: active.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
-    entity_game = cast(active.ActiveGame, repository.retrieve(game_id))
+    entity_game = cast(active.entities.ActiveGame, repository.retrieve(game_id))
 
     game = active.retrieve_game(game_id, repository=repository)
 
@@ -41,7 +40,7 @@ def test_conquistator_location(
     deserts = [
         hex.coordinate
         for hex in entity_game.map
-        if hex.type == _entities.HexType.DESERT
+        if hex.type == active.entities.HexType.DESERT
     ]
     assert game.conquistator_location in deserts
 
@@ -63,7 +62,7 @@ def test_players(
     assert game is not None
     assert len(game.players) == 3
     expected = [
-        _ports.Player(
+        active.ports.Player(
             username=f"srcolinas-{i}",
             played_wisdom_cards=[],
             num_hidden_wisdom_cards=0,
@@ -98,3 +97,15 @@ def test_paths(
 
     assert game is not None
     assert game.paths == []
+
+
+def test_turn_order(
+    repository: active.InMemoryActiveGameRepository,
+) -> None:
+    game_id = utils.create_game_and_add_players(
+        active_repository=repository,
+        usernames=["srcolinas-1", "srcolinas-2", "srcolinas-3"],
+    )
+    game = active.retrieve_game(game_id, repository=repository)
+    assert game is not None
+    assert sorted(game.turn_order) == ["srcolinas-1", "srcolinas-2", "srcolinas-3"]

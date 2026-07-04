@@ -11,10 +11,10 @@ def create_game_and_add_players(
     players_to_add: int = 3,
     usernames: list[str] | None = None,
 ) -> uuid.UUID:
-    proposed_repository_ = proposed.InMemoryProposedGameRepository()
+    proposed_repository = proposed.InMemoryProposedGameRepository()
     manager = active.GameManager(active_repository)
 
-    proposed_game_id = proposed_repository_.add(
+    proposed_game_id = proposed_repository.add(
         num_players=max_players,
         expires_at=datetime.datetime.now() + datetime.timedelta(seconds=1),
     ).id
@@ -27,7 +27,7 @@ def create_game_and_add_players(
         result = proposed.add_player(
             game_id=proposed_game_id,
             username=usernames[i],
-            repository=proposed_repository_,
+            repository=proposed_repository,
             manager=manager,
         )
         if result.game is not None:

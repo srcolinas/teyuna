@@ -31,3 +31,4 @@ class ActiveGame(pydantic.BaseModel):
     players: list[Player]
     settlements: list[PlayedSettlement]
     paths: list[PlayedStonePath]
+    turn_order: tuple[_entities.Username, ...]

@@ -23,9 +23,12 @@ class GameManager:
     ) -> uuid.UUID:
         map = _generate_map()
         deserts = [hex for hex in map if hex.type == _entities.HexType.DESERT]
+        players = list(players)
+        random.shuffle(players)
         game = _entities.ActiveGame(
             map=map,
             conquistator_location=random.choice(deserts).coordinate,
+            turn_order=tuple(players),
             players={
                 username: _entities.Player(
                     cards=collections.Counter(),

@@ -36,6 +36,7 @@ def retrieve_game(
         players=players,
         settlements=settlements,
         paths=paths,
+        turn_order=game.turn_order,
     )
 
 

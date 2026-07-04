@@ -133,3 +133,4 @@ class ActiveGame:
     map: Map
     players: Mapping[Username, Player]
     conquistator_location: HexCoordinate
+    turn_order: tuple[Username, ...]
