@@ -4,6 +4,7 @@ from typing import Protocol
 
 import pydantic
 
+from ... import player
 from .. import _entities
 
 
@@ -36,7 +37,8 @@ def add_player(
     username: str,
     repository: AddPlayerGameRepository,
     manager: GameManager,
-) -> PlayerAddedResult:
+    auth: player.PlayerAuthenticationService,
+) -> tuple[PlayerAddedResult, player.Token]:
     game = repository.retrieve(game_id)
     if len(game.players) >= game.max_players:
         raise GameAlreadyFullError
@@ -44,8 +46,9 @@ def add_player(
     if game.expires_at < datetime.datetime.now():
         raise GameExpiredError
 
+    token = auth.add(username)
     proposed = repository.add_player(game_id=game_id, username=username)
     if proposed.max_players == len(proposed.players):
         id = manager.start(players=tuple(proposed.players))
-        return PlayerAddedResult(proposed=proposed, game=id)
-    return PlayerAddedResult(proposed=proposed)
+        return PlayerAddedResult(proposed=proposed, game=id), token
+    return PlayerAddedResult(proposed=proposed), token

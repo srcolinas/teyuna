@@ -5,7 +5,7 @@ import fastapi
 import pydantic
 from fastapi import status
 
-from .. import active
+from .. import active, player
 from . import _dependencies, _entities, _ports, _repository
 from ._services import _add_player, _create
 
@@ -28,6 +28,7 @@ class JoinGameRequest(pydantic.BaseModel):
 
 @router.put("/{game_id}/players")
 def join_game(
+    response: fastapi.Response,
     game_id: uuid.UUID,
     payload: JoinGameRequest,
     repository: Annotated[
@@ -35,13 +36,17 @@ def join_game(
         fastapi.Depends(_dependencies.get_repository),
     ],
     manager: Annotated[active.GameManager, fastapi.Depends(active.get_game_manager)],
+    auth: Annotated[
+        player.PlayerAuthenticationService, fastapi.Depends(player.service)
+    ],
 ) -> _add_player.PlayerAddedResult:
     try:
-        result = _add_player.add_player(
+        result, token = _add_player.add_player(
             game_id=game_id,
             username=payload.username,
             repository=repository,
             manager=manager,
+            auth=auth,
         )
     except _add_player.GameAlreadyFullError:
         raise fastapi.HTTPException(
@@ -55,4 +60,5 @@ def join_game(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="game doesn't exist"
         )
+    response.set_cookie(key="session-token", value=token, httponly=True)
     return result

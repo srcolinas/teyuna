@@ -42,6 +42,9 @@ class GameManager:
         )
         return self._repository.add(game)
 
+    def add_terrace(self, player: _entities.Username) -> None:
+        raise NotImplementedError
+
 
 def _generate_map() -> _entities.Map:
     types = (

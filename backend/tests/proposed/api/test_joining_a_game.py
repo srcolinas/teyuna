@@ -17,3 +17,19 @@ def test_status_code(
         f"/proposed-games/{game_id}/players", json={"username": "failure"}
     )
     assert response.status_code == 400, response.text
+
+
+def test_identifty_token_is_retrieved(client: testclient.TestClient) -> None:
+    num_players = 3
+    response = client.post("/proposed-games", json={"num_players": num_players})
+    game_id = response.json()["id"]
+    secrets = set()
+    for i in range(num_players):
+        response = client.put(
+            f"/proposed-games/{game_id}/players", json={"username": f"srcolinas-{i}"}
+        )
+        header = response.headers["Set-Cookie"]
+        assert "HttpOnly" in header, header
+        assert "session-token" in client.cookies, client.cookies
+        secrets.add(client.cookies["session-token"])
+    assert len(secrets) == num_players

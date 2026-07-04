@@ -3,6 +3,7 @@ from ._routes import router
 from ._services._add_player import (
     GameExpiredError,
     GameManager,
+    PlayerAddedResult,
     add_player,
 )
 
@@ -12,4 +13,5 @@ __ALL__ = [
     add_player,
     GameExpiredError,
     GameManager,
+    PlayerAddedResult,
 ]

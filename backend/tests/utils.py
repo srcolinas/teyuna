@@ -1,8 +1,9 @@
 import contextlib
 import datetime
 import uuid
+from typing import cast
 
-from src import active, proposed
+from src import active, player, proposed
 
 
 def create_game_and_add_players(
@@ -12,6 +13,7 @@ def create_game_and_add_players(
     players_to_add: int = 3,
     usernames: list[str] | None = None,
 ) -> uuid.UUID:
+    auth = player.PlayerAuthenticationService()
     proposed_repository = proposed.InMemoryProposedGameRepository()
     manager = active.GameManager(active_repository)
 
@@ -23,19 +25,25 @@ def create_game_and_add_players(
     if usernames is None:
         usernames = [f"srcolinas-{i}" for i in range(players_to_add)]
 
-    active_game_id: uuid.UUID | None = None
-    for i in range(players_to_add):
-        result = proposed.add_player(
+    for i in range(players_to_add - 1):
+        proposed.add_player(
             game_id=proposed_game_id,
             username=usernames[i],
             repository=proposed_repository,
             manager=manager,
+            auth=auth,
         )
-        if result.game is not None:
-            active_game_id = result.game
 
-    assert active_game_id is not None
-    return active_game_id
+    result, _ = proposed.add_player(
+        game_id=proposed_game_id,
+        username=usernames[players_to_add - 1],
+        repository=proposed_repository,
+        manager=manager,
+        auth=auth,
+    )
+    result = cast(proposed.PlayerAddedResult, result)
+    game = cast(uuid.UUID, result.game)
+    return game
 
 
 @contextlib.contextmanager
