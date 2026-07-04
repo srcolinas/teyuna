@@ -1,25 +1,22 @@
 import uuid
-from typing import Annotated, cast
+from typing import Annotated
 
 import fastapi
 import pydantic
 from fastapi import status
 
-from . import _dependencies, _entities, _ports, _repository
-from ._services import _retrieve
+from .. import player
+from . import _dependencies, _entities, _ports
+from ._services import _manager
 
 router = fastapi.APIRouter(prefix="/active-games")
 
 
 @router.get("/{game_id}")
 def get_game(
-    game_id: uuid.UUID,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> _ports.ActiveGame:
-    return _get_active_game_or_raise(id=game_id, repository=repository)
+    return game
 
 
 # --- Games ---
@@ -27,13 +24,8 @@ def get_game(
 
 @router.get("/{game_id}/map")
 def get_game_map(
-    game_id: uuid.UUID,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> list[_entities.Hex]:
-    game = _get_active_game_or_raise(id=game_id, repository=repository)
     return game.map
 
 
@@ -42,13 +34,8 @@ def get_game_map(
 
 @router.get("/{game_id}/players")
 def list_players(
-    game_id: uuid.UUID,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> list[_ports.Player]:
-    game = _get_active_game_or_raise(id=game_id, repository=repository)
     return game.players
 
 
@@ -58,14 +45,9 @@ class JoinGameRequest(pydantic.BaseModel):
 
 @router.get("/{game_id}/players/{username}")
 def get_player(
-    game_id: uuid.UUID,
     username: str,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> _ports.Player:
-    game = _get_active_game_or_raise(id=game_id, repository=repository)
     for p in game.players:
         if p.username == username:
             return p
@@ -77,28 +59,18 @@ def get_player(
 
 @router.get("/{game_id}/settlements")
 def list_settlements(
-    game_id: uuid.UUID,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> list[_ports.PlayedSettlement]:
-    game = _get_active_game_or_raise(id=game_id, repository=repository)
     return game.settlements
 
 
 @router.get("/{game_id}/settlements/{q}/{r}/{direction}")
 def get_settlement(
-    game_id: uuid.UUID,
     q: int,
     r: int,
     direction: int,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> _ports.PlayedSettlement | None:
-    game = _get_active_game_or_raise(id=game_id, repository=repository)
     for s in game.settlements:
         if (
             s.location.hex_coord.q == q
@@ -109,18 +81,27 @@ def get_settlement(
     return None
 
 
+@router.post("/{game_id}/settlements/{q}/{r}/{direction}")
+def add_settlement(
+    game_id: uuid.UUID,
+    q: int,
+    r: int,
+    direction: int,
+    nickname: Annotated[player.Nickname, fastapi.Depends(_dependencies.get_player)],
+    manager: Annotated[
+        _manager.GameManager, fastapi.Depends(_dependencies.get_game_manager)
+    ],
+) -> _ports.PlayedSettlement:
+    raise NotImplementedError
+
+
 # --- Stone paths (buildings) ---
 
 
 @router.get("/{game_id}/paths")
 def list_paths(
-    game_id: uuid.UUID,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> list[_ports.PlayedStonePath]:
-    game = _get_active_game_or_raise(id=game_id, repository=repository)
     return game.paths
 
 
@@ -128,16 +109,11 @@ def list_paths(
     "/{game_id}/paths/{q}/{r}/{direction}",
 )
 def get_path(
-    game_id: uuid.UUID,
     q: int,
     r: int,
     direction: int,
-    repository: Annotated[
-        _repository.InMemoryActiveGameRepository,
-        fastapi.Depends(_dependencies.get_repository),
-    ],
+    game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> _ports.PlayedStonePath | None:
-    game = _get_active_game_or_raise(id=game_id, repository=repository)
     for p in game.paths:
         if (
             p.location.hex_coord.q == q
@@ -146,14 +122,3 @@ def get_path(
         ):
             return p
     return None
-
-
-def _get_active_game_or_raise(
-    *, id: uuid.UUID, repository: _repository.InMemoryActiveGameRepository
-) -> _ports.ActiveGame:
-    game = _retrieve.retrieve_game(
-        id, repository=cast(_retrieve.RetrieveGameRepository, repository)
-    )
-    if game is None:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return game
