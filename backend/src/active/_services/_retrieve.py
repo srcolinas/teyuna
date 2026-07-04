@@ -1,16 +1,16 @@
 import uuid
 from typing import Protocol
 
-from .. import entities, ports
+from .. import _entities, _ports
 
 
 class RetrieveGameRepository(Protocol):
-    def retrieve(self, id: uuid.UUID) -> entities.ActiveGame | None: ...
+    def retrieve(self, id: uuid.UUID) -> _entities.ActiveGame | None: ...
 
 
 def retrieve_game(
     id: uuid.UUID, /, *, repository: RetrieveGameRepository
-) -> ports.ActiveGame | None:
+) -> _ports.ActiveGame | None:
     game = repository.retrieve(id)
     if game is None:
         return None
@@ -20,16 +20,16 @@ def retrieve_game(
         players.append(_to_port_player(username, player))
         for settlement in player.settlements:
             settlements.append(
-                ports.PlayedSettlement(
+                _ports.PlayedSettlement(
                     location=settlement.location,
                     type=settlement.type,
                     owner=username,
                 )
             )
         for location in player.paths:
-            paths.append(ports.PlayedStonePath(owner=username, location=location))
+            paths.append(_ports.PlayedStonePath(owner=username, location=location))
 
-    return ports.ActiveGame(
+    return _ports.ActiveGame(
         id=id,
         map=game.map,
         conquistator_location=game.conquistator_location,
@@ -39,8 +39,8 @@ def retrieve_game(
     )
 
 
-def _to_port_player(username: str, player: entities.Player) -> ports.Player:
-    return ports.Player(
+def _to_port_player(username: str, player: _entities.Player) -> _ports.Player:
+    return _ports.Player(
         username=username,
         played_wisdom_cards=[
             card for card, count in player.played_cards.items() for _ in range(count)

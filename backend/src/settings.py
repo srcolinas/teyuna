@@ -1,3 +1,4 @@
+import functools
 from typing import Literal
 
 import pydantic_settings
@@ -12,3 +13,8 @@ class Settings(pydantic_settings.BaseSettings):
     model_config = pydantic_settings.SettingsConfigDict(
         env_file=".env", env_prefix="TEYUNA_"
     )
+
+
+@functools.cache
+def settings() -> Settings:
+    return Settings()

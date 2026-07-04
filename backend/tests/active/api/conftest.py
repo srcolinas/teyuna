@@ -5,12 +5,12 @@ import fastapi
 import fastapi.testclient as testclient
 import pytest
 
-from src.main import app as _app
+from src import main
 
 
 @pytest.fixture
 def app() -> fastapi.FastAPI:
-    return _app
+    return main.create_app()
 
 
 @pytest.fixture

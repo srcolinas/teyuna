@@ -1,7 +1,5 @@
 import collections
 import dataclasses
-import datetime
-import uuid
 from collections.abc import Mapping
 from enum import Enum
 from typing import Annotated, Self
@@ -119,13 +117,6 @@ class Settlement(pydantic.BaseModel):
 
 
 type Username = str
-
-
-class ProposedGame(pydantic.BaseModel):
-    id: uuid.UUID
-    max_players: int
-    expires_at: datetime.datetime
-    players: set[Username]
 
 
 @dataclasses.dataclass
