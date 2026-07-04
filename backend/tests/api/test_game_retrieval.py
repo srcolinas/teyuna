@@ -97,6 +97,33 @@ def test_unknown_player_returns_400(client: testclient.TestClient) -> None:
     assert response.status_code == 404, response.text
 
 
+def test_map_retrieval_matches_game(client: testclient.TestClient) -> None:
+    game_id = _create_active_game(client)
+    response = client.get(f"/games/{game_id}")
+    game = response.json()
+    response = client.get(f"/games/{game_id}/map")
+    map = response.json()
+    assert game["map"] == map
+
+
+def test_players_retrieval_matches_game(client: testclient.TestClient) -> None:
+    game_id = _create_active_game(client)
+    response = client.get(f"/games/{game_id}")
+    game = response.json()
+    response = client.get(f"/games/{game_id}/players")
+    players = response.json()
+    assert game["players"] == players
+
+
+def test_paths_retrieval_matches_game(client: testclient.TestClient) -> None:
+    game_id = _create_active_game(client)
+    response = client.get(f"/games/{game_id}")
+    game = response.json()
+    response = client.get(f"/games/{game_id}/paths")
+    paths = response.json()
+    assert game["paths"] == paths
+
+
 def _create_active_game(
     client: testclient.TestClient,
     num_players: int = 3,

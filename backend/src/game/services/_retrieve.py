@@ -5,7 +5,7 @@ from .. import entities, ports
 
 
 class RetrieveGameRepository(Protocol):
-    def retrieve(self, id: uuid.UUID) -> entities.ActiveGame: ...
+    def retrieve(self, id: uuid.UUID) -> entities.ActiveGame | None: ...
 
 
 def retrieve_game(
@@ -13,7 +13,7 @@ def retrieve_game(
 ) -> ports.ActiveGame | None:
     game = repository.retrieve(id)
     if game is None:
-        return
+        return None
 
     players, settlements, paths = [], [], []
     for username, player in game.players.items():
