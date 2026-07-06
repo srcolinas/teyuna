@@ -1,9 +1,10 @@
 import collections
 import dataclasses
 import itertools
+import random
 from collections.abc import Mapping
 from enum import Enum
-from typing import Annotated, Final, Self
+from typing import Annotated, Final, Self, Sequence
 
 import pydantic
 
@@ -160,6 +161,28 @@ class ActiveGame:
             if (q, r) not in {(-2, -2), (-2, -1), (-1, -2), (1, 2), (2, 1), (2, 2)}
         }
 
+    @classmethod
+    def create_new(cls, players: Sequence[player.Nickname]) -> Self:
+        map = _generate_map()
+        deserts = [hex for hex in map if hex.type == HexType.DESERT]
+        players = list(players)
+        random.shuffle(players)
+        return cls(
+            map=map,
+            conquistator_location=random.choice(deserts).coordinate,
+            turn_order=tuple(players),
+            players={
+                nickname: Player(
+                    cards=collections.Counter(),
+                    played_cards=collections.Counter(),
+                    resources=collections.Counter(),
+                    settlements=[],
+                    paths=[],
+                )
+                for nickname in players
+            },
+        )
+
     def add_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> Settlement:
@@ -203,3 +226,37 @@ def _vertex_aliases(q: int, r: int, d: int) -> set[tuple[int, int, int]]:
         (q + dq, r + dr, (d + 4) % 6),
         (q + dq5, r + dr5, (d + 2) % 6),
     }
+
+
+def _generate_map() -> Map:
+    types = (
+        [HexType.MOUNTAINS] * 3
+        + [HexType.QUARRIES] * 3
+        + [HexType.HIGHLANDS] * 4
+        + [HexType.VALLEYS] * 4
+        + [HexType.JUNGLE] * 4
+        + [HexType.DESERT]
+    )
+    random.shuffle(types)
+
+    numbers = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
+    random.shuffle(numbers)
+
+    map = []
+    for q in range(-2, 3):
+        for r in range(-2, 3):
+            try:
+                coord = HexCoordinate(q=q, r=r)
+            except ValueError:
+                continue
+            type = types.pop()
+            number = 7 if type is HexType.DESERT else numbers.pop()
+            map.append(
+                Hex(
+                    coordinate=coord,
+                    type=type,
+                    number=number,
+                )
+            )
+
+    return map

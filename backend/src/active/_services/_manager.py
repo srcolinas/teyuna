@@ -1,5 +1,3 @@
-import collections
-import random
 import uuid
 from collections.abc import Sequence
 from typing import Protocol
@@ -22,25 +20,7 @@ class GameManager:
         self,
         players: Sequence[player.Nickname],
     ) -> uuid.UUID:
-        map = _generate_map()
-        deserts = [hex for hex in map if hex.type == _entities.HexType.DESERT]
-        players = list(players)
-        random.shuffle(players)
-        game = _entities.ActiveGame(
-            map=map,
-            conquistator_location=random.choice(deserts).coordinate,
-            turn_order=tuple(players),
-            players={
-                nickname: _entities.Player(
-                    cards=collections.Counter(),
-                    played_cards=collections.Counter(),
-                    resources=collections.Counter(),
-                    settlements=[],
-                    paths=[],
-                )
-                for nickname in players
-            },
-        )
+        game = _entities.ActiveGame.create_new(players)
         return self._repository.add(game)
 
     def add_terrace(
@@ -55,37 +35,3 @@ class GameManager:
         game = self._repository.retrieve(id)
         settlement = game.add_terrace(nickname, q=q, r=r, direction=direction)
         return settlement
-
-
-def _generate_map() -> _entities.Map:
-    types = (
-        [_entities.HexType.MOUNTAINS] * 3
-        + [_entities.HexType.QUARRIES] * 3
-        + [_entities.HexType.HIGHLANDS] * 4
-        + [_entities.HexType.VALLEYS] * 4
-        + [_entities.HexType.JUNGLE] * 4
-        + [_entities.HexType.DESERT]
-    )
-    random.shuffle(types)
-
-    numbers = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
-    random.shuffle(numbers)
-
-    map = []
-    for q in range(-2, 3):
-        for r in range(-2, 3):
-            try:
-                coord = _entities.HexCoordinate(q=q, r=r)
-            except ValueError:
-                continue
-            type = types.pop()
-            number = 7 if type is _entities.HexType.DESERT else numbers.pop()
-            map.append(
-                _entities.Hex(
-                    coordinate=coord,
-                    type=type,
-                    number=number,
-                )
-            )
-
-    return map
