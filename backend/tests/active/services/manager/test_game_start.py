@@ -21,13 +21,13 @@ def test_active_game_exists_after_all_players_joined(
 @pytest.mark.flaky(reruns=3)
 def test_turn_order_is_random(repository: active.InMemoryActiveGameRepository) -> None:
     frequency: collections.Counter[tuple[str, ...]] = collections.Counter()
-    usernames = ["srcolinas-1", "srcolinas-2", "srcolinas-3"]
-    permutations = math.perm(len(usernames), len(usernames))
+    nicknames = ["srcolinas-1", "srcolinas-2", "srcolinas-3"]
+    permutations = math.perm(len(nicknames), len(nicknames))
     trials = 1000 * permutations
     for _ in range(trials):
         game_id = utils.create_game_and_add_players(
             active_repository=repository,
-            usernames=usernames,
+            nicknames=nicknames,
         )
         game = cast(active.entities.ActiveGame, repository.retrieve(game_id))
         frequency.update([game.turn_order])
@@ -91,7 +91,7 @@ def test_active_game_correctly_initialize_players(
 ) -> None:
     game_id = utils.create_game_and_add_players(
         active_repository=repository,
-        usernames=[
+        nicknames=[
             "srcolinas-0",
             "srcolinas-1",
             "srcolinas-2",

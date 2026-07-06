@@ -23,10 +23,10 @@ def create_game(
 
 
 class JoinGameRequest(pydantic.BaseModel):
-    username: str
+    nickname: player.Nickname
 
 
-@router.put("/{game_id}/players")
+@router.post("/{game_id}/players")
 def join_game(
     response: fastapi.Response,
     game_id: uuid.UUID,
@@ -43,7 +43,7 @@ def join_game(
     try:
         result, token = _add_player.add_player(
             game_id=game_id,
-            username=payload.username,
+            nickname=payload.nickname,
             repository=repository,
             manager=manager,
             auth=auth,

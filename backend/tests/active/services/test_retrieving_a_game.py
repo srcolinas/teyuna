@@ -50,7 +50,7 @@ def test_players(
 ) -> None:
     game_id = utils.create_game_and_add_players(
         active_repository=repository,
-        usernames=[
+        nicknames=[
             "srcolinas-0",
             "srcolinas-1",
             "srcolinas-2",
@@ -63,7 +63,7 @@ def test_players(
     assert len(game.players) == 3
     expected = [
         active.ports.Player(
-            username=f"srcolinas-{i}",
+            nickname=f"srcolinas-{i}",
             played_wisdom_cards=[],
             num_hidden_wisdom_cards=0,
             num_resources=0,
@@ -72,8 +72,8 @@ def test_players(
         )
         for i in range(3)
     ]
-    assert sorted(game.players, key=lambda p: p.username) == sorted(
-        expected, key=lambda p: p.username
+    assert sorted(game.players, key=lambda p: p.nickname) == sorted(
+        expected, key=lambda p: p.nickname
     )
 
 
@@ -104,7 +104,7 @@ def test_turn_order(
 ) -> None:
     game_id = utils.create_game_and_add_players(
         active_repository=repository,
-        usernames=["srcolinas-1", "srcolinas-2", "srcolinas-3"],
+        nicknames=["srcolinas-1", "srcolinas-2", "srcolinas-3"],
     )
     game = active.retrieve_game(game_id, repository=repository)
     assert game is not None

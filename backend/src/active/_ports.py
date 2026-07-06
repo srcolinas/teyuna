@@ -3,20 +3,21 @@ from typing import Annotated
 
 import pydantic
 
+from .. import player
 from . import _entities
 
 
 class PlayedSettlement(_entities.Settlement):
-    owner: str
+    owner: player.Nickname
 
 
 class PlayedStonePath(pydantic.BaseModel):
-    owner: str
+    owner: player.Nickname
     location: _entities.EdgeCoordinate
 
 
 class Player(pydantic.BaseModel):
-    username: str
+    nickname: player.Nickname
     played_wisdom_cards: list[_entities.WisdomCard] = []
     num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0
     num_resources: Annotated[int, pydantic.Field(ge=0)] = 0
@@ -31,4 +32,4 @@ class ActiveGame(pydantic.BaseModel):
     players: list[Player]
     settlements: list[PlayedSettlement]
     paths: list[PlayedStonePath]
-    turn_order: tuple[_entities.Username, ...]
+    turn_order: tuple[player.Nickname, ...]

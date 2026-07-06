@@ -11,7 +11,7 @@ def create_game_and_add_players(
     active_repository: active.InMemoryActiveGameRepository,
     max_players: int = 3,
     players_to_add: int = 3,
-    usernames: list[str] | None = None,
+    nicknames: list[player.Nickname] | None = None,
 ) -> uuid.UUID:
     auth = player.PlayerAuthenticationService()
     proposed_repository = proposed.InMemoryProposedGameRepository()
@@ -22,13 +22,13 @@ def create_game_and_add_players(
         expires_at=datetime.datetime.now() + datetime.timedelta(seconds=1),
     ).id
 
-    if usernames is None:
-        usernames = [f"srcolinas-{i}" for i in range(players_to_add)]
+    if nicknames is None:
+        nicknames = [f"srcolinas-{i}" for i in range(players_to_add)]
 
     for i in range(players_to_add - 1):
         proposed.add_player(
             game_id=proposed_game_id,
-            username=usernames[i],
+            nickname=nicknames[i],
             repository=proposed_repository,
             manager=manager,
             auth=auth,
@@ -36,7 +36,7 @@ def create_game_and_add_players(
 
     result, _ = proposed.add_player(
         game_id=proposed_game_id,
-        username=usernames[players_to_add - 1],
+        nickname=nicknames[players_to_add - 1],
         repository=proposed_repository,
         manager=manager,
         auth=auth,

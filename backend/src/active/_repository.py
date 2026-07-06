@@ -10,8 +10,9 @@ class InMemoryActiveGameRepository:
     def __init__(self) -> None:
         self._memory: dict[uuid.UUID, _entities.ActiveGame] = {}
 
-    def retrieve(self, id: uuid.UUID) -> _entities.ActiveGame | None:
-        return self._memory.get(id)
+    def retrieve(self, id: uuid.UUID) -> _entities.ActiveGame:
+        self._validate_game_exists(id)
+        return self._memory[id]
 
     def add(self, game: _entities.ActiveGame) -> uuid.UUID:
         id = uuid.uuid4()

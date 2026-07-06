@@ -19,7 +19,7 @@ def test_player_can_be_added_before_expiration(
     ).id
     result, _ = proposed.add_player(
         game_id=game_id,
-        username="srcolinas",
+        nickname="srcolinas",
         repository=repository,
         manager=manager,
         auth=auth,
@@ -40,7 +40,7 @@ def test_player_cannot_be_added_after_expiration(
     with pytest.raises(proposed.GameExpiredError):
         proposed.add_player(
             game_id=game_id,
-            username="srcolinas",
+            nickname="srcolinas",
             repository=repository,
             manager=manager,
             auth=auth,
@@ -60,14 +60,14 @@ def test_full_game_starts(
     for p in players[:-1]:
         proposed.add_player(
             game_id=game_id,
-            username=p,
+            nickname=p,
             repository=repository,
             manager=manager,
             auth=auth,
         )
     result, _ = proposed.add_player(
         game_id=game_id,
-        username=players[-1],
+        nickname=players[-1],
         repository=repository,
         manager=manager,
         auth=auth,
@@ -90,7 +90,7 @@ def test_not_full_game_is_not_started(
     for i in range(num_players - 1):
         result, _ = proposed.add_player(
             game_id=game_id,
-            username=f"srcolinas-{i}",
+            nickname=f"srcolinas-{i}",
             repository=repository,
             manager=manager,
             auth=auth,
@@ -105,9 +105,9 @@ def repository() -> proposed.InMemoryProposedGameRepository:
 
 class FakeManager:
     def __init__(self) -> None:
-        self.memory: dict[uuid.UUID, tuple[str, ...]] = {}
+        self.memory: dict[uuid.UUID, tuple[player.Nickname, ...]] = {}
 
-    def start(self, players: tuple[str, ...]) -> uuid.UUID:
+    def start(self, players: tuple[player.Nickname, ...]) -> uuid.UUID:
         id = uuid.uuid4()
         self.memory[id] = players
         return id

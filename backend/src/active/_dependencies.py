@@ -31,10 +31,11 @@ def get_game(
         fastapi.Depends(get_repository),
     ],
 ) -> _ports.ActiveGame:
-    game = _retrieve.retrieve_game(
-        game_id, repository=cast(_retrieve.RetrieveGameRepository, repository)
-    )
-    if game is None:
+    try:
+        game = _retrieve.retrieve_game(
+            game_id, repository=cast(_retrieve.RetrieveGameRepository, repository)
+        )
+    except _repository.ActiveGameDoesNotExistError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return game
 
@@ -43,7 +44,7 @@ def get_player(
     auth: Annotated[
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
-    session_token: Annotated[str | None, fastapi.Cookie()] = None,
+    session_token: Annotated[str | None, fastapi.Cookie(alias="session-token")] = None,
 ) -> player.Nickname:
     if session_token is None:
         raise fastapi.HTTPException(

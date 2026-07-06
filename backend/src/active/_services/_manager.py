@@ -4,11 +4,12 @@ import uuid
 from collections.abc import Sequence
 from typing import Protocol
 
+from ... import player
 from .. import _entities
 
 
 class ManagedGameRepository(Protocol):
-    def retrieve(self, id: uuid.UUID) -> _entities.ActiveGame | None: ...
+    def retrieve(self, id: uuid.UUID) -> _entities.ActiveGame: ...
 
     def add(self, game: _entities.ActiveGame) -> uuid.UUID: ...
 
@@ -19,7 +20,7 @@ class GameManager:
 
     def start(
         self,
-        players: Sequence[_entities.Username],
+        players: Sequence[player.Nickname],
     ) -> uuid.UUID:
         map = _generate_map()
         deserts = [hex for hex in map if hex.type == _entities.HexType.DESERT]
@@ -30,20 +31,30 @@ class GameManager:
             conquistator_location=random.choice(deserts).coordinate,
             turn_order=tuple(players),
             players={
-                username: _entities.Player(
+                nickname: _entities.Player(
                     cards=collections.Counter(),
                     played_cards=collections.Counter(),
                     resources=collections.Counter(),
                     settlements=[],
                     paths=[],
                 )
-                for username in players
+                for nickname in players
             },
         )
         return self._repository.add(game)
 
-    def add_terrace(self, player: _entities.Username) -> None:
-        raise NotImplementedError
+    def add_terrace(
+        self,
+        id: uuid.UUID,
+        nickname: player.Nickname,
+        *,
+        q: int,
+        r: int,
+        direction: int,
+    ) -> _entities.Settlement:
+        game = self._repository.retrieve(id)
+        settlement = game.add_terrace(nickname, q=q, r=r, direction=direction)
+        return settlement
 
 
 def _generate_map() -> _entities.Map:

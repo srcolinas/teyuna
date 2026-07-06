@@ -18,7 +18,7 @@ class AddPlayerGameRepository(Protocol):
     def retrieve(self, id: uuid.UUID) -> _entities.ProposedGame: ...
 
     def add_player(
-        self, game_id: uuid.UUID, username: str
+        self, game_id: uuid.UUID, nickname: player.Nickname
     ) -> _entities.ProposedGame: ...
 
 
@@ -28,13 +28,13 @@ class PlayerAddedResult(pydantic.BaseModel):
 
 
 class GameManager(Protocol):
-    def start(self, players: tuple[str, ...]) -> uuid.UUID: ...
+    def start(self, players: tuple[player.Nickname, ...]) -> uuid.UUID: ...
 
 
 def add_player(
     *,
     game_id: uuid.UUID,
-    username: str,
+    nickname: player.Nickname,
     repository: AddPlayerGameRepository,
     manager: GameManager,
     auth: player.PlayerAuthenticationService,
@@ -46,8 +46,8 @@ def add_player(
     if game.expires_at < datetime.datetime.now():
         raise GameExpiredError
 
-    token = auth.add(username)
-    proposed = repository.add_player(game_id=game_id, username=username)
+    token = auth.add(nickname)
+    proposed = repository.add_player(game_id=game_id, nickname=nickname)
     if proposed.max_players == len(proposed.players):
         id = manager.start(players=tuple(proposed.players))
         return PlayerAddedResult(proposed=proposed, game=id), token

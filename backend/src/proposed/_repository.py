@@ -1,13 +1,14 @@
 import datetime
 import uuid
 
+from .. import player
 from . import _entities
 
 
 class ProposedGameDoesNotExistError(Exception): ...
 
 
-class UsernameAlreadyExists(Exception): ...
+class NicknameAlreadyExists(Exception): ...
 
 
 class InMemoryProposedGameRepository:
@@ -30,12 +31,14 @@ class InMemoryProposedGameRepository:
         self._validate_game_exists(id)
         return self._proposed[id]
 
-    def add_player(self, game_id: uuid.UUID, username: str) -> _entities.ProposedGame:
+    def add_player(
+        self, game_id: uuid.UUID, nickname: player.Nickname
+    ) -> _entities.ProposedGame:
         self._validate_game_exists(game_id)
         game = self._proposed[game_id]
-        if username in game.players:
-            raise UsernameAlreadyExists
-        game.players.add(username)
+        if nickname in game.players:
+            raise NicknameAlreadyExists
+        game.players.add(nickname)
         return game
 
     def _validate_game_exists(self, id: uuid.UUID) -> None:

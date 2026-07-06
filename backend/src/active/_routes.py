@@ -2,7 +2,6 @@ import uuid
 from typing import Annotated
 
 import fastapi
-import pydantic
 from fastapi import status
 
 from .. import player
@@ -39,17 +38,13 @@ def list_players(
     return game.players
 
 
-class JoinGameRequest(pydantic.BaseModel):
-    username: str
-
-
-@router.get("/{game_id}/players/{username}")
+@router.get("/{game_id}/players/{nickname}")
 def get_player(
-    username: str,
+    nickname: player.Nickname,
     game: Annotated[_ports.ActiveGame, fastapi.Depends(_dependencies.get_game)],
 ) -> _ports.Player:
     for p in game.players:
-        if p.username == username:
+        if p.nickname == nickname:
             return p
     raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
@@ -92,7 +87,12 @@ def add_settlement(
         _manager.GameManager, fastapi.Depends(_dependencies.get_game_manager)
     ],
 ) -> _ports.PlayedSettlement:
-    raise NotImplementedError
+    settlement = manager.add_terrace(game_id, nickname, q=q, r=r, direction=direction)
+    return _ports.PlayedSettlement(
+        location=settlement.location,
+        type=settlement.type,
+        owner=nickname,
+    )
 
 
 # --- Stone paths (buildings) ---
