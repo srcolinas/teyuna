@@ -133,6 +133,10 @@ class InvalidSettlementLocation(Exception):
     pass
 
 
+class PlayerNotInTurn(Exception):
+    pass
+
+
 _NEIGHBOR: Final[list[tuple[int, int]]] = [
     (1, -1),
     (1, 0),
@@ -186,6 +190,9 @@ class ActiveGame:
     def add_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> Settlement:
+        if to != self.turn_order[0]:
+            raise PlayerNotInTurn
+
         desired = (q, r, direction)
         if desired not in self._available_settlement_locations:
             raise InvalidSettlementLocation
