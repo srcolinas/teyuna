@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from ... import player
-from .. import _entities
+from .. import _entities, _ports
 
 
 class ManagedGameRepository(Protocol):
@@ -31,7 +31,13 @@ class GameManager:
         q: int,
         r: int,
         direction: int,
-    ) -> _entities.Settlement:
+    ) -> _ports.PlayedSettlement:
         game = self._repository.retrieve(id)
-        settlement = game.add_terrace(nickname, q=q, r=r, direction=direction)
-        return settlement
+        game.add_terrace(nickname, q=q, r=r, direction=direction)
+        return _ports.PlayedSettlement(
+            owner=nickname,
+            location=_entities.VertexCoordinate(
+                hex_coord=_entities.HexCoordinate(q=q, r=r), direction=direction
+            ),
+            type=_entities.SettlementType.TERRACE,
+        )

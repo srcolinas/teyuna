@@ -6,6 +6,7 @@ import fastapi
 from fastapi import testclient
 
 from src import active, player
+from src.active import ports, entities
 
 from . import utils
 
@@ -31,11 +32,12 @@ def test_player_can_add_settlement(
         "type": "terrace",
         "owner": "srcolinas-3",
     }
-    assert manager.added["srcolinas-3"] == active.entities.Settlement(
-        location=active.entities.VertexCoordinate(
-            hex_coord=active.entities.HexCoordinate(q=0, r=0), direction=0
+    assert manager.added["srcolinas-3"] == ports.PlayedSettlement(
+        owner="srcolinas-3",
+        location=entities.VertexCoordinate(
+            hex_coord=entities.HexCoordinate(q=0, r=0), direction=0
         ),
-        type=active.entities.SettlementType.TERRACE,
+        type=entities.SettlementType.TERRACE,
     )
 
 
@@ -44,7 +46,7 @@ class FakeGameManager(active.GameManager):
         self,
         invalid_for: set[player.Nickname] | None = None,
     ) -> None:
-        self.added: dict[player.Nickname, active.entities.Settlement] = {}
+        self.added: dict[player.Nickname, ports.PlayedSettlement] = {}
         self._invalid_for = invalid_for or set()
         super().__init__(active.InMemoryActiveGameRepository())
 
@@ -56,14 +58,14 @@ class FakeGameManager(active.GameManager):
         q: int,
         r: int,
         direction: int,
-    ) -> active.entities.Settlement:
+    ) -> ports.PlayedSettlement:
         if nickname in self._invalid_for:
             raise ValueError
-        settlement = active.entities.Settlement(
-            location=active.entities.VertexCoordinate(
-                hex_coord=active.entities.HexCoordinate(q=0, r=0), direction=0
+        self.added[nickname] = ports.PlayedSettlement(
+            owner=nickname,
+            location=entities.VertexCoordinate(
+                hex_coord=active.entities.HexCoordinate(q=q, r=r), direction=direction
             ),
-            type=active.entities.SettlementType.TERRACE,
+            type=entities.SettlementType.TERRACE,
         )
-        self.added[nickname] = settlement
-        return settlement
+        return self.added[nickname]

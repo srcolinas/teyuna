@@ -7,8 +7,10 @@ from .. import player
 from . import _entities
 
 
-class PlayedSettlement(_entities.Settlement):
+class PlayedSettlement(pydantic.BaseModel):
     owner: player.Nickname
+    location: _entities.VertexCoordinate
+    type: _entities.SettlementType
 
 
 class PlayedStonePath(pydantic.BaseModel):
@@ -21,7 +23,8 @@ class Player(pydantic.BaseModel):
     played_wisdom_cards: list[_entities.WisdomCard] = []
     num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0
     num_resources: Annotated[int, pydantic.Field(ge=0)] = 0
-    available_settlements: list[_entities.Settlement] = []
+    available_teraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
+    available_great_teraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
     available_paths: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
 
 

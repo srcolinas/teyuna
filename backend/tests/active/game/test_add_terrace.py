@@ -4,24 +4,26 @@ import pytest
 
 from src.active import entities
 
+from ... import utils
 
-def test_terrace_can_be_added_by_player_in_turn() -> None:
-    game = entities.ActiveGame.create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])
+
+def test_terrace_can_be_added_by_player_in_turn(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
-    settlement = game.add_terrace(nickname, q=0, r=0, direction=0)
-    assert settlement == entities.Settlement(
-        location=entities.VertexCoordinate(
-            hex_coord=entities.HexCoordinate(q=0, r=0), direction=0
-        ),
-        type=entities.SettlementType.TERRACE,
+    with utils.assert_not_raises(Exception):
+        game.add_terrace(nickname, q=0, r=0, direction=0)
+
+
+def test_terrace_is_added_to_game_object(game: entities.ActiveGame) -> None:
+    nickname = game.turn_order[0]
+    game.add_terrace(nickname, q=0, r=0, direction=0)
+    assert (
+        game.players[nickname].settlements[
+            entities.VertexCoordinate(
+                hex_coord=entities.HexCoordinate(q=0, r=0), direction=0
+            )
+        ]
+        is entities.SettlementType.TERRACE
     )
-
-
-def test_terrace_is_added_to_game_object() -> None:
-    game = entities.ActiveGame.create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])
-    nickname = game.turn_order[0]
-    settlement = game.add_terrace(nickname, q=0, r=0, direction=0)
-    assert game.players[nickname].settlements[settlement.location] == settlement.type
 
 
 @pytest.mark.parametrize(
@@ -46,8 +48,8 @@ def test_terrace_is_added_to_game_object() -> None:
 def test_terrace_cannot_be_added_to_restricted_location(
     valid: tuple[int, int, int],
     invalid: tuple[int, int, int],
+    game: entities.ActiveGame,
 ) -> None:
-    game = entities.ActiveGame.create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])
     nickname = game.turn_order[0]
     q, r, d = valid
     game.add_terrace(nickname, q=q, r=r, direction=d)
@@ -57,8 +59,9 @@ def test_terrace_cannot_be_added_to_restricted_location(
         game.add_terrace(nickname, q=q, r=r, direction=d)
 
 
-def test_terrace_cannot_be_added_by_player_not_in_turn() -> None:
-    game = entities.ActiveGame.create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])
+def test_terrace_cannot_be_added_by_player_not_in_turn(
+    game: entities.ActiveGame,
+) -> None:
     nickname = game.turn_order[1]
     with pytest.raises(entities.PlayerNotInTurn):
         game.add_terrace(nickname, q=0, r=0, direction=0)

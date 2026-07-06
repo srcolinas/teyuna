@@ -1,3 +1,4 @@
+import collections
 import uuid
 from typing import Protocol
 
@@ -41,6 +42,7 @@ def retrieve_game(
 def _to_port_player(
     nickname: player.Nickname, entity_player: _entities.Player
 ) -> _ports.Player:
+    counts = collections.Counter(entity_player.settlements.values())
     return _ports.Player(
         nickname=nickname,
         played_wisdom_cards=[
@@ -50,9 +52,9 @@ def _to_port_player(
         ],
         num_hidden_wisdom_cards=sum(entity_player.cards.values()),
         num_resources=sum(entity_player.resources.values()),
-        available_settlements=[
-            _entities.Settlement(location=location, type=type)
-            for location, type in entity_player.settlements.items()
-        ],
-        available_paths=max(0, 15 - len(entity_player.paths)),
+        available_teraces=_entities.MAX_TERRACES
+        - counts[_entities.SettlementType.TERRACE],
+        available_great_teraces=_entities.MAX_GREAT_TERRACES
+        - counts[_entities.SettlementType.GREAT_TERRACE],
+        available_paths=_entities.MAX_PATHS - len(entity_player.paths),
     )

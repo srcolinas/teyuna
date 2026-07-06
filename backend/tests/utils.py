@@ -47,7 +47,7 @@ def create_game_and_add_players(
 
 
 @contextlib.contextmanager
-def not_raises(ExpectedException):
+def assert_not_raises(ExpectedException):
     try:
         yield
 

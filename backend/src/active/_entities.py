@@ -10,6 +10,10 @@ import pydantic
 
 from .. import player
 
+MAX_TERRACES: Final[int] = 5
+MAX_PATHS: Final[int] = 15
+MAX_GREAT_TERRACES: Final[int] = 4
+
 
 class HexType(str, Enum):
     """Types of hex tiles on the board."""
@@ -115,11 +119,6 @@ class SettlementType(str, Enum):
     GREAT_TERRACE = "great terrace"
 
 
-class Settlement(pydantic.BaseModel):
-    location: VertexCoordinate
-    type: SettlementType
-
-
 @dataclasses.dataclass
 class Player:
     cards: collections.Counter[WisdomCard]
@@ -198,7 +197,7 @@ class ActiveGame:
 
     def add_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
-    ) -> Settlement:
+    ) -> None:
         if to != self.turn_order[0]:
             raise PlayerNotInTurn
 
@@ -225,18 +224,13 @@ class ActiveGame:
 
         self._available_settlement_locations.difference_update(affected)
 
-        settlement = Settlement(
-            location=VertexCoordinate(
-                hex_coord=HexCoordinate(q=q, r=r), direction=direction
-            ),
-            type=SettlementType.TERRACE,
-        )
-        self.players[to].settlements[settlement.location] = settlement.type
-        return settlement
+        self.players[to].settlements[
+            VertexCoordinate(hex_coord=HexCoordinate(q=q, r=r), direction=direction)
+        ] = SettlementType.TERRACE
 
     def add_path(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
-    ) -> EdgeCoordinate:
+    ) -> None:
         if to != self.turn_order[0]:
             raise PlayerNotInTurn
 
@@ -250,7 +244,6 @@ class ActiveGame:
 
         path = EdgeCoordinate(hex_coord=HexCoordinate(q=q, r=r), direction=direction)
         self.players[to].paths.add(path)
-        return path
 
 
 def _vertex_aliases(q: int, r: int, d: int) -> set[tuple[int, int, int]]:

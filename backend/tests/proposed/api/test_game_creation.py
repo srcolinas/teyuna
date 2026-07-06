@@ -25,5 +25,5 @@ def test_game_id_is_included(client: testclient.TestClient) -> None:
     response = client.post("/proposed-games", json={})
     print(response.text)
     payload = response.json()
-    with utils.not_raises(ValueError):
+    with utils.assert_not_raises(ValueError):
         uuid.UUID(payload["id"])
