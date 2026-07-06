@@ -133,6 +133,10 @@ class InvalidSettlementLocation(Exception):
     pass
 
 
+class InvalidPathLocation(Exception):
+    pass
+
+
 class PlayerNotInTurn(Exception):
     pass
 
@@ -157,13 +161,18 @@ class ActiveGame:
     _available_settlement_locations: set[tuple[int, int, int]] = dataclasses.field(
         default_factory=set, init=False, repr=False
     )
+    _available_path_locations: set[tuple[int, int, int]] = dataclasses.field(
+        default_factory=set, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
-        self._available_settlement_locations = {
-            (q, r, d)
-            for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6))
-            if (q, r) not in {(-2, -2), (-2, -1), (-1, -2), (1, 2), (2, 1), (2, 2)}
-        }
+        invalid = {(-2, -2), (-2, -1), (-1, -2), (1, 2), (2, 1), (2, 2)}
+        self._available_settlement_locations = set()
+        self._available_path_locations = set()
+        for item in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
+            if item not in invalid:
+                self._available_settlement_locations.add(item)
+                self._available_path_locations.add(item)
 
     @classmethod
     def create_new(cls, players: Sequence[player.Nickname]) -> Self:
@@ -224,6 +233,24 @@ class ActiveGame:
         )
         self.players[to].settlements.append(settlement)
         return settlement
+
+    def add_path(
+        self, to: player.Nickname, /, *, q: int, r: int, direction: int
+    ) -> EdgeCoordinate:
+        if to != self.turn_order[0]:
+            raise PlayerNotInTurn
+
+        desired = (q, r, direction)
+        if desired not in self._available_path_locations:
+            raise InvalidPathLocation
+
+        dq, dr = _NEIGHBOR[direction]
+        alias = (q + dq, r + dr, (direction + 3) % 6)
+        self._available_path_locations.difference_update([alias, desired])
+
+        path = EdgeCoordinate(hex_coord=HexCoordinate(q=q, r=r), direction=direction)
+        self.players[to].paths.append(path)
+        return path
 
 
 def _vertex_aliases(q: int, r: int, d: int) -> set[tuple[int, int, int]]:
