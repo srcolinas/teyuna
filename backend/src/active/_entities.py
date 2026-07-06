@@ -125,8 +125,8 @@ class Player:
     cards: collections.Counter[WisdomCard]
     played_cards: collections.Counter[WisdomCard]
     resources: collections.Counter[ResourceCard]
-    settlements: list[Settlement]
-    paths: list[EdgeCoordinate]
+    settlements: dict[VertexCoordinate, SettlementType]
+    paths: set[EdgeCoordinate]
 
 
 class InvalidSettlementLocation(Exception):
@@ -189,8 +189,8 @@ class ActiveGame:
                     cards=collections.Counter(),
                     played_cards=collections.Counter(),
                     resources=collections.Counter(),
-                    settlements=[],
-                    paths=[],
+                    settlements=dict(),
+                    paths=set(),
                 )
                 for nickname in players
             },
@@ -231,7 +231,7 @@ class ActiveGame:
             ),
             type=SettlementType.TERRACE,
         )
-        self.players[to].settlements.append(settlement)
+        self.players[to].settlements[settlement.location] = settlement.type
         return settlement
 
     def add_path(
@@ -249,7 +249,7 @@ class ActiveGame:
         self._available_path_locations.difference_update([alias, desired])
 
         path = EdgeCoordinate(hex_coord=HexCoordinate(q=q, r=r), direction=direction)
-        self.players[to].paths.append(path)
+        self.players[to].paths.add(path)
         return path
 
 

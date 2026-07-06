@@ -21,7 +21,7 @@ def test_terrace_is_added_to_game_object() -> None:
     game = entities.ActiveGame.create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])
     nickname = game.turn_order[0]
     settlement = game.add_terrace(nickname, q=0, r=0, direction=0)
-    assert game.players[nickname].settlements[0] == settlement
+    assert game.players[nickname].settlements[settlement.location] == settlement.type
 
 
 @pytest.mark.parametrize(

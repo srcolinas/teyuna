@@ -25,7 +25,7 @@ def test_path_is_added_to_game_object() -> None:
     game = entities.ActiveGame.create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])
     nickname = game.turn_order[0]
     path = game.add_path(nickname, q=0, r=0, direction=0)
-    assert game.players[nickname].paths[0] == path
+    assert game.players[nickname].paths == {path}
 
 
 @pytest.mark.parametrize(

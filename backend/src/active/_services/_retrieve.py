@@ -16,16 +16,16 @@ def retrieve_game(
     players, settlements, paths = [], [], []
     for nickname, entity_player in game.players.items():
         players.append(_to_port_player(nickname, entity_player))
-        for settlement in entity_player.settlements:
+        for location, type in entity_player.settlements.items():
             settlements.append(
                 _ports.PlayedSettlement(
-                    location=settlement.location,
-                    type=settlement.type,
+                    location=location,
+                    type=type,
                     owner=nickname,
                 )
             )
-        for location in entity_player.paths:
-            paths.append(_ports.PlayedStonePath(owner=nickname, location=location))
+        for path in entity_player.paths:
+            paths.append(_ports.PlayedStonePath(owner=nickname, location=path))
 
     return _ports.ActiveGame(
         id=id,
@@ -50,6 +50,9 @@ def _to_port_player(
         ],
         num_hidden_wisdom_cards=sum(entity_player.cards.values()),
         num_resources=sum(entity_player.resources.values()),
-        available_settlements=list(entity_player.settlements),
+        available_settlements=[
+            _entities.Settlement(location=location, type=type)
+            for location, type in entity_player.settlements.items()
+        ],
         available_paths=max(0, 15 - len(entity_player.paths)),
     )
