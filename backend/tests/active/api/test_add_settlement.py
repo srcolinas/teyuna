@@ -34,8 +34,8 @@ def test_player_can_add_settlement(
     }
     assert manager.added["srcolinas-3"] == ports.PlayedSettlement(
         owner="srcolinas-3",
-        location=entities.VertexCoordinate(
-            hex_coord=entities.HexCoordinate(q=0, r=0), direction=0
+        location=ports.VertexCoordinate(
+            hex_coord=ports.HexCoordinate(q=0, r=0), direction=0
         ),
         type=entities.SettlementType.TERRACE,
     )
@@ -63,8 +63,8 @@ class FakeGameManager(active.GameManager):
             raise ValueError
         self.added[nickname] = ports.PlayedSettlement(
             owner=nickname,
-            location=entities.VertexCoordinate(
-                hex_coord=active.entities.HexCoordinate(q=q, r=r), direction=direction
+            location=ports.VertexCoordinate(
+                hex_coord=ports.HexCoordinate(q=q, r=r), direction=direction
             ),
             type=entities.SettlementType.TERRACE,
         )

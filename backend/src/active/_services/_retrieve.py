@@ -20,18 +20,35 @@ def retrieve_game(
         for location, type in entity_player.settlements.items():
             settlements.append(
                 _ports.PlayedSettlement(
-                    location=location,
+                    location=_ports.VertexCoordinate(
+                        hex_coord=_ports.HexCoordinate(
+                            q=location.hex_coord.q, r=location.hex_coord.r
+                        ),
+                        direction=location.direction,
+                    ),
                     type=type,
                     owner=nickname,
                 )
             )
         for path in entity_player.paths:
-            paths.append(_ports.PlayedStonePath(owner=nickname, location=path))
+            paths.append(
+                _ports.PlayedStonePath(
+                    owner=nickname,
+                    location=_ports.EdgeCoordinate(
+                        hex_coord=_ports.HexCoordinate(
+                            q=path.hex_coord.q, r=path.hex_coord.r
+                        ),
+                        direction=path.direction,
+                    ),
+                )
+            )
 
     return _ports.ActiveGame(
         id=id,
         map=game.map,
-        conquistator_location=game.conquistator_location,
+        conquistator_location=_ports.HexCoordinate(
+            q=game.conquistator_location.q, r=game.conquistator_location.r
+        ),
         players=players,
         settlements=settlements,
         paths=paths,

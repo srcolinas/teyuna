@@ -36,8 +36,8 @@ class GameManager:
         game.add_terrace(nickname, q=q, r=r, direction=direction)
         return _ports.PlayedSettlement(
             owner=nickname,
-            location=_entities.VertexCoordinate(
-                hex_coord=_entities.HexCoordinate(q=q, r=r), direction=direction
+            location=_ports.VertexCoordinate(
+                hex_coord=_ports.HexCoordinate(q=q, r=r), direction=direction
             ),
             type=_entities.SettlementType.TERRACE,
         )

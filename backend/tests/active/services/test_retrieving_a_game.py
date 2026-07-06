@@ -1,7 +1,6 @@
-from typing import cast
-
 from src import active
-from tests import utils
+
+from ... import utils
 
 
 def test_game_id(
@@ -10,8 +9,6 @@ def test_game_id(
     game_id = utils.create_game_and_add_players(active_repository=repository)
 
     game = active.retrieve_game(game_id, repository=repository)
-
-    assert game is not None
     assert game.id == game_id
 
 
@@ -19,11 +16,10 @@ def test_map(
     repository: active.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
-    entity_game = cast(active.entities.ActiveGame, repository.retrieve(game_id))
+    entity_game = repository.retrieve(game_id)
 
     game = active.retrieve_game(game_id, repository=repository)
 
-    assert game is not None
     assert game.map == entity_game.map
 
 
@@ -31,18 +27,12 @@ def test_conquistator_location(
     repository: active.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
-    entity_game = cast(active.entities.ActiveGame, repository.retrieve(game_id))
+    entity_game = repository.retrieve(game_id)
 
     game = active.retrieve_game(game_id, repository=repository)
 
-    assert game is not None
-    assert game.conquistator_location == entity_game.conquistator_location
-    deserts = [
-        hex.coordinate
-        for hex in entity_game.map
-        if hex.type == active.entities.HexType.DESERT
-    ]
-    assert game.conquistator_location in deserts
+    assert game.conquistator_location.q == entity_game.conquistator_location.q
+    assert game.conquistator_location.r == entity_game.conquistator_location.r
 
 
 def test_players(

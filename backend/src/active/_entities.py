@@ -4,9 +4,7 @@ import itertools
 import random
 from collections.abc import Mapping
 from enum import Enum
-from typing import Annotated, Final, Self, Sequence
-
-import pydantic
+from typing import Final, Self, Sequence, NamedTuple
 
 from .. import player
 
@@ -26,40 +24,18 @@ class HexType(str, Enum):
     DESERT = "desert"
 
 
-class HexCoordinate(pydantic.BaseModel):
+class HexCoordinate(NamedTuple):
     """Axial coordinate for hex grid positioning.
 
     Uses the axial coordinate system (q, r) which is standard for hex grids.
     See: https://www.redblobgames.com/grids/hexagons/.
     """
 
-    q: Annotated[
-        int,
-        pydantic.Field(
-            ge=-2,
-            le=2,
-            description="0 along the top left to bottom right diagonal of the board, positives to the right",
-        ),
-    ]
-    r: Annotated[
-        int,
-        pydantic.Field(
-            ge=-2,
-            le=2,
-            description="0 along the horizontal axes of the board, positives to the bottom",
-        ),
-    ]
-
-    model_config = pydantic.ConfigDict(frozen=True)
-
-    @pydantic.model_validator(mode="after")
-    def check_hex_is_valid(self) -> Self:
-        if (self.q, self.r) in {(-2, -2), (-2, -1), (-1, -2), (1, 2), (2, 1), (2, 2)}:
-            raise ValueError("Hex coordinate is invalid")
-        return self
+    q: int
+    r: int
 
 
-class VertexCoordinate(pydantic.BaseModel):
+class VertexCoordinate(NamedTuple):
     """Coordinate for a vertex (corner) of a hex.
 
     A vertex is identified by its adjacent hex and a direction (0-5).
@@ -67,12 +43,10 @@ class VertexCoordinate(pydantic.BaseModel):
     """
 
     hex_coord: HexCoordinate
-    direction: Annotated[int, pydantic.Field(ge=0, le=5)]
-
-    model_config = pydantic.ConfigDict(frozen=True)
+    direction: int
 
 
-class EdgeCoordinate(pydantic.BaseModel):
+class EdgeCoordinate(NamedTuple):
     """Coordinate for an edge (side) of a hex.
 
     An edge is identified by its adjacent hex and a direction (0-5).
@@ -80,19 +54,15 @@ class EdgeCoordinate(pydantic.BaseModel):
     """
 
     hex_coord: HexCoordinate
-    direction: Annotated[int, pydantic.Field(ge=0, le=5)]
-
-    model_config = pydantic.ConfigDict(frozen=True)
+    direction: int
 
 
-class Hex(pydantic.BaseModel):
+class Hex(NamedTuple):
     """A hex tile on the game board."""
 
     coordinate: HexCoordinate
     type: HexType
-    number: Annotated[int, pydantic.Field(default=None, ge=2, le=12)]
-
-    model_config = pydantic.ConfigDict(frozen=True)
+    number: int
 
 
 type Map = list[Hex]
@@ -140,16 +110,6 @@ class PlayerNotInTurn(Exception):
     pass
 
 
-_NEIGHBOR: Final[list[tuple[int, int]]] = [
-    (1, -1),
-    (1, 0),
-    (0, 1),
-    (-1, 1),
-    (-1, 0),
-    (0, -1),
-]
-
-
 @dataclasses.dataclass
 class ActiveGame:
     map: Map
@@ -165,11 +125,10 @@ class ActiveGame:
     )
 
     def __post_init__(self) -> None:
-        invalid = {(-2, -2), (-2, -1), (-1, -2), (1, 2), (2, 1), (2, 2)}
         self._available_settlement_locations = set()
         self._available_path_locations = set()
         for item in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
-            if item not in invalid:
+            if item not in _INVALID_HEX_COORDINATES:
                 self._available_settlement_locations.add(item)
                 self._available_path_locations.add(item)
 
@@ -256,28 +215,24 @@ def _vertex_aliases(q: int, r: int, d: int) -> set[tuple[int, int, int]]:
 
 
 def _generate_map() -> Map:
-    types = (
-        [HexType.MOUNTAINS] * 3
-        + [HexType.QUARRIES] * 3
-        + [HexType.HIGHLANDS] * 4
-        + [HexType.VALLEYS] * 4
-        + [HexType.JUNGLE] * 4
-        + [HexType.DESERT]
-    )
-    random.shuffle(types)
-
-    numbers = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
-    random.shuffle(numbers)
+    random.shuffle(_TYPES)
+    random.shuffle(_NUMBERS)
 
     map = []
+    type_idx = -1
+    number_idx = -1
     for q in range(-2, 3):
         for r in range(-2, 3):
-            try:
-                coord = HexCoordinate(q=q, r=r)
-            except ValueError:
+            if (q, r) in _INVALID_HEX_COORDINATES:
                 continue
-            type = types.pop()
-            number = 7 if type is HexType.DESERT else numbers.pop()
+            type_idx += 1
+            coord = HexCoordinate(q=q, r=r)
+            type = _TYPES[type_idx]
+            if type is HexType.DESERT:
+                number = 7
+            else:
+                number_idx += 1
+                number = _NUMBERS[number_idx]
             map.append(
                 Hex(
                     coordinate=coord,
@@ -287,3 +242,32 @@ def _generate_map() -> Map:
             )
 
     return map
+
+
+_TYPES = (
+    [HexType.MOUNTAINS] * 3
+    + [HexType.QUARRIES] * 3
+    + [HexType.HIGHLANDS] * 4
+    + [HexType.VALLEYS] * 4
+    + [HexType.JUNGLE] * 4
+    + [HexType.DESERT]
+)
+_NUMBERS = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
+
+_INVALID_HEX_COORDINATES: Final[set[tuple[int, int]]] = {
+    (-2, -2),
+    (-2, -1),
+    (-1, -2),
+    (1, 2),
+    (2, 1),
+    (2, 2),
+}
+
+_NEIGHBOR: Final[list[tuple[int, int]]] = [
+    (1, -1),
+    (1, 0),
+    (0, 1),
+    (-1, 1),
+    (-1, 0),
+    (0, -1),
+]
