@@ -90,6 +90,10 @@ class PlayerNotInTurn(Exception):
     pass
 
 
+class InsufficientResources(Exception):
+    pass
+
+
 @dataclasses.dataclass
 class ActiveGame:
     map: Map
@@ -226,6 +230,28 @@ class ActiveGame:
 
         self._free_edges.remove(target)
         self.players[to].paths.add(target)
+
+    def buy_terrace(
+        self, to: player.Nickname, /, *, q: int, r: int, direction: int
+    ) -> None:
+        resources = self.players[to].resources
+        if resources[ResourceCard.STONE] < 1:
+            raise InsufficientResources
+
+        if resources[ResourceCard.WOOD] < 1:
+            raise InsufficientResources
+
+        if resources[ResourceCard.COTTON] < 1:
+            raise InsufficientResources
+
+        if resources[ResourceCard.MAIZE] < 1:
+            raise InsufficientResources
+
+        self.add_terrace(to, q=q, r=r, direction=direction)
+        resources[ResourceCard.STONE] -= 1
+        resources[ResourceCard.WOOD] -= 1
+        resources[ResourceCard.COTTON] -= 1
+        resources[ResourceCard.MAIZE] -= 1
 
 
 def _canonical_vertex(q: int, r: int, d: int) -> Coordinate:
