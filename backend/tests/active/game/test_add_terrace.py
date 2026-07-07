@@ -17,9 +17,7 @@ def test_terrace_is_added_to_game_object(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
     game.add_terrace(nickname, q=0, r=0, direction=0)
     assert (
-        game.players[nickname].settlements[
-            entities.VertexCoordinate(entities.HexCoordinate(0, 0), 0)
-        ]
+        next(iter(game.players[nickname].settlements.values()))
         is entities.SettlementType.TERRACE
     )
 

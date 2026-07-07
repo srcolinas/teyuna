@@ -41,9 +41,7 @@ def test_conquistator_is_located_in_desert_when_game_starts(
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
     game = cast(active.entities.ActiveGame, repository.retrieve(game_id))
-    deserts = [
-        hex.coordinate for hex in game.map if hex.type == active.entities.HexType.DESERT
-    ]
+    deserts = [hex for hex in game.map if hex.type is active.entities.HexType.DESERT]
     assert game.conquistator_location in deserts
 
 

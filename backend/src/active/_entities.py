@@ -24,43 +24,23 @@ class HexType(str, Enum):
     DESERT = "desert"
 
 
-class HexCoordinate(NamedTuple):
-    """Axial coordinate for hex grid positioning.
+class Coordinate(NamedTuple):
+    """Coordinate for a vertex (corner) or edge of a hex.
 
-    Uses the axial coordinate system (q, r) which is standard for hex grids.
-    See: https://www.redblobgames.com/grids/hexagons/.
+    A vertex or edge is identified by its adjacent hex and a direction (0-5).
+    Direction 0 is the top vertex, going clockwise.
     """
 
     q: int
     r: int
-
-
-class VertexCoordinate(NamedTuple):
-    """Coordinate for a vertex (corner) of a hex.
-
-    A vertex is identified by its adjacent hex and a direction (0-5).
-    Direction 0 is the top vertex, going clockwise.
-    """
-
-    hex_coord: HexCoordinate
-    direction: int
-
-
-class EdgeCoordinate(NamedTuple):
-    """Coordinate for an edge (side) of a hex.
-
-    An edge is identified by its adjacent hex and a direction (0-5).
-    Direction 0 is the top-right edge, going clockwise.
-    """
-
-    hex_coord: HexCoordinate
-    direction: int
+    d: int
 
 
 class Hex(NamedTuple):
     """A hex tile on the game board."""
 
-    coordinate: HexCoordinate
+    q: int
+    r: int
     type: HexType
     number: int
 
@@ -94,8 +74,8 @@ class Player:
     cards: collections.Counter[WisdomCard]
     played_cards: collections.Counter[WisdomCard]
     resources: collections.Counter[ResourceCard]
-    settlements: dict[VertexCoordinate, SettlementType]
-    paths: set[EdgeCoordinate]
+    settlements: dict[Coordinate, SettlementType]
+    paths: set[Coordinate]
 
 
 class InvalidSettlementLocation(Exception):
@@ -114,23 +94,30 @@ class PlayerNotInTurn(Exception):
 class ActiveGame:
     map: Map
     players: Mapping[player.Nickname, Player]
-    conquistator_location: HexCoordinate
+    conquistator_location: Hex
     turn_order: tuple[player.Nickname, ...]
 
-    _available_settlement_locations: set[tuple[int, int, int]] = dataclasses.field(
+    _free_verticies: set[tuple[int, int, int]] = dataclasses.field(
         default_factory=set, init=False, repr=False
     )
-    _available_path_locations: set[tuple[int, int, int]] = dataclasses.field(
+    _restricted_verticies: set[tuple[int, int, int]] = dataclasses.field(
+        default_factory=set, init=False, repr=False
+    )
+    _free_edges: set[tuple[int, int, int]] = dataclasses.field(
         default_factory=set, init=False, repr=False
     )
 
     def __post_init__(self) -> None:
-        self._available_settlement_locations = set()
-        self._available_path_locations = set()
+        self._restricted_verticies = set()
+        self._free_verticies = set()
+        self._free_edges = set()
         for item in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
             if item not in _INVALID_HEX_COORDINATES:
-                self._available_settlement_locations.add(item)
-                self._available_path_locations.add(item)
+                vertex = _canonical_vertex(*item)
+                self._free_verticies.add(vertex)
+
+                edge = _canonical_edge(*item)
+                self._free_edges.add(edge)
 
     @classmethod
     def create_new(cls, players: Sequence[player.Nickname]) -> Self:
@@ -140,7 +127,7 @@ class ActiveGame:
         random.shuffle(players)
         return cls(
             map=map,
-            conquistator_location=random.choice(deserts).coordinate,
+            conquistator_location=random.choice(deserts),
             turn_order=tuple(players),
             players={
                 nickname: Player(
@@ -160,32 +147,27 @@ class ActiveGame:
         if to != self.turn_order[0]:
             raise PlayerNotInTurn
 
-        desired = (q, r, direction)
-        if desired not in self._available_settlement_locations:
+        target = _canonical_vertex(q, r, direction)
+        if target not in self._free_verticies or target in self._restricted_verticies:
             raise InvalidSettlementLocation
+
+        self._free_verticies.remove(target)
 
         dq5, dr5 = _NEIGHBOR[(direction + 5) % 6]
         blocked_vertices = [
-            (q, r, direction),  # self
             (q, r, (direction + 1) % 6),  # adjacent on same hex (clockwise)
             (q, r, (direction + 5) % 6),  # adjacent on same hex (counterclockwise)
             (
                 q + dq5,
                 r + dr5,
                 (direction + 1) % 6,
-            ),  # adjacent across edge (counterclockwise)
+            ),  # adjacent across edge
         ]
-        affected = set()
         for vq, vr, vd in blocked_vertices:
-            affected.add((vq, vr, vd))
-            aliases = _vertex_aliases(vq, vr, vd)
-            affected.update(aliases)
+            vertex = _canonical_vertex(vq, vr, vd)
+            self._restricted_verticies.add(vertex)
 
-        self._available_settlement_locations.difference_update(affected)
-
-        self.players[to].settlements[
-            VertexCoordinate(hex_coord=HexCoordinate(q=q, r=r), direction=direction)
-        ] = SettlementType.TERRACE
+        self.players[to].settlements[target] = SettlementType.TERRACE
 
     def add_path(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
@@ -193,25 +175,67 @@ class ActiveGame:
         if to != self.turn_order[0]:
             raise PlayerNotInTurn
 
-        desired = (q, r, direction)
-        if desired not in self._available_path_locations:
+        target = _canonical_edge(q, r, direction)
+        if target not in self._free_edges:
             raise InvalidPathLocation
 
-        dq, dr = _NEIGHBOR[direction]
-        alias = (q + dq, r + dr, (direction + 3) % 6)
-        self._available_path_locations.difference_update([alias, desired])
+        this_player = self.players[to]
+        settlements = this_player.settlements
+        paths = this_player.paths
+        free_verticies = self._free_verticies
 
-        path = EdgeCoordinate(hex_coord=HexCoordinate(q=q, r=r), direction=direction)
-        self.players[to].paths.add(path)
+        forbidden = True
+        q, r, direction = target
+        vertices = [
+            _canonical_vertex(q, r, direction),
+            _canonical_vertex(q, r, (direction + 1) % 6),
+        ]
+        for v in vertices:
+            if v in settlements:
+                forbidden = False
+                break
+            if v in free_verticies:
+                vq, vr, vd = v
+                dq5, dr5 = _NEIGHBOR[(vd + 5) % 6]
+                for e in (
+                    _canonical_edge(vq, vr, (vd + 5) % 6),
+                    _canonical_edge(vq, vr, vd),
+                    _canonical_edge(vq + dq5, vr + dr5, (vd + 1) % 6),
+                ):
+                    if e != target and e in paths:
+                        forbidden = False
+                        break
+
+        if forbidden:
+            raise InvalidPathLocation
+
+        self._free_edges.remove(target)
+        self.players[to].paths.add(target)
 
 
-def _vertex_aliases(q: int, r: int, d: int) -> set[tuple[int, int, int]]:
+def _canonical_vertex(q: int, r: int, d: int) -> Coordinate:
+    aliases = _vertex_aliases(q, r, d)
+    aliases.add(Coordinate(q=q, r=r, d=d))
+    return min(aliases)
+
+
+def _vertex_aliases(q: int, r: int, d: int) -> set[Coordinate]:
     dq, dr = _NEIGHBOR[d]
     dq5, dr5 = _NEIGHBOR[(d + 5) % 6]
     return {
-        (q + dq, r + dr, (d + 4) % 6),
-        (q + dq5, r + dr5, (d + 2) % 6),
+        Coordinate(q=q + dq, r=r + dr, d=(d + 4) % 6),
+        Coordinate(q=q + dq5, r=r + dr5, d=(d + 2) % 6),
     }
+
+
+def _canonical_edge(q: int, r: int, d: int) -> Coordinate:
+    alias = _edge_alias(q, r, d)
+    return min(alias, Coordinate(q=q, r=r, d=d))
+
+
+def _edge_alias(q: int, r: int, d: int) -> Coordinate:
+    dq, dr = _NEIGHBOR[d]
+    return Coordinate(q=q + dq, r=r + dr, d=(d + 3) % 6)
 
 
 def _generate_map() -> Map:
@@ -226,7 +250,6 @@ def _generate_map() -> Map:
             if (q, r) in _INVALID_HEX_COORDINATES:
                 continue
             type_idx += 1
-            coord = HexCoordinate(q=q, r=r)
             type = _TYPES[type_idx]
             if type is HexType.DESERT:
                 number = 7
@@ -235,7 +258,8 @@ def _generate_map() -> Map:
                 number = _NUMBERS[number_idx]
             map.append(
                 Hex(
-                    coordinate=coord,
+                    q=q,
+                    r=r,
                     type=type,
                     number=number,
                 )

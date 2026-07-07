@@ -21,10 +21,8 @@ def retrieve_game(
             settlements.append(
                 _ports.PlayedSettlement(
                     location=_ports.VertexCoordinate(
-                        hex_coord=_ports.HexCoordinate(
-                            q=location.hex_coord.q, r=location.hex_coord.r
-                        ),
-                        direction=location.direction,
+                        hex_coord=_ports.HexCoordinate(q=location.q, r=location.r),
+                        direction=location.d,
                     ),
                     type=type,
                     owner=nickname,
@@ -35,10 +33,8 @@ def retrieve_game(
                 _ports.PlayedStonePath(
                     owner=nickname,
                     location=_ports.EdgeCoordinate(
-                        hex_coord=_ports.HexCoordinate(
-                            q=path.hex_coord.q, r=path.hex_coord.r
-                        ),
-                        direction=path.direction,
+                        hex_coord=_ports.HexCoordinate(q=path.q, r=path.r),
+                        direction=path.d,
                     ),
                 )
             )
