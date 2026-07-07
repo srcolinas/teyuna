@@ -141,7 +141,7 @@ class ActiveGame:
             },
         )
 
-    def add_terrace(
+    def add_initial_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> None:
         if to != self.turn_order[0]:
@@ -168,6 +168,21 @@ class ActiveGame:
             self._restricted_verticies.add(vertex)
 
         self.players[to].settlements[target] = SettlementType.TERRACE
+
+    def add_terrace(
+        self, to: player.Nickname, /, *, q: int, r: int, direction: int
+    ) -> None:
+        paths = self.players[to].paths
+        dq5, dr5 = _NEIGHBOR[(direction + 5) % 6]
+        adjacent_edges = (
+            _canonical_edge(q, r, (direction + 5) % 6),
+            _canonical_edge(q, r, direction),
+            _canonical_edge(q + dq5, r + dr5, (direction + 1) % 6),
+        )
+        if not any(edge in paths for edge in adjacent_edges):
+            raise InvalidSettlementLocation
+
+        self.add_initial_terrace(to, q=q, r=r, direction=direction)
 
     def add_path(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
