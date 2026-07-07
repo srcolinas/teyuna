@@ -253,6 +253,20 @@ class ActiveGame:
         resources[ResourceCard.COTTON] -= 1
         resources[ResourceCard.MAIZE] -= 1
 
+    def buy_path(
+        self, to: player.Nickname, /, *, q: int, r: int, direction: int
+    ) -> None:
+        resources = self.players[to].resources
+        if resources[ResourceCard.STONE] < 1:
+            raise InsufficientResources
+
+        if resources[ResourceCard.WOOD] < 1:
+            raise InsufficientResources
+
+        self.add_path(to, q=q, r=r, direction=direction)
+        resources[ResourceCard.STONE] -= 1
+        resources[ResourceCard.WOOD] -= 1
+
 
 def _canonical_vertex(q: int, r: int, d: int) -> Coordinate:
     aliases = _vertex_aliases(q, r, d)
