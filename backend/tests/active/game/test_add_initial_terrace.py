@@ -62,3 +62,20 @@ def test_terrace_cannot_be_added_by_player_not_in_turn(
     nickname = game.turn_order[1]
     with pytest.raises(entities.PlayerNotInTurn):
         game.add_initial_terrace(nickname, q=0, r=0, direction=0)
+
+
+@pytest.mark.parametrize(
+    "phase",
+    [
+        entities.GamePhase.MAIN,
+        entities.GamePhase.FINISHED,
+    ],
+)
+def test_cannot_add_terrace_if_game_is_not_in_initial_phase(
+    phase: entities.GamePhase,
+    game: entities.ActiveGame,
+) -> None:
+    nickname = game.turn_order[0]
+    game.phase = phase
+    with pytest.raises(entities.InvalidGamePhase):
+        game.add_initial_terrace(nickname, q=0, r=0, direction=0)

@@ -78,6 +78,12 @@ class Player:
     paths: set[Coordinate]
 
 
+class GamePhase(str, Enum):
+    INITIAL = "initial"
+    MAIN = "main"
+    FINISHED = "finished"
+
+
 class InvalidSettlementLocation(Exception):
     pass
 
@@ -94,12 +100,17 @@ class InsufficientResources(Exception):
     pass
 
 
+class InvalidGamePhase(Exception):
+    pass
+
+
 @dataclasses.dataclass
 class ActiveGame:
     map: Map
     players: Mapping[player.Nickname, Player]
     conquistator_location: Hex
     turn_order: tuple[player.Nickname, ...]
+    phase: GamePhase = GamePhase.INITIAL
 
     _free_verticies: set[tuple[int, int, int]] = dataclasses.field(
         default_factory=set, init=False, repr=False
@@ -148,6 +159,9 @@ class ActiveGame:
     def add_initial_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> None:
+        if self.phase is not GamePhase.INITIAL:
+            raise InvalidGamePhase
+
         if to != self.turn_order[0]:
             raise PlayerNotInTurn
 
