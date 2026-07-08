@@ -267,6 +267,32 @@ class ActiveGame:
         resources[ResourceCard.STONE] -= 1
         resources[ResourceCard.WOOD] -= 1
 
+    def buy_great_terrace(
+        self, to: player.Nickname, /, *, q: int, r: int, direction: int
+    ) -> None:
+        if to != self.turn_order[0]:
+            raise PlayerNotInTurn
+
+        resources = self.players[to].resources
+        if resources[ResourceCard.GOLD] < 3:
+            raise InsufficientResources
+        if resources[ResourceCard.MAIZE] < 2:
+            raise InsufficientResources
+
+        coord = _canonical_vertex(q, r, direction)
+        if (
+            coord not in self.players[to].settlements
+            or self.players[to].settlements[coord] is not SettlementType.TERRACE
+        ):
+            raise InvalidSettlementLocation(
+                "You must first build a terrace at specified location."
+            )
+
+        self.players[to].settlements[coord] = SettlementType.GREAT_TERRACE
+
+        resources[ResourceCard.GOLD] -= 3
+        resources[ResourceCard.MAIZE] -= 2
+
 
 def _canonical_vertex(q: int, r: int, d: int) -> Coordinate:
     aliases = _vertex_aliases(q, r, d)

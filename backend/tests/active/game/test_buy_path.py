@@ -2,6 +2,8 @@ import pytest
 
 from src.active import entities
 
+from ... import utils
+
 
 @pytest.mark.parametrize(
     "resources",
@@ -35,7 +37,8 @@ def test_can_buy_path_with_sufficient_resources(game: entities.ActiveGame) -> No
             entities.ResourceCard.WOOD: 1,
         }
     )
-    game.buy_path(nickname, q=0, r=0, direction=0)
+    with utils.assert_not_raises(entities.InsufficientResources):
+        game.buy_path(nickname, q=0, r=0, direction=0)
 
 
 def test_path_is_added_to_game_object(game: entities.ActiveGame) -> None:

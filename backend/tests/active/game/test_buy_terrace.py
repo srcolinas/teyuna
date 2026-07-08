@@ -2,6 +2,8 @@ import pytest
 
 from src.active import entities
 
+from ... import utils
+
 
 @pytest.mark.parametrize(
     "resources",
@@ -57,7 +59,8 @@ def test_can_buy_terrace_with_sufficient_resources(game: entities.ActiveGame) ->
             entities.ResourceCard.MAIZE: 1,
         }
     )
-    game.buy_terrace(nickname, q=0, r=0, direction=2)
+    with utils.assert_not_raises(entities.InsufficientResources):
+        game.buy_terrace(nickname, q=0, r=0, direction=2)
 
 
 def test_terrace_is_added_to_game_object(game: entities.ActiveGame) -> None:
