@@ -202,7 +202,7 @@ class ActiveGame:
 
         self.add_initial_terrace(to, q=q, r=r, direction=direction)
 
-    def add_path(
+    def _add_path(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> None:
         if to != self.turn_order[0]:
@@ -292,7 +292,7 @@ class ActiveGame:
         if resources[ResourceCard.WOOD] < 1:
             raise InsufficientResources
 
-        self.add_path(to, q=q, r=r, direction=direction)
+        self._add_path(to, q=q, r=r, direction=direction)
         resources[ResourceCard.STONE] -= 1
         resources[ResourceCard.WOOD] -= 1
 

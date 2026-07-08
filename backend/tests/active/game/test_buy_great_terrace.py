@@ -5,13 +5,25 @@ from src.active import entities
 from ... import utils
 
 
+def _fund_path_purchase(
+    game: entities.ActiveGame, nickname: str, *, count: int = 1
+) -> None:
+    game.players[nickname].resources.update(
+        {
+            entities.ResourceCard.STONE: count,
+            entities.ResourceCard.WOOD: count,
+        }
+    )
+
+
 def test_cannot_buy_great_terrace_if_terrace_not_placed_before(
     game: entities.ActiveGame,
 ) -> None:
     nickname = game.turn_order[0]
     game.add_initial_terrace(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=1)
+    _fund_path_purchase(game, nickname, count=2)
+    game.buy_path(nickname, q=0, r=0, direction=0)
+    game.buy_path(nickname, q=0, r=0, direction=1)
     game.players[nickname].resources.update(
         {
             entities.ResourceCard.GOLD: 3,
@@ -28,8 +40,9 @@ def test_cannot_buy_great_terrace_if_terrace_not_placed_before(
 def test_can_buy_terrace_with_sufficient_resources(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
     game.add_initial_terrace(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=1)
+    _fund_path_purchase(game, nickname, count=2)
+    game.buy_path(nickname, q=0, r=0, direction=0)
+    game.buy_path(nickname, q=0, r=0, direction=1)
     game.players[nickname].resources.update(
         {
             entities.ResourceCard.GOLD: 3,
@@ -58,8 +71,9 @@ def test_cannot_buy_great_terrace_with_insufficient_resources(
 ) -> None:
     nickname = game.turn_order[0]
     game.add_initial_terrace(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=1)
+    _fund_path_purchase(game, nickname, count=2)
+    game.buy_path(nickname, q=0, r=0, direction=0)
+    game.buy_path(nickname, q=0, r=0, direction=1)
     game.players[nickname].resources.update(resources)
     with pytest.raises(entities.InsufficientResources):
         game.buy_great_terrace(nickname, q=0, r=0, direction=0)
@@ -68,8 +82,9 @@ def test_cannot_buy_great_terrace_with_insufficient_resources(
 def test_great_terrace_is_added_to_game_object(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
     game.add_initial_terrace(nickname, q=0, r=0, direction=2)
-    game.add_path(nickname, q=0, r=0, direction=1)
-    game.add_path(nickname, q=0, r=0, direction=0)
+    _fund_path_purchase(game, nickname, count=2)
+    game.buy_path(nickname, q=0, r=0, direction=1)
+    game.buy_path(nickname, q=0, r=0, direction=0)
     game.players[nickname].resources.update(
         {
             entities.ResourceCard.GOLD: 3,
@@ -86,8 +101,9 @@ def test_great_terrace_is_added_to_game_object(game: entities.ActiveGame) -> Non
 def test_resources_are_removed_from_player(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
     game.add_initial_terrace(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=1)
+    _fund_path_purchase(game, nickname, count=2)
+    game.buy_path(nickname, q=0, r=0, direction=0)
+    game.buy_path(nickname, q=0, r=0, direction=1)
     game.players[nickname].resources.update(
         {
             entities.ResourceCard.GOLD: 3,
@@ -102,8 +118,9 @@ def test_resources_are_removed_from_player(game: entities.ActiveGame) -> None:
 def test_player_not_in_turn_cannot_buy_great_terrace(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
     game.add_initial_terrace(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=0)
-    game.add_path(nickname, q=0, r=0, direction=1)
+    _fund_path_purchase(game, nickname, count=2)
+    game.buy_path(nickname, q=0, r=0, direction=0)
+    game.buy_path(nickname, q=0, r=0, direction=1)
     game.players[nickname].resources.update(
         {
             entities.ResourceCard.GOLD: 3,
@@ -123,27 +140,27 @@ def test_cannot_buy_great_terrace_if_not_enough_great_terraces_available(
         {
             entities.ResourceCard.GOLD: 300,
             entities.ResourceCard.MAIZE: 200,
-            entities.ResourceCard.STONE: 4,
-            entities.ResourceCard.WOOD: 4,
-            entities.ResourceCard.COTTON: 4,
+            entities.ResourceCard.STONE: 20,
+            entities.ResourceCard.WOOD: 20,
+            entities.ResourceCard.COTTON: 10,
         }
     )
     game.add_initial_terrace(nickname, q=0, r=-2, direction=0)
     game.buy_great_terrace(nickname, q=0, r=-2, direction=0)
-    game.add_path(nickname, q=0, r=-2, direction=0)
-    game.add_path(nickname, q=1, r=-2, direction=5)
+    game.buy_path(nickname, q=0, r=-2, direction=0)
+    game.buy_path(nickname, q=1, r=-2, direction=5)
     game.buy_terrace(nickname, q=1, r=-2, direction=0)
     game.buy_great_terrace(nickname, q=1, r=-2, direction=0)
-    game.add_path(nickname, q=1, r=-2, direction=0)
-    game.add_path(nickname, q=2, r=-2, direction=5)
+    game.buy_path(nickname, q=1, r=-2, direction=0)
+    game.buy_path(nickname, q=2, r=-2, direction=5)
     game.buy_terrace(nickname, q=2, r=-2, direction=0)
     game.buy_great_terrace(nickname, q=2, r=-2, direction=0)
-    game.add_path(nickname, q=2, r=-2, direction=0)
-    game.add_path(nickname, q=2, r=-2, direction=1)
+    game.buy_path(nickname, q=2, r=-2, direction=0)
+    game.buy_path(nickname, q=2, r=-2, direction=1)
     game.buy_terrace(nickname, q=2, r=-2, direction=2)
     game.buy_great_terrace(nickname, q=2, r=-2, direction=2)
-    game.add_path(nickname, q=2, r=-1, direction=0)
-    game.add_path(nickname, q=2, r=-1, direction=1)
+    game.buy_path(nickname, q=2, r=-1, direction=0)
+    game.buy_path(nickname, q=2, r=-1, direction=1)
     game.buy_terrace(nickname, q=2, r=-1, direction=2)
     with pytest.raises(entities.InsufficientResources):
         game.buy_great_terrace(nickname, q=2, r=-1, direction=2)
