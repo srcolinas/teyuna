@@ -1,4 +1,3 @@
-import collections
 import uuid
 from typing import Protocol
 
@@ -55,7 +54,7 @@ def retrieve_game(
 def _to_port_player(
     nickname: player.Nickname, entity_player: _entities.Player
 ) -> _ports.Player:
-    counts = collections.Counter(entity_player.settlements.values())
+    counts = entity_player.settlements.counts
     return _ports.Player(
         nickname=nickname,
         played_wisdom_cards=[

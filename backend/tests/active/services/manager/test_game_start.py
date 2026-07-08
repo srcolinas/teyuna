@@ -104,6 +104,6 @@ def test_active_game_correctly_initialize_players(
             cards=collections.Counter(),
             played_cards=collections.Counter(),
             resources=collections.Counter(),
-            settlements=dict(),
+            settlements=active.entities.Settlements(),
             paths=set(),
         )

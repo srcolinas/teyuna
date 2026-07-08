@@ -2,7 +2,7 @@ import collections
 import dataclasses
 import itertools
 import random
-from collections.abc import Mapping
+from collections.abc import ItemsView, Mapping, ValuesView
 from enum import Enum
 from typing import Final, Self, Sequence, NamedTuple
 
@@ -70,11 +70,46 @@ class SettlementType(str, Enum):
 
 
 @dataclasses.dataclass
+class Settlements:
+    _locations: dict[Coordinate, SettlementType] = dataclasses.field(
+        default_factory=dict
+    )
+    _counts: collections.Counter[SettlementType] = dataclasses.field(
+        default_factory=collections.Counter, init=False, repr=False
+    )
+
+    def __contains__(self, coord: Coordinate) -> bool:
+        return coord in self._locations
+
+    def __getitem__(self, coord: Coordinate) -> SettlementType:
+        return self._locations[coord]
+
+    def __setitem__(self, coord: Coordinate, type: SettlementType) -> None:
+        if coord in self._locations:
+            self._counts[self._locations[coord]] -= 1
+        self._locations[coord] = type
+        self._counts[type] += 1
+
+    def items(self) -> ItemsView[Coordinate, SettlementType]:
+        return self._locations.items()
+
+    def values(self) -> ValuesView[SettlementType]:
+        return self._locations.values()
+
+    def count(self, type: SettlementType) -> int:
+        return self._counts[type]
+
+    @property
+    def counts(self) -> collections.Counter[SettlementType]:
+        return collections.Counter(self._counts)
+
+
+@dataclasses.dataclass
 class Player:
     cards: collections.Counter[WisdomCard]
     played_cards: collections.Counter[WisdomCard]
     resources: collections.Counter[ResourceCard]
-    settlements: dict[Coordinate, SettlementType]
+    settlements: Settlements
     paths: set[Coordinate]
 
 
@@ -149,7 +184,7 @@ class ActiveGame:
                     cards=collections.Counter(),
                     played_cards=collections.Counter(),
                     resources=collections.Counter(),
-                    settlements=dict(),
+                    settlements=Settlements(),
                     paths=set(),
                 )
                 for nickname in players
@@ -264,16 +299,7 @@ class ActiveGame:
         if resources[ResourceCard.MAIZE] < 1:
             raise InsufficientResources
 
-        # TODO: Optimize this by simultaneously keeping track
-        # of the settlements in a location, as well as the count
-        # of each type of settlement.
-        settlements = self.players[to].settlements
-        count = sum(
-            1
-            for settlement in settlements.values()
-            if settlement is SettlementType.TERRACE
-        )
-        if count >= MAX_TERRACES:
+        if self.players[to].settlements.count(SettlementType.TERRACE) >= MAX_TERRACES:
             raise InsufficientResources
 
         self._add_terrace(to, q=q, r=r, direction=direction)
@@ -308,16 +334,10 @@ class ActiveGame:
         if resources[ResourceCard.MAIZE] < 2:
             raise InsufficientResources
 
-        # TODO: Optimize this by simultaneously keeping track
-        # of the settlements in a location, as well as the count
-        # of each type of settlement.
-        settlements = self.players[to].settlements
-        count = sum(
-            1
-            for settlement in settlements.values()
-            if settlement is SettlementType.GREAT_TERRACE
-        )
-        if count >= MAX_GREAT_TERRACES:
+        if (
+            self.players[to].settlements.count(SettlementType.GREAT_TERRACE)
+            >= MAX_GREAT_TERRACES
+        ):
             raise InsufficientResources
 
         coord = _canonical_vertex(q, r, direction)
