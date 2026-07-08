@@ -113,3 +113,34 @@ def test_player_not_in_turn_cannot_buy_great_terrace(game: entities.ActiveGame) 
     game.turn_order = (game.turn_order[1], game.turn_order[0], game.turn_order[2])
     with pytest.raises(entities.PlayerNotInTurn):
         game.buy_great_terrace(nickname, q=0, r=0, direction=0)
+
+
+def test_cannot_buy_great_terrace_if_not_enough_great_terraces_available(
+    game: entities.ActiveGame,
+) -> None:
+    nickname = game.turn_order[0]
+    game.players[nickname].resources.update(
+        {
+            entities.ResourceCard.GOLD: 300,
+            entities.ResourceCard.MAIZE: 200,
+        }
+    )
+    game.add_initial_terrace(nickname, q=0, r=-2, direction=0)
+    game.buy_great_terrace(nickname, q=0, r=-2, direction=0)
+    game.add_path(nickname, q=0, r=-2, direction=0)
+    game.add_path(nickname, q=1, r=-2, direction=5)
+    game.add_terrace(nickname, q=1, r=-2, direction=0)
+    game.buy_great_terrace(nickname, q=1, r=-2, direction=0)
+    game.add_path(nickname, q=1, r=-2, direction=0)
+    game.add_path(nickname, q=2, r=-2, direction=5)
+    game.add_terrace(nickname, q=2, r=-2, direction=0)
+    game.buy_great_terrace(nickname, q=2, r=-2, direction=0)
+    game.add_path(nickname, q=2, r=-2, direction=0)
+    game.add_path(nickname, q=2, r=-2, direction=1)
+    game.add_terrace(nickname, q=2, r=-2, direction=2)
+    game.buy_great_terrace(nickname, q=2, r=-2, direction=2)
+    game.add_path(nickname, q=2, r=-1, direction=0)
+    game.add_path(nickname, q=2, r=-1, direction=1)
+    game.add_terrace(nickname, q=2, r=-1, direction=2)
+    with pytest.raises(entities.InsufficientResources):
+        game.buy_great_terrace(nickname, q=2, r=-1, direction=2)

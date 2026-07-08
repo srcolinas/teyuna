@@ -194,6 +194,9 @@ class ActiveGame:
         if to != self.turn_order[0]:
             raise PlayerNotInTurn
 
+        if len(self.players[to].paths) >= MAX_PATHS:
+            raise InsufficientResources
+
         target = _canonical_edge(q, r, direction)
         if target not in self._free_edges:
             raise InvalidPathLocation
@@ -247,6 +250,18 @@ class ActiveGame:
         if resources[ResourceCard.MAIZE] < 1:
             raise InsufficientResources
 
+        # TODO: Optimize this by simultaneously keeping track
+        # of the settlements in a location, as well as the count
+        # of each type of settlement.
+        settlements = self.players[to].settlements
+        count = sum(
+            1
+            for settlement in settlements.values()
+            if settlement is SettlementType.TERRACE
+        )
+        if count >= MAX_TERRACES:
+            raise InsufficientResources
+
         self.add_terrace(to, q=q, r=r, direction=direction)
         resources[ResourceCard.STONE] -= 1
         resources[ResourceCard.WOOD] -= 1
@@ -277,6 +292,18 @@ class ActiveGame:
         if resources[ResourceCard.GOLD] < 3:
             raise InsufficientResources
         if resources[ResourceCard.MAIZE] < 2:
+            raise InsufficientResources
+
+        # TODO: Optimize this by simultaneously keeping track
+        # of the settlements in a location, as well as the count
+        # of each type of settlement.
+        settlements = self.players[to].settlements
+        count = sum(
+            1
+            for settlement in settlements.values()
+            if settlement is SettlementType.GREAT_TERRACE
+        )
+        if count >= MAX_GREAT_TERRACES:
             raise InsufficientResources
 
         coord = _canonical_vertex(q, r, direction)
