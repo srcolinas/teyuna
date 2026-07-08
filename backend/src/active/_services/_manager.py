@@ -33,7 +33,7 @@ class GameManager:
         direction: int,
     ) -> _ports.PlayedSettlement:
         game = self._repository.retrieve(id)
-        game.add_terrace(nickname, q=q, r=r, direction=direction)
+        game.buy_terrace(nickname, q=q, r=r, direction=direction)
         return _ports.PlayedSettlement(
             owner=nickname,
             location=_ports.VertexCoordinate(

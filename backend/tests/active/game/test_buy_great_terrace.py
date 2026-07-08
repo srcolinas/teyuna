@@ -123,24 +123,27 @@ def test_cannot_buy_great_terrace_if_not_enough_great_terraces_available(
         {
             entities.ResourceCard.GOLD: 300,
             entities.ResourceCard.MAIZE: 200,
+            entities.ResourceCard.STONE: 4,
+            entities.ResourceCard.WOOD: 4,
+            entities.ResourceCard.COTTON: 4,
         }
     )
     game.add_initial_terrace(nickname, q=0, r=-2, direction=0)
     game.buy_great_terrace(nickname, q=0, r=-2, direction=0)
     game.add_path(nickname, q=0, r=-2, direction=0)
     game.add_path(nickname, q=1, r=-2, direction=5)
-    game.add_terrace(nickname, q=1, r=-2, direction=0)
+    game.buy_terrace(nickname, q=1, r=-2, direction=0)
     game.buy_great_terrace(nickname, q=1, r=-2, direction=0)
     game.add_path(nickname, q=1, r=-2, direction=0)
     game.add_path(nickname, q=2, r=-2, direction=5)
-    game.add_terrace(nickname, q=2, r=-2, direction=0)
+    game.buy_terrace(nickname, q=2, r=-2, direction=0)
     game.buy_great_terrace(nickname, q=2, r=-2, direction=0)
     game.add_path(nickname, q=2, r=-2, direction=0)
     game.add_path(nickname, q=2, r=-2, direction=1)
-    game.add_terrace(nickname, q=2, r=-2, direction=2)
+    game.buy_terrace(nickname, q=2, r=-2, direction=2)
     game.buy_great_terrace(nickname, q=2, r=-2, direction=2)
     game.add_path(nickname, q=2, r=-1, direction=0)
     game.add_path(nickname, q=2, r=-1, direction=1)
-    game.add_terrace(nickname, q=2, r=-1, direction=2)
+    game.buy_terrace(nickname, q=2, r=-1, direction=2)
     with pytest.raises(entities.InsufficientResources):
         game.buy_great_terrace(nickname, q=2, r=-1, direction=2)

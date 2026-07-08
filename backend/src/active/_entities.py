@@ -187,7 +187,7 @@ class ActiveGame:
 
         self.players[to].settlements[target] = SettlementType.TERRACE
 
-    def add_terrace(
+    def _add_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> None:
         paths = self.players[to].paths
@@ -276,7 +276,7 @@ class ActiveGame:
         if count >= MAX_TERRACES:
             raise InsufficientResources
 
-        self.add_terrace(to, q=q, r=r, direction=direction)
+        self._add_terrace(to, q=q, r=r, direction=direction)
         resources[ResourceCard.STONE] -= 1
         resources[ResourceCard.WOOD] -= 1
         resources[ResourceCard.COTTON] -= 1
