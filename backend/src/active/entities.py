@@ -107,9 +107,6 @@ class SettlementsCollection:
         return collections.Counter(self._counts)
 
 
-Settlements = SettlementsCollection
-
-
 class Player:
     def __init__(
         self,

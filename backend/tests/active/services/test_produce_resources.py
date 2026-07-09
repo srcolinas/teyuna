@@ -32,7 +32,7 @@ def test_produces_gives_1_resource_from_terrace() -> None:
         players={
             "srcolinas-1": entities.Player(
                 resources=collections.Counter({entities.ResourceCard.GOLD: 0}),
-                settlements=entities.Settlements(
+                settlements=entities.SettlementsCollection(
                     {
                         entities.Coordinate(
                             q=0, r=-1, d=2
@@ -78,7 +78,7 @@ def test_produces_gives_2_resources_from_great_terrace() -> None:
         players={
             "srcolinas-1": entities.Player(
                 resources=collections.Counter({entities.ResourceCard.GOLD: 0}),
-                settlements=entities.Settlements(
+                settlements=entities.SettlementsCollection(
                     {
                         entities.Coordinate(
                             q=0, r=-1, d=2
