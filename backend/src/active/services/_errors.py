@@ -16,3 +16,7 @@ class InsufficientResources(Exception):
 
 class InvalidGamePhase(Exception):
     pass
+
+
+class TradeProposalNotFound(Exception):
+    pass

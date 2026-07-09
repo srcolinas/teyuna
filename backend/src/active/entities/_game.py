@@ -1,6 +1,7 @@
 import collections
 import dataclasses
 import itertools
+import uuid
 from collections.abc import ItemsView, Mapping, ValuesView
 from enum import Enum
 from typing import Final, Sequence, NamedTuple
@@ -145,6 +146,7 @@ class GamePhase(str, Enum):
 
 
 class TradeProposal(NamedTuple):
+    by: player.Nickname
     offer: ResourceCount
     request: ResourceCount
 
@@ -175,7 +177,7 @@ class ActiveGame:
                 ResourceCard.WOOD: 19,
             }
         )
-        self._trade_proposals: dict[player.Nickname, TradeProposal] = {}
+        self._trade_proposals: dict[uuid.UUID, TradeProposal] = {}
         self._restricted_verticies: set[_map.Coordinate] = set()
         self._free_verticies: set[_map.Coordinate] = set()
         self._free_edges: set[_map.Coordinate] = set()
@@ -220,7 +222,7 @@ class ActiveGame:
         return self._restricted_verticies
 
     @property
-    def trade_proposals(self) -> dict[player.Nickname, TradeProposal]:
+    def trade_proposals(self) -> dict[uuid.UUID, TradeProposal]:
         return self._trade_proposals
 
     @property
@@ -272,5 +274,10 @@ class ActiveGame:
 
     def add_trade_proposal(
         self, by: player.Nickname, /, *, offer: ResourceCount, request: ResourceCount
-    ) -> None:
-        self._trade_proposals[by] = TradeProposal(offer, request)
+    ) -> uuid.UUID:
+        id = uuid.uuid4()
+        self._trade_proposals[id] = TradeProposal(by, offer, request)
+        return id
+
+    def remove_trade_proposal(self, id: uuid.UUID) -> None:
+        del self._trade_proposals[id]

@@ -9,11 +9,13 @@ from ._errors import (
     InvalidPathLocation,
     InvalidSettlementLocation,
     PlayerNotInTurn,
+    TradeProposalNotFound,
 )
 from ._produce_resources import produce_resources
 from ._retrieve import RetrieveGameRepository, retrieve_game
 from ._trade_with_supply import trade
 from ._propose_trade import propose_trade
+from ._accept_trade import accept_trade
 
 __all__ = [
     "add_initial_terrace",
@@ -28,7 +30,9 @@ __all__ = [
     "InvalidPathLocation",
     "PlayerNotInTurn",
     "InsufficientResources",
+    "TradeProposalNotFound",
     "InvalidGamePhase",
     "trade",
     "propose_trade",
+    "accept_trade",
 ]
