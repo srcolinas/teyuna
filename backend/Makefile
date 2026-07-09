@@ -25,5 +25,8 @@ test:
 check: lint test
 	@echo "All checks passed!"
 
+coverage:
+	uv run pytest tests --cov=src --cov-report=html
+
 run:
 	uv run uvicorn teyuna.main:app --reload --host 0.0.0.0 --port 8000
