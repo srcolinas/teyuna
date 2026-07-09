@@ -2,25 +2,25 @@ import uuid
 from typing import Protocol
 
 from ... import player
-from .. import _entities, _ports
+from .. import entities, ports
 
 
 class RetrieveGameRepository(Protocol):
-    def retrieve(self, id: uuid.UUID) -> _entities.ActiveGame: ...
+    def retrieve(self, id: uuid.UUID) -> entities.ActiveGame: ...
 
 
 def retrieve_game(
     id: uuid.UUID, /, *, repository: RetrieveGameRepository
-) -> _ports.ActiveGame:
+) -> ports.ActiveGame:
     game = repository.retrieve(id)
     players, settlements, paths = [], [], []
     for nickname, entity_player in game.players.items():
         players.append(_to_port_player(nickname, entity_player))
         for location, type in entity_player.settlements.items():
             settlements.append(
-                _ports.PlayedSettlement(
-                    location=_ports.VertexCoordinate(
-                        hex_coord=_ports.HexCoordinate(q=location.q, r=location.r),
+                ports.PlayedSettlement(
+                    location=ports.VertexCoordinate(
+                        hex_coord=ports.HexCoordinate(q=location.q, r=location.r),
                         direction=location.d,
                     ),
                     type=type,
@@ -29,19 +29,19 @@ def retrieve_game(
             )
         for path in entity_player.paths:
             paths.append(
-                _ports.PlayedStonePath(
+                ports.PlayedStonePath(
                     owner=nickname,
-                    location=_ports.EdgeCoordinate(
-                        hex_coord=_ports.HexCoordinate(q=path.q, r=path.r),
+                    location=ports.EdgeCoordinate(
+                        hex_coord=ports.HexCoordinate(q=path.q, r=path.r),
                         direction=path.d,
                     ),
                 )
             )
 
-    return _ports.ActiveGame(
+    return ports.ActiveGame(
         id=id,
         map=game.map,
-        conquistator_location=_ports.HexCoordinate(
+        conquistator_location=ports.HexCoordinate(
             q=game.conquistator_location.q, r=game.conquistator_location.r
         ),
         players=players,
@@ -52,10 +52,10 @@ def retrieve_game(
 
 
 def _to_port_player(
-    nickname: player.Nickname, entity_player: _entities.Player
-) -> _ports.Player:
+    nickname: player.Nickname, entity_player: entities.Player
+) -> ports.Player:
     counts = entity_player.settlements.counts
-    return _ports.Player(
+    return ports.Player(
         nickname=nickname,
         played_wisdom_cards=[
             card
@@ -64,9 +64,9 @@ def _to_port_player(
         ],
         num_hidden_wisdom_cards=sum(entity_player.cards.values()),
         num_resources=sum(entity_player.resources.values()),
-        available_teraces=_entities.MAX_TERRACES
-        - counts[_entities.SettlementType.TERRACE],
-        available_great_teraces=_entities.MAX_GREAT_TERRACES
-        - counts[_entities.SettlementType.GREAT_TERRACE],
-        available_paths=_entities.MAX_PATHS - len(entity_player.paths),
+        available_teraces=entities.MAX_TERRACES
+        - counts[entities.SettlementType.TERRACE],
+        available_great_teraces=entities.MAX_GREAT_TERRACES
+        - counts[entities.SettlementType.GREAT_TERRACE],
+        available_paths=entities.MAX_PATHS - len(entity_player.paths),
     )

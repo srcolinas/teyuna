@@ -1,17 +1,17 @@
-from ._repository import InMemoryProposedGameRepository
-from ._routes import router
+from ._repository import (
+    InMemoryProposedGameRepository as InMemoryProposedGameRepository,
+)
+from ._routes import router as router
 from ._services._add_player import (
-    GameExpiredError,
-    GameManager,
-    PlayerAddedResult,
-    add_player,
+    GameExpiredError as GameExpiredError,
+    PlayerAddedResult as PlayerAddedResult,
+    add_player as add_player,
 )
 
 __ALL__ = [
-    router,
-    InMemoryProposedGameRepository,
-    add_player,
-    GameExpiredError,
-    GameManager,
-    PlayerAddedResult,
+    "router",
+    "InMemoryProposedGameRepository",
+    "add_player",
+    "GameExpiredError",
+    "PlayerAddedResult",
 ]

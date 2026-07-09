@@ -35,7 +35,10 @@ def join_game(
         _add_player.AddPlayerGameRepository,
         fastapi.Depends(_dependencies.get_repository),
     ],
-    manager: Annotated[active.GameManager, fastapi.Depends(active.get_game_manager)],
+    game_repository: Annotated[
+        active.repository.InMemoryActiveGameRepository,
+        fastapi.Depends(active.dependencies.get_repository),
+    ],
     auth: Annotated[
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
@@ -45,7 +48,7 @@ def join_game(
             game_id=game_id,
             nickname=payload.nickname,
             repository=repository,
-            manager=manager,
+            game_repository=game_repository,
             auth=auth,
         )
     except _add_player.GameAlreadyFullError:

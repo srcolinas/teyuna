@@ -15,7 +15,6 @@ def create_game_and_add_players(
 ) -> uuid.UUID:
     auth = player.PlayerAuthenticationService()
     proposed_repository = proposed.InMemoryProposedGameRepository()
-    manager = active.GameManager(active_repository)
 
     proposed_game_id = proposed_repository.add(
         num_players=max_players,
@@ -30,7 +29,7 @@ def create_game_and_add_players(
             game_id=proposed_game_id,
             nickname=nicknames[i],
             repository=proposed_repository,
-            manager=manager,
+            game_repository=active_repository,
             auth=auth,
         )
 
@@ -38,7 +37,7 @@ def create_game_and_add_players(
         game_id=proposed_game_id,
         nickname=nicknames[players_to_add - 1],
         repository=proposed_repository,
-        manager=manager,
+        game_repository=active_repository,
         auth=auth,
     )
     result = cast(proposed.PlayerAddedResult, result)

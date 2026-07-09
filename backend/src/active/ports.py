@@ -4,7 +4,7 @@ from typing import Annotated
 import pydantic
 
 from .. import player
-from . import _entities
+from . import entities
 
 
 class HexCoordinate(pydantic.BaseModel):
@@ -64,7 +64,7 @@ class Hex(pydantic.BaseModel):
     """A hex tile on the game board."""
 
     coordinate: HexCoordinate
-    type: _entities.HexType
+    type: entities.HexType
     number: Annotated[int, pydantic.Field(default=None, ge=2, le=12)]
 
     model_config = pydantic.ConfigDict(frozen=True)
@@ -76,7 +76,7 @@ type Map = list[Hex]
 class PlayedSettlement(pydantic.BaseModel):
     owner: player.Nickname
     location: VertexCoordinate
-    type: _entities.SettlementType
+    type: entities.SettlementType
 
 
 class PlayedStonePath(pydantic.BaseModel):
@@ -86,7 +86,7 @@ class PlayedStonePath(pydantic.BaseModel):
 
 class Player(pydantic.BaseModel):
     nickname: player.Nickname
-    played_wisdom_cards: list[_entities.WisdomCard] = []
+    played_wisdom_cards: list[entities.WisdomCard] = []
     num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0
     num_resources: Annotated[int, pydantic.Field(ge=0)] = 0
     available_teraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
@@ -96,7 +96,7 @@ class Player(pydantic.BaseModel):
 
 class ActiveGame(pydantic.BaseModel):
     id: uuid.UUID
-    map: _entities.Map
+    map: entities.Map
     conquistator_location: HexCoordinate
     players: list[Player]
     settlements: list[PlayedSettlement]

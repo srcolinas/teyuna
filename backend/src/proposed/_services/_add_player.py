@@ -4,7 +4,8 @@ from typing import Protocol
 
 import pydantic
 
-from ... import player
+
+from ... import player, active
 from .. import _entities
 
 
@@ -27,16 +28,12 @@ class PlayerAddedResult(pydantic.BaseModel):
     game: uuid.UUID | None = None
 
 
-class GameManager(Protocol):
-    def start(self, players: tuple[player.Nickname, ...]) -> uuid.UUID: ...
-
-
 def add_player(
     *,
     game_id: uuid.UUID,
     nickname: player.Nickname,
     repository: AddPlayerGameRepository,
-    manager: GameManager,
+    game_repository: active.repository.InMemoryActiveGameRepository,
     auth: player.PlayerAuthenticationService,
 ) -> tuple[PlayerAddedResult, player.Token]:
     game = repository.retrieve(game_id)
@@ -49,6 +46,7 @@ def add_player(
     token = auth.add(nickname)
     proposed = repository.add_player(game_id=game_id, nickname=nickname)
     if proposed.max_players == len(proposed.players):
-        id = manager.start(players=tuple(proposed.players))
+        active_game = active.services.create_new(players=tuple(proposed.players))
+        id = game_repository.add(active_game)
         return PlayerAddedResult(proposed=proposed, game=id), token
     return PlayerAddedResult(proposed=proposed), token
