@@ -6,26 +6,26 @@ import fastapi
 from fastapi import status
 
 from .. import player
-from . import ports, repository as repository_module, services
+from . import ports, repository, services
 
 
 @functools.cache
-def get_repository() -> repository_module.InMemoryActiveGameRepository:
-    return repository_module.InMemoryActiveGameRepository()
+def get_repository() -> repository.InMemoryActiveGameRepository:
+    return repository.InMemoryActiveGameRepository()
 
 
 def get_game(
     game_id: uuid.UUID,
-    repository: Annotated[
-        repository_module.InMemoryActiveGameRepository,
+    repository_: Annotated[
+        repository.InMemoryActiveGameRepository,
         fastapi.Depends(get_repository),
     ],
 ) -> ports.ActiveGame:
     try:
         game = services.retrieve_game(
-            game_id, repository=cast(services.RetrieveGameRepository, repository)
+            game_id, repository=cast(services.RetrieveGameRepository, repository_)
         )
-    except repository_module.ActiveGameDoesNotExistError:
+    except repository.ActiveGameDoesNotExistError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return game
 
