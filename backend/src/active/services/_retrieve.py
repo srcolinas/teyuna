@@ -64,9 +64,9 @@ def _to_port_player(
         ],
         num_hidden_wisdom_cards=sum(entity_player.cards.values()),
         num_resources=sum(entity_player.resources.values()),
-        available_teraces=entities.MAX_TERRACES
+        available_terraces=entities.MAX_TERRACES
         - counts[entities.SettlementType.TERRACE],
-        available_great_teraces=entities.MAX_GREAT_TERRACES
+        available_great_terraces=entities.MAX_GREAT_TERRACES
         - counts[entities.SettlementType.GREAT_TERRACE],
         available_paths=entities.MAX_PATHS - len(entity_player.paths),
     )

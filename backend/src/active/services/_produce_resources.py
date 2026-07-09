@@ -36,6 +36,7 @@ def produce_resources(game: entities.ActiveGame, *, rnd: random.Random = _RND) -
                             game.grant_resources(
                                 p, resources=collections.Counter({resource: 2})
                             )
+    game.set_turn_phase(entities.TurnPhase.TRADE)
 
 
 _HEX_TYPE_TO_RESOURCE: dict[entities.HexType, entities.ResourceCard] = {

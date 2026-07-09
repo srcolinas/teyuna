@@ -145,6 +145,12 @@ class GamePhase(str, Enum):
     FINISHED = "finished"
 
 
+class TurnPhase(str, Enum):
+    PRODUCTION = "production"
+    TRADE = "trade"
+    CONSTRUCTION = "construction"
+
+
 class TradeProposal(NamedTuple):
     by: player.Nickname
     offer: ResourceCount
@@ -154,20 +160,18 @@ class TradeProposal(NamedTuple):
 class ActiveGame:
     def __init__(
         self,
+        *,
         map: Sequence[_map.Hex],
         players: Mapping[player.Nickname, Player],
         conquistator_location: _map.Hex,
         turn_order: Sequence[player.Nickname],
-        *,
-        phase: GamePhase = GamePhase.INITIAL,
     ) -> None:
-        from . import _map
-
         self._map = tuple(map)
         self._players = dict(players)
         self._conquistator_location = conquistator_location
         self._turn_order = tuple(turn_order)
-        self._phase = phase
+        self._phase = GamePhase.INITIAL
+        self._turn_phase = TurnPhase.PRODUCTION
         self._resource_supply = collections.Counter(
             {
                 ResourceCard.GOLD: 19,
@@ -192,6 +196,10 @@ class ActiveGame:
     @property
     def phase(self) -> GamePhase:
         return self._phase
+
+    @property
+    def turn_phase(self) -> TurnPhase:
+        return self._turn_phase
 
     @property
     def players(self) -> Mapping[player.Nickname, Player]:
@@ -281,6 +289,15 @@ class ActiveGame:
 
     def remove_trade_proposal(self, id: uuid.UUID) -> None:
         del self._trade_proposals[id]
+
+    def set_game_phase(self, phase: GamePhase) -> None:
+        self._phase = phase
+
+    def set_turn_phase(self, phase: TurnPhase) -> None:
+        self._turn_phase = phase
+
+    def set_turn_order(self, order: Sequence[player.Nickname]) -> None:
+        self._turn_order = tuple(order)
 
 
 HARBOUR_LOCATIONS: Final[dict[_map.Coordinate, ResourceCard | None]] = {

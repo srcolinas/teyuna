@@ -57,8 +57,8 @@ def test_players(
             played_wisdom_cards=[],
             num_hidden_wisdom_cards=0,
             num_resources=0,
-            available_teraces=5,
-            available_great_teraces=4,
+            available_terraces=5,
+            available_great_terraces=4,
             available_paths=15,
         )
         for i in range(3)

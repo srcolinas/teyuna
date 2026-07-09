@@ -1,7 +1,7 @@
 from ._add_initial_terrace import add_initial_terrace
-from ._buy_great_terrace import buy_great_terrace
-from ._buy_path import buy_path
-from ._buy_terrace import buy_terrace
+from ._build_great_terrace import build_great_terrace
+from ._build_path import build_path
+from ._build_terrace import build_terrace
 from ._create_game import create_new
 from ._errors import (
     InsufficientResources,
@@ -19,9 +19,9 @@ from ._accept_trade import accept_trade
 
 __all__ = [
     "add_initial_terrace",
-    "buy_great_terrace",
-    "buy_path",
-    "buy_terrace",
+    "build_great_terrace",
+    "build_path",
+    "build_terrace",
     "create_new",
     "produce_resources",
     "retrieve_game",

@@ -92,7 +92,7 @@ def buy_settlement(
         if game.phase is entities.GamePhase.INITIAL:
             services.add_initial_terrace(game, nickname, q=q, r=r, direction=direction)
         else:
-            services.buy_terrace(game, nickname, q=q, r=r, direction=direction)
+            services.build_terrace(game, nickname, q=q, r=r, direction=direction)
     except services.InvalidSettlementLocation:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

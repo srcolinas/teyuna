@@ -89,8 +89,8 @@ class Player(pydantic.BaseModel):
     played_wisdom_cards: list[entities.WisdomCard] = []
     num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0
     num_resources: Annotated[int, pydantic.Field(ge=0)] = 0
-    available_teraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
-    available_great_teraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
+    available_terraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
+    available_great_terraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
     available_paths: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
 
 
