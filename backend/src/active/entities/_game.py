@@ -145,7 +145,6 @@ class GamePhase(str, Enum):
 
 
 class TradeProposal(NamedTuple):
-    by: player.Nickname
     offer: ResourceCount
     request: ResourceCount
 
@@ -176,7 +175,7 @@ class ActiveGame:
                 ResourceCard.WOOD: 19,
             }
         )
-        self._trade_proposals: set[TradeProposal] = set()
+        self._trade_proposals: dict[player.Nickname, TradeProposal] = {}
         self._restricted_verticies: set[_map.Coordinate] = set()
         self._free_verticies: set[_map.Coordinate] = set()
         self._free_edges: set[_map.Coordinate] = set()
@@ -221,7 +220,7 @@ class ActiveGame:
         return self._restricted_verticies
 
     @property
-    def trade_proposals(self) -> set[TradeProposal]:
+    def trade_proposals(self) -> dict[player.Nickname, TradeProposal]:
         return self._trade_proposals
 
     @property
@@ -270,3 +269,8 @@ class ActiveGame:
     ) -> None:
         self._players[to]._resources += resources
         self._resource_supply -= resources
+
+    def add_trade_proposal(
+        self, by: player.Nickname, /, *, offer: ResourceCount, request: ResourceCount
+    ) -> None:
+        self._trade_proposals[by] = TradeProposal(offer, request)

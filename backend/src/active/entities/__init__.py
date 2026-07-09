@@ -10,6 +10,7 @@ from ._game import (
     MAX_TERRACES,
     MAX_PATHS,
     MAX_GREAT_TERRACES,
+    ResourceCount,
 )
 from ._map import (
     Hex,
@@ -42,4 +43,5 @@ __all__ = [
     "canonical_edge",
     "NEIGHBOR",
     "INVALID_HEX_COORDINATES",
+    "ResourceCount",
 ]

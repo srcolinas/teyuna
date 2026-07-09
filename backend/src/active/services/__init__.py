@@ -13,6 +13,7 @@ from ._errors import (
 from ._produce_resources import produce_resources
 from ._retrieve import RetrieveGameRepository, retrieve_game
 from ._trade_with_supply import trade
+from ._propose_trade import propose_trade
 
 __all__ = [
     "add_initial_terrace",
@@ -29,4 +30,5 @@ __all__ = [
     "InsufficientResources",
     "InvalidGamePhase",
     "trade",
+    "propose_trade",
 ]
