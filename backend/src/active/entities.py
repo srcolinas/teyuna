@@ -150,17 +150,6 @@ class Player:
     def paths(self) -> set[Coordinate]:
         return self._paths
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Player):
-            return NotImplemented
-        return (
-            self._cards == other._cards
-            and self._played_cards == other._played_cards
-            and self._resources == other._resources
-            and self._settlements._locations == other._settlements._locations
-            and self._paths == other._paths
-        )
-
 
 class GamePhase(str, Enum):
     INITIAL = "initial"
