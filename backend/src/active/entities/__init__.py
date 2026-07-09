@@ -11,6 +11,7 @@ from ._game import (
     MAX_PATHS,
     MAX_GREAT_TERRACES,
     ResourceCount,
+    HARBOUR_LOCATIONS,
 )
 from ._map import (
     Hex,
@@ -44,4 +45,5 @@ __all__ = [
     "NEIGHBOR",
     "INVALID_HEX_COORDINATES",
     "ResourceCount",
+    "HARBOUR_LOCATIONS",
 ]

@@ -281,3 +281,25 @@ class ActiveGame:
 
     def remove_trade_proposal(self, id: uuid.UUID) -> None:
         del self._trade_proposals[id]
+
+
+HARBOUR_LOCATIONS: Final[dict[_map.Coordinate, ResourceCard | None]] = {
+    _map.canonical_vertex(-1, -1, 4): ResourceCard.WOOD,
+    _map.canonical_vertex(-1, -1, 5): ResourceCard.WOOD,
+    _map.canonical_vertex(0, -2, 0): None,
+    _map.canonical_vertex(0, -2, 5): None,
+    _map.canonical_vertex(1, -2, 0): ResourceCard.MAIZE,
+    _map.canonical_vertex(1, -2, 1): ResourceCard.MAIZE,
+    _map.canonical_vertex(2, -1, 0): ResourceCard.STONE,
+    _map.canonical_vertex(2, -1, 1): ResourceCard.STONE,
+    _map.canonical_vertex(2, 0, 1): None,
+    _map.canonical_vertex(2, 0, 2): None,
+    _map.canonical_vertex(1, 1, 2): ResourceCard.COTTON,
+    _map.canonical_vertex(1, 1, 3): ResourceCard.COTTON,
+    _map.canonical_vertex(-1, 2, 2): None,
+    _map.canonical_vertex(-1, 2, 3): None,
+    _map.canonical_vertex(-2, 2, 3): None,
+    _map.canonical_vertex(-2, 2, 4): None,
+    _map.canonical_vertex(-2, 1, 4): ResourceCard.GOLD,
+    _map.canonical_vertex(-2, 1, 5): ResourceCard.GOLD,
+}
