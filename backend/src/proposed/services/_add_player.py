@@ -6,7 +6,7 @@ import pydantic
 
 
 from ... import player, active
-from .. import _entities
+from .. import entities
 
 
 class GameAlreadyFullError(Exception): ...
@@ -16,15 +16,15 @@ class GameExpiredError(Exception): ...
 
 
 class AddPlayerGameRepository(Protocol):
-    def retrieve(self, id: uuid.UUID) -> _entities.ProposedGame: ...
+    def retrieve(self, id: uuid.UUID) -> entities.ProposedGame: ...
 
     def add_player(
         self, game_id: uuid.UUID, nickname: player.Nickname
-    ) -> _entities.ProposedGame: ...
+    ) -> entities.ProposedGame: ...
 
 
 class PlayerAddedResult(pydantic.BaseModel):
-    proposed: _entities.ProposedGame
+    proposed: entities.ProposedGame
     game: uuid.UUID | None = None
 
 
