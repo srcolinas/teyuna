@@ -5,7 +5,7 @@ import fastapi
 from fastapi import status
 
 from .. import player
-from . import dependencies, entities, ports, repository as repository_module, services
+from . import dependencies, entities, ports, repository, services
 
 router = fastapi.APIRouter(prefix="/active-games")
 
@@ -82,12 +82,12 @@ def buy_settlement(
     r: int,
     direction: int,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
-    repository: Annotated[
-        repository_module.InMemoryActiveGameRepository,
+    repository_: Annotated[
+        repository.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
 ) -> ports.PlayedSettlement:
-    game = repository.retrieve(game_id)
+    game = repository_.retrieve(game_id)
     try:
         if game.phase is entities.GamePhase.INITIAL:
             services.add_initial_terrace(game, nickname, q=q, r=r, direction=direction)

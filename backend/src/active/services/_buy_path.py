@@ -1,7 +1,7 @@
 import collections
 
 from ... import player
-from .. import entities, _map
+from .. import entities
 from . import _errors
 
 
@@ -48,7 +48,7 @@ def _add_path(
     if len(game.players[to].paths) >= entities.MAX_PATHS:
         raise _errors.InsufficientResources
 
-    target = _map.canonical_edge(q, r, direction)
+    target = entities.canonical_edge(q, r, direction)
     if target not in game.free_edges:
         raise _errors.InvalidPathLocation
 
@@ -60,8 +60,8 @@ def _add_path(
     forbidden = True
     q, r, direction = target
     vertices = [
-        _map.canonical_vertex(q, r, direction),
-        _map.canonical_vertex(q, r, (direction + 1) % 6),
+        entities.canonical_vertex(q, r, direction),
+        entities.canonical_vertex(q, r, (direction + 1) % 6),
     ]
     for v in vertices:
         if v in settlements:
@@ -69,11 +69,11 @@ def _add_path(
             break
         if v in free_verticies:
             vq, vr, vd = v
-            dq5, dr5 = _map.NEIGHBOR[(vd + 5) % 6]
+            dq5, dr5 = entities.NEIGHBOR[(vd + 5) % 6]
             for e in (
-                _map.canonical_edge(vq, vr, (vd + 5) % 6),
-                _map.canonical_edge(vq, vr, vd),
-                _map.canonical_edge(vq + dq5, vr + dr5, (vd + 1) % 6),
+                entities.canonical_edge(vq, vr, (vd + 5) % 6),
+                entities.canonical_edge(vq, vr, vd),
+                entities.canonical_edge(vq + dq5, vr + dr5, (vd + 1) % 6),
             ):
                 if e != target and e in paths:
                     forbidden = False

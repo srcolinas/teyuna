@@ -1,7 +1,7 @@
 import collections
 
 from ... import player
-from .. import entities, _map
+from .. import entities
 from . import _errors
 
 
@@ -59,16 +59,16 @@ def _add_terrace(
     r: int,
     direction: int,
 ) -> None:
-    target = _map.canonical_vertex(q, r, direction)
+    target = entities.canonical_vertex(q, r, direction)
     if target not in game.free_verticies or target in game.restricted_verticies:
         raise _errors.InvalidSettlementLocation
 
     paths = game.players[to].paths
-    dq5, dr5 = _map.NEIGHBOR[(direction + 5) % 6]
+    dq5, dr5 = entities.NEIGHBOR[(direction + 5) % 6]
     adjacent_edges = (
-        _map.canonical_edge(q, r, (direction + 5) % 6),
-        _map.canonical_edge(q, r, direction),
-        _map.canonical_edge(q + dq5, r + dr5, (direction + 1) % 6),
+        entities.canonical_edge(q, r, (direction + 5) % 6),
+        entities.canonical_edge(q, r, direction),
+        entities.canonical_edge(q + dq5, r + dr5, (direction + 1) % 6),
     )
     if not any(edge in paths for edge in adjacent_edges):
         raise _errors.InvalidSettlementLocation

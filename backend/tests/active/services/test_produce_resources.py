@@ -43,9 +43,8 @@ def test_produces_gives_1_resource_from_terrace() -> None:
             "srcolinas-2": entities.Player(),
             "srcolinas-3": entities.Player(),
         },
-        rnd=RandomGenerator(4),
     )
-    produce_resources(game)
+    produce_resources(game, rnd=RandomGenerator(4))
     assert game.players["srcolinas-1"].resources[entities.ResourceCard.GOLD] == 1
     assert game.players["srcolinas-2"].resources[entities.ResourceCard.GOLD] == 0
     assert game.players["srcolinas-3"].resources[entities.ResourceCard.GOLD] == 0
@@ -89,9 +88,8 @@ def test_produces_gives_2_resources_from_great_terrace() -> None:
             "srcolinas-2": entities.Player(),
             "srcolinas-3": entities.Player(),
         },
-        rnd=RandomGenerator(4),
     )
-    produce_resources(game)
+    produce_resources(game, rnd=RandomGenerator(4))
     assert game.players["srcolinas-1"].resources[entities.ResourceCard.GOLD] == 2
     assert game.players["srcolinas-2"].resources[entities.ResourceCard.GOLD] == 0
     assert game.players["srcolinas-3"].resources[entities.ResourceCard.GOLD] == 0

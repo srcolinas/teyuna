@@ -1,5 +1,5 @@
 from ... import player
-from .. import entities, _map
+from .. import entities
 from . import _errors
 
 
@@ -18,7 +18,7 @@ def add_initial_terrace(
     if to != game.turn_order[0]:
         raise _errors.PlayerNotInTurn
 
-    target = _map.canonical_vertex(q, r, direction)
+    target = entities.canonical_vertex(q, r, direction)
     if target not in game.free_verticies or target in game.restricted_verticies:
         raise _errors.InvalidSettlementLocation
 

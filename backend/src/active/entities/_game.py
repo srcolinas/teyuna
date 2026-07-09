@@ -1,51 +1,16 @@
 import collections
 import dataclasses
 import itertools
-import random
 from collections.abc import ItemsView, Mapping, ValuesView
 from enum import Enum
 from typing import Final, Sequence, NamedTuple
 
-from .. import player
+from ... import player
+from . import _map
 
 MAX_TERRACES: Final[int] = 5
 MAX_PATHS: Final[int] = 15
 MAX_GREAT_TERRACES: Final[int] = 4
-
-
-class HexType(str, Enum):
-    """Types of hex tiles on the board."""
-
-    MOUNTAINS = "mountains"
-    QUARRIES = "quarries"
-    HIGHLANDS = "highlands"
-    VALLEYS = "valleys"
-    JUNGLE = "jungle"
-    DESERT = "desert"
-
-
-class Coordinate(NamedTuple):
-    """Coordinate for a vertex (corner) or edge of a hex.
-
-    A vertex or edge is identified by its adjacent hex and a direction (0-5).
-    Direction 0 is the top vertex, going clockwise.
-    """
-
-    q: int
-    r: int
-    d: int
-
-
-class Hex(NamedTuple):
-    """A hex tile on the game board."""
-
-    q: int
-    r: int
-    type: HexType
-    number: int
-
-
-type Map = tuple[Hex, ...]
 
 
 class ResourceCard(str, Enum):
@@ -71,7 +36,7 @@ class SettlementType(str, Enum):
 
 @dataclasses.dataclass
 class SettlementsCollection:
-    _locations: dict[Coordinate, SettlementType] = dataclasses.field(
+    _locations: dict[_map.Coordinate, SettlementType] = dataclasses.field(
         default_factory=dict
     )
     _counts: collections.Counter[SettlementType] = dataclasses.field(
@@ -81,19 +46,19 @@ class SettlementsCollection:
     def __post_init__(self) -> None:
         self._counts = collections.Counter(self._locations.values())
 
-    def __contains__(self, coord: Coordinate) -> bool:
+    def __contains__(self, coord: _map.Coordinate) -> bool:
         return coord in self._locations
 
-    def __getitem__(self, coord: Coordinate) -> SettlementType:
+    def __getitem__(self, coord: _map.Coordinate) -> SettlementType:
         return self._locations[coord]
 
-    def __setitem__(self, coord: Coordinate, type: SettlementType) -> None:
+    def __setitem__(self, coord: _map.Coordinate, type: SettlementType) -> None:
         if coord in self._locations:
             self._counts[self._locations[coord]] -= 1
         self._locations[coord] = type
         self._counts[type] += 1
 
-    def items(self) -> ItemsView[Coordinate, SettlementType]:
+    def items(self) -> ItemsView[_map.Coordinate, SettlementType]:
         return self._locations.items()
 
     def values(self) -> ValuesView[SettlementType]:
@@ -119,17 +84,38 @@ class Player:
         played_cards: CardCount | None = None,
         resources: ResourceCount | None = None,
         settlements: SettlementsCollection | None = None,
-        paths: set[Coordinate] | None = None,
+        paths: set[_map.Coordinate] | None = None,
     ) -> None:
         self._cards = cards if cards is not None else collections.Counter()
         self._played_cards = (
             played_cards if played_cards is not None else collections.Counter()
         )
-        self._resources = resources if resources is not None else collections.Counter()
+        self._resources = (
+            resources
+            if resources is not None
+            else collections.Counter(
+                {
+                    ResourceCard.GOLD: 0,
+                    ResourceCard.STONE: 0,
+                    ResourceCard.COTTON: 0,
+                    ResourceCard.MAIZE: 0,
+                    ResourceCard.WOOD: 0,
+                }
+            )
+        )
         self._settlements = (
             settlements if settlements is not None else SettlementsCollection()
         )
         self._paths = paths if paths is not None else set()
+        self._resource_supply = collections.Counter(
+            {
+                ResourceCard.GOLD: 4,
+                ResourceCard.STONE: 4,
+                ResourceCard.COTTON: 4,
+                ResourceCard.MAIZE: 4,
+                ResourceCard.WOOD: 4,
+            }
+        )
 
     @property
     def cards(self) -> collections.Counter[WisdomCard]:
@@ -148,7 +134,7 @@ class Player:
         return self._settlements
 
     @property
-    def paths(self) -> set[Coordinate]:
+    def paths(self) -> set[_map.Coordinate]:
         return self._paths
 
 
@@ -158,16 +144,21 @@ class GamePhase(str, Enum):
     FINISHED = "finished"
 
 
+class TradeProposal(NamedTuple):
+    by: player.Nickname
+    offer: ResourceCount
+    request: ResourceCount
+
+
 class ActiveGame:
     def __init__(
         self,
-        map: Sequence[Hex],
+        map: Sequence[_map.Hex],
         players: Mapping[player.Nickname, Player],
-        conquistator_location: Hex,
+        conquistator_location: _map.Hex,
         turn_order: Sequence[player.Nickname],
         *,
         phase: GamePhase = GamePhase.INITIAL,
-        rnd: random.Random | None = None,
     ) -> None:
         from . import _map
 
@@ -176,10 +167,19 @@ class ActiveGame:
         self._conquistator_location = conquistator_location
         self._turn_order = tuple(turn_order)
         self._phase = phase
-        self._rnd = rnd if rnd is not None else random.Random()
-        self._restricted_verticies: set[Coordinate] = set()
-        self._free_verticies: set[Coordinate] = set()
-        self._free_edges: set[Coordinate] = set()
+        self._resource_supply = collections.Counter(
+            {
+                ResourceCard.GOLD: 19,
+                ResourceCard.STONE: 19,
+                ResourceCard.COTTON: 19,
+                ResourceCard.MAIZE: 19,
+                ResourceCard.WOOD: 19,
+            }
+        )
+        self._trade_proposals: set[TradeProposal] = set()
+        self._restricted_verticies: set[_map.Coordinate] = set()
+        self._free_verticies: set[_map.Coordinate] = set()
+        self._free_edges: set[_map.Coordinate] = set()
         for item in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
             if item not in _map.INVALID_HEX_COORDINATES:
                 vertex = _map.canonical_vertex(*item)
@@ -201,24 +201,32 @@ class ActiveGame:
         return self._turn_order
 
     @property
-    def map(self) -> Map:
+    def map(self) -> _map.Map:
         return self._map
 
     @property
-    def conquistator_location(self) -> Hex:
+    def conquistator_location(self) -> _map.Hex:
         return self._conquistator_location
 
     @property
-    def free_verticies(self) -> set[Coordinate]:
+    def free_verticies(self) -> set[_map.Coordinate]:
         return self._free_verticies
 
     @property
-    def free_edges(self) -> set[Coordinate]:
+    def free_edges(self) -> set[_map.Coordinate]:
         return self._free_edges
 
     @property
-    def restricted_verticies(self) -> set[Coordinate]:
+    def restricted_verticies(self) -> set[_map.Coordinate]:
         return self._restricted_verticies
+
+    @property
+    def trade_proposals(self) -> set[TradeProposal]:
+        return self._trade_proposals
+
+    @property
+    def resource_supply(self) -> ResourceCount:
+        return self._resource_supply
 
     def add_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
@@ -241,8 +249,6 @@ class ActiveGame:
     def add_path(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> None:
-        from . import _map
-
         target = _map.canonical_edge(q, r, direction)
         self._free_edges.remove(target)
         self._players[to]._paths.add(target)
@@ -250,8 +256,6 @@ class ActiveGame:
     def upgrade_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> None:
-        from . import _map
-
         coord = _map.canonical_vertex(q, r, direction)
         self._players[to]._settlements[coord] = SettlementType.GREAT_TERRACE
 
@@ -259,8 +263,10 @@ class ActiveGame:
         self, to: player.Nickname, /, *, resources: collections.Counter[ResourceCard]
     ) -> None:
         self._players[to]._resources -= resources
+        self._resource_supply += resources
 
     def grant_resources(
         self, to: player.Nickname, /, *, resources: collections.Counter[ResourceCard]
     ) -> None:
         self._players[to]._resources += resources
+        self._resource_supply -= resources

@@ -1,7 +1,7 @@
 import collections
 
 from ... import player
-from .. import entities, _map
+from .. import entities
 from . import _errors
 
 
@@ -29,7 +29,7 @@ def buy_great_terrace(
     ):
         raise _errors.InsufficientResources
 
-    coord = _map.canonical_vertex(q, r, direction)
+    coord = entities.canonical_vertex(q, r, direction)
     if (
         coord not in game.players[to].settlements
         or game.players[to].settlements[coord] is not entities.SettlementType.TERRACE
