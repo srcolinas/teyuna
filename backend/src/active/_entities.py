@@ -106,11 +106,17 @@ class Settlements:
 
 @dataclasses.dataclass
 class Player:
-    cards: collections.Counter[WisdomCard]
-    played_cards: collections.Counter[WisdomCard]
-    resources: collections.Counter[ResourceCard]
-    settlements: Settlements
-    paths: set[Coordinate]
+    cards: collections.Counter[WisdomCard] = dataclasses.field(
+        default_factory=collections.Counter
+    )
+    played_cards: collections.Counter[WisdomCard] = dataclasses.field(
+        default_factory=collections.Counter
+    )
+    resources: collections.Counter[ResourceCard] = dataclasses.field(
+        default_factory=collections.Counter
+    )
+    settlements: Settlements = dataclasses.field(default_factory=Settlements)
+    paths: set[Coordinate] = dataclasses.field(default_factory=set)
 
 
 class GamePhase(str, Enum):
@@ -156,8 +162,11 @@ class ActiveGame:
     _free_edges: set[tuple[int, int, int]] = dataclasses.field(
         default_factory=set, init=False, repr=False
     )
+    _rnd: random.Random = dataclasses.field(default_factory=random.Random, init=True)
 
     def __post_init__(self) -> None:
+        if self._rnd is None:
+            self._rnd = random.Random()
         self._restricted_verticies = set()
         self._free_verticies = set()
         self._free_edges = set()
@@ -354,6 +363,30 @@ class ActiveGame:
         resources[ResourceCard.GOLD] -= 3
         resources[ResourceCard.MAIZE] -= 2
 
+    def produce(self) -> None:
+        if self.phase is not GamePhase.MAIN:
+            raise InvalidGamePhase
+
+        # TODO: improve performance by using a differnet data structure
+        # to represent the map and figure out which players benefit
+        # from the production roll more efficiently.
+        roll_1, roll_2 = self._rnd.randint(1, 6), self._rnd.randint(1, 6)
+        total = roll_1 + roll_2
+        for hex in self.map:
+            if hex.number == total:
+                if hex.type is not HexType.DESERT:
+                    resource = _HEX_TYPE_TO_RESOURCE[hex.type]
+                    for p in self.turn_order:
+                        settlements = self.players[p].settlements
+                        for i in range(6):
+                            coord = _canonical_vertex(hex.q, hex.r, i)
+                            if coord not in settlements:
+                                continue
+                            if settlements[coord] is SettlementType.TERRACE:
+                                self.players[p].resources[resource] += 1
+                            elif settlements[coord] is SettlementType.GREAT_TERRACE:
+                                self.players[p].resources[resource] += 2
+
 
 def _canonical_vertex(q: int, r: int, d: int) -> Coordinate:
     aliases = _vertex_aliases(q, r, d)
@@ -437,3 +470,11 @@ _NEIGHBOR: Final[list[tuple[int, int]]] = [
     (-1, 0),
     (0, -1),
 ]
+
+_HEX_TYPE_TO_RESOURCE: Final[dict[HexType, ResourceCard]] = {
+    HexType.MOUNTAINS: ResourceCard.GOLD,
+    HexType.QUARRIES: ResourceCard.STONE,
+    HexType.HIGHLANDS: ResourceCard.COTTON,
+    HexType.VALLEYS: ResourceCard.MAIZE,
+    HexType.JUNGLE: ResourceCard.WOOD,
+}
