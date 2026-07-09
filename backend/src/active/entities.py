@@ -107,13 +107,17 @@ class SettlementsCollection:
         return collections.Counter(self._counts)
 
 
+type CardCount = collections.Counter[WisdomCard]
+type ResourceCount = collections.Counter[ResourceCard]
+
+
 class Player:
     def __init__(
         self,
         *,
-        cards: collections.Counter[WisdomCard] | None = None,
-        played_cards: collections.Counter[WisdomCard] | None = None,
-        resources: collections.Counter[ResourceCard] | None = None,
+        cards: CardCount | None = None,
+        played_cards: CardCount | None = None,
+        resources: ResourceCount | None = None,
         settlements: SettlementsCollection | None = None,
         paths: set[Coordinate] | None = None,
     ) -> None:
