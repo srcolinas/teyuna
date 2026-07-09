@@ -45,7 +45,7 @@ class Hex(NamedTuple):
     number: int
 
 
-type Map = list[Hex]
+type Map = tuple[Hex, ...]
 
 
 class ResourceCard(str, Enum):
@@ -201,7 +201,7 @@ class ActiveGame:
 
     @property
     def map(self) -> Map:
-        return list(self._map)
+        return self._map
 
     @property
     def conquistator_location(self) -> Hex:

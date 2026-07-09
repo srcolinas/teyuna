@@ -74,7 +74,7 @@ def generate_map() -> entities.Map:
                 )
             )
 
-    return map
+    return tuple(map)
 
 
 _TYPES = (
