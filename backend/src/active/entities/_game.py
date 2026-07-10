@@ -240,8 +240,6 @@ class ActiveGame:
     def add_terrace(
         self, to: player.Nickname, /, *, q: int, r: int, direction: int
     ) -> None:
-        from . import _map
-
         target = _map.canonical_vertex(q, r, direction)
         self._players[to]._settlements[target] = SettlementType.TERRACE
         self._free_verticies.remove(target)
