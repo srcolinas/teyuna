@@ -208,3 +208,14 @@ def test_cannot_build_path_if_turn_is_not_in_construction_phase(
     game.turn_phase = turn_phase
     with pytest.raises(services.InvalidGamePhase):
         services.build_path(game, nickname, q=0, r=0, direction=0)
+
+
+def test_build_path_limits_free_edges(game: entities.ActiveGame) -> None:
+    nickname = game.turn_order[0]
+    services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
+    helpers.fund_path_purchase(game, nickname)
+    game.phase = entities.GamePhase.MAIN
+    game.turn_phase = entities.TurnPhase.CONSTRUCTION
+    original_free_edges = game.free_edges.copy()
+    services.build_path(game, nickname, q=0, r=0, direction=0)
+    assert game.free_edges == original_free_edges - {services.canonical_edge(0, 0, 0)}

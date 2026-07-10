@@ -20,3 +20,7 @@ class InvalidGamePhase(Exception):
 
 class TradeProposalNotFound(Exception):
     pass
+
+
+class InvalidTurnPhase(Exception):
+    pass

@@ -79,3 +79,22 @@ def test_cannot_add_terrace_if_game_is_not_in_initial_phase(
     game.phase = phase
     with pytest.raises(services.InvalidGamePhase):
         services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
+
+
+def test_new_terrace_limits_free_verticies(game: entities.ActiveGame) -> None:
+    nickname = game.turn_order[0]
+    original_free_verticies = game.free_verticies.copy()
+    services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
+    assert game.free_verticies == original_free_verticies - {
+        services.canonical_vertex(0, 0, 0)
+    }
+
+
+def test_new_terrace_restricts_verticies_around_it(game: entities.ActiveGame) -> None:
+    nickname = game.turn_order[0]
+    services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
+    assert game.restricted_verticies == {
+        services.canonical_vertex(0, -1, 1),
+        services.canonical_vertex(-1, 0, 1),
+        services.canonical_vertex(0, 0, 1),
+    }

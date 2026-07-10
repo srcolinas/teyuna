@@ -14,6 +14,16 @@ def accept_trade(
     if by != game.turn_order[0]:
         raise _errors.PlayerNotInTurn
 
+    if game.turn_phase is not entities.TurnPhase.TRADE:
+        raise _errors.InvalidTurnPhase(
+            "Trade proposals can only be accepted in the trade phase."
+        )
+
+    if game.phase is not entities.GamePhase.MAIN:
+        raise _errors.InvalidGamePhase(
+            "Trade proposals can only be accepted in the main phase."
+        )
+
     if id not in game.trade_proposals:
         raise _errors.TradeProposalNotFound(f"Trade proposal {id} not found.")
 

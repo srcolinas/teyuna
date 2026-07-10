@@ -1,10 +1,11 @@
 from ._build_great_terrace import build_great_terrace
-from ._build_path import build_path
+from ._build_path import build_path, add_initial_path
 from ._build_terrace import build_terrace, add_initial_terrace
 from ._create_game import create_new
 from ._errors import (
     InsufficientResources,
     InvalidGamePhase,
+    InvalidTurnPhase,
     InvalidPathLocation,
     InvalidSettlementLocation,
     PlayerNotInTurn,
@@ -20,6 +21,7 @@ from ._map import canonical_vertex, canonical_edge, HARBOUR_LOCATIONS
 
 __all__ = [
     "add_initial_terrace",
+    "add_initial_path",
     "build_great_terrace",
     "build_path",
     "build_terrace",
@@ -33,6 +35,7 @@ __all__ = [
     "InsufficientResources",
     "TradeProposalNotFound",
     "InvalidGamePhase",
+    "InvalidTurnPhase",
     "trade",
     "propose_trade",
     "accept_trade",

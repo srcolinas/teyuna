@@ -251,3 +251,33 @@ def test_cannot_build_terrace_if_turn_is_not_in_construction_phase(
     game.turn_phase = turn_phase
     with pytest.raises(services.InvalidGamePhase):
         services.build_terrace(game, nickname, q=0, r=0, direction=2)
+
+
+def test_build_terrace_limits_free_verticies(game: entities.ActiveGame) -> None:
+    nickname = game.turn_order[0]
+    services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
+    services.add_initial_path(game, nickname, q=0, r=0, direction=0)
+    services.add_initial_path(game, nickname, q=0, r=0, direction=1)
+    helpers.setup_construction_phase(game)
+    helpers.fund_terrace_purchase(game, nickname)
+    original_free_verticies = game.free_verticies.copy()
+    services.build_terrace(game, nickname, q=0, r=0, direction=2)
+    assert game.free_verticies == original_free_verticies - {
+        services.canonical_vertex(0, 0, 2)
+    }
+
+
+def test_build_terrace_restricts_verticies_around_it(game: entities.ActiveGame) -> None:
+    nickname = game.turn_order[0]
+    services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
+    services.add_initial_path(game, nickname, q=0, r=0, direction=0)
+    services.add_initial_path(game, nickname, q=0, r=0, direction=1)
+    helpers.setup_construction_phase(game)
+    helpers.fund_terrace_purchase(game, nickname)
+    original_restricted_verticies = game.restricted_verticies.copy()
+    services.build_terrace(game, nickname, q=0, r=0, direction=2)
+    assert game.restricted_verticies == original_restricted_verticies | {
+        services.canonical_vertex(1, 0, 3),
+        services.canonical_vertex(0, 0, 1),
+        services.canonical_vertex(0, 0, 3),
+    }

@@ -5,6 +5,24 @@ from .. import entities
 from . import _errors, _helpers, _map
 
 
+def add_initial_path(
+    game: entities.ActiveGame,
+    to: player.Nickname,
+    /,
+    *,
+    q: int,
+    r: int,
+    direction: int,
+) -> None:
+    if game.phase is not entities.GamePhase.INITIAL:
+        raise _errors.InvalidGamePhase
+
+    if to != game.turn_order[0]:
+        raise _errors.PlayerNotInTurn
+
+    _add_path(game, to, q=q, r=r, direction=direction)
+
+
 def build_path(
     game: entities.ActiveGame,
     to: player.Nickname,
