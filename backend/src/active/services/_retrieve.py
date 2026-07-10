@@ -40,7 +40,14 @@ def retrieve_game(
 
     return ports.ActiveGame(
         id=id,
-        map=game.map,
+        map=tuple(
+            ports.Hex(
+                coordinate=ports.HexCoordinate(q=hex.q, r=hex.r),
+                type=hex.type,
+                number=hex.number,
+            )
+            for hex in game.map
+        ),
         conquistator_location=ports.HexCoordinate(
             q=game.conquistator_location.q, r=game.conquistator_location.r
         ),

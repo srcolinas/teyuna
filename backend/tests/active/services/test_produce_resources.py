@@ -6,7 +6,7 @@ from src.active import entities, services
 
 def test_produces_gives_1_resource_from_terrace() -> None:
     game = entities.ActiveGame(
-        map=[
+        map=(
             entities.Hex(
                 q=0,
                 r=0,
@@ -19,7 +19,7 @@ def test_produces_gives_1_resource_from_terrace() -> None:
                 type=entities.HexType.DESERT,
                 number=7,
             ),
-        ],
+        ),
         conquistator_location=entities.Hex(
             q=0,
             r=1,
@@ -42,8 +42,8 @@ def test_produces_gives_1_resource_from_terrace() -> None:
             "srcolinas-3": entities.Player(),
         },
     )
-    game.set_game_phase(entities.GamePhase.MAIN)
-    game.set_turn_phase(entities.TurnPhase.PRODUCTION)
+    game.phase = entities.GamePhase.MAIN
+    game.turn_phase = entities.TurnPhase.PRODUCTION
     services.produce_resources(game, rnd=RandomGenerator(4))
     assert game.players["srcolinas-1"].resources[entities.ResourceCard.GOLD] == 1
     assert game.players["srcolinas-2"].resources[entities.ResourceCard.GOLD] == 0
@@ -52,7 +52,7 @@ def test_produces_gives_1_resource_from_terrace() -> None:
 
 def test_produces_gives_2_resources_from_great_terrace() -> None:
     game = entities.ActiveGame(
-        map=[
+        map=(
             entities.Hex(
                 q=0,
                 r=0,
@@ -65,7 +65,7 @@ def test_produces_gives_2_resources_from_great_terrace() -> None:
                 type=entities.HexType.DESERT,
                 number=7,
             ),
-        ],
+        ),
         conquistator_location=entities.Hex(
             q=0,
             r=1,
@@ -88,8 +88,8 @@ def test_produces_gives_2_resources_from_great_terrace() -> None:
             "srcolinas-3": entities.Player(),
         },
     )
-    game.set_game_phase(entities.GamePhase.MAIN)
-    game.set_turn_phase(entities.TurnPhase.PRODUCTION)
+    game.phase = entities.GamePhase.MAIN
+    game.turn_phase = entities.TurnPhase.PRODUCTION
     services.produce_resources(game, rnd=RandomGenerator(4))
     assert game.players["srcolinas-1"].resources[entities.ResourceCard.GOLD] == 2
     assert game.players["srcolinas-2"].resources[entities.ResourceCard.GOLD] == 0
@@ -98,7 +98,7 @@ def test_produces_gives_2_resources_from_great_terrace() -> None:
 
 def test_moves_turn_phase_to_trade() -> None:
     game = entities.ActiveGame(
-        map=[
+        map=(
             entities.Hex(
                 q=0,
                 r=0,
@@ -111,7 +111,7 @@ def test_moves_turn_phase_to_trade() -> None:
                 type=entities.HexType.DESERT,
                 number=7,
             ),
-        ],
+        ),
         conquistator_location=entities.Hex(
             q=0,
             r=1,
@@ -125,8 +125,8 @@ def test_moves_turn_phase_to_trade() -> None:
             "srcolinas-3": entities.Player(),
         },
     )
-    game.set_game_phase(entities.GamePhase.MAIN)
-    game.set_turn_phase(entities.TurnPhase.PRODUCTION)
+    game.phase = entities.GamePhase.MAIN
+    game.turn_phase = entities.TurnPhase.PRODUCTION
     services.produce_resources(game, rnd=RandomGenerator(4))
     assert game.turn_phase is entities.TurnPhase.TRADE
 

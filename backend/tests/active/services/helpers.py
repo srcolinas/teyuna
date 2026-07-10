@@ -1,18 +1,19 @@
 import collections
 
 from src import player
-from src.active import entities
+from src.active import entities, services
 
 
 def setup_construction_phase(game: entities.ActiveGame) -> None:
-    game.set_game_phase(entities.GamePhase.MAIN)
-    game.set_turn_phase(entities.TurnPhase.CONSTRUCTION)
+    game.phase = entities.GamePhase.MAIN
+    game.turn_phase = entities.TurnPhase.CONSTRUCTION
 
 
 def fund_path_purchase(
     game: entities.ActiveGame, nickname: player.Nickname, *, count: int = 1
 ) -> None:
-    game.grant_resources(
+    services.grant_resources(
+        game,
         nickname,
         resources=collections.Counter(
             {
@@ -26,7 +27,8 @@ def fund_path_purchase(
 def fund_terrace_purchase(
     game: entities.ActiveGame, nickname: player.Nickname, *, count: int = 1
 ) -> None:
-    game.grant_resources(
+    services.grant_resources(
+        game,
         nickname,
         resources=collections.Counter(
             {

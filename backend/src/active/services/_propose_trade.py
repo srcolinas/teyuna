@@ -17,5 +17,6 @@ def propose_trade(
                 f"You do not have enough {resource.value} to offer."
             )
 
-    id = game.add_trade_proposal(by, offer=offer, request=request)
+    id = uuid.uuid4()
+    game.trade_proposals[id] = entities.TradeProposal(by, offer, request)
     return id

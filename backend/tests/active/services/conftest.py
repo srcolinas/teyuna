@@ -1,14 +1,14 @@
 import pytest
 
-from src import active
-from src.active.services import create_new
+
+from src.active import entities, services, repository as repository_module
 
 
 @pytest.fixture
-def repository() -> active.InMemoryActiveGameRepository:
-    return active.InMemoryActiveGameRepository()
+def repository() -> repository_module.InMemoryActiveGameRepository:
+    return repository_module.InMemoryActiveGameRepository()
 
 
 @pytest.fixture
-def game() -> active.entities.ActiveGame:
-    return create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])
+def game() -> entities.ActiveGame:
+    return services.create_new(["srcolinas-1", "srcolinas-2", "srcolinas-3"])

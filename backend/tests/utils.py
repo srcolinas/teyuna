@@ -8,7 +8,7 @@ from src import active, player, proposed
 
 def create_game_and_add_players(
     *,
-    active_repository: active.InMemoryActiveGameRepository,
+    active_repository: active.repository.InMemoryActiveGameRepository,
     max_players: int = 3,
     players_to_add: int = 3,
     nicknames: list[player.Nickname] | None = None,

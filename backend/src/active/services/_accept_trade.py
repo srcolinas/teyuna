@@ -2,7 +2,7 @@ import uuid
 
 from ... import player
 from .. import entities
-from . import _errors
+from . import _errors, _helpers
 
 
 def accept_trade(
@@ -24,8 +24,8 @@ def accept_trade(
                 f"You do not have enough {resource.value} to accept the trade."
             )
 
-    game.grant_resources(by, resources=proposal.offer)
-    game.grant_resources(proposal.by, resources=proposal.request)
-    game.discount_resources(proposal.by, resources=proposal.offer)
-    game.discount_resources(by, resources=proposal.request)
-    game.remove_trade_proposal(id)
+    _helpers.grant_resources(game, by, resources=proposal.offer)
+    _helpers.grant_resources(game, proposal.by, resources=proposal.request)
+    _helpers.discount_resources(game, proposal.by, resources=proposal.offer)
+    _helpers.discount_resources(game, by, resources=proposal.request)
+    del game.trade_proposals[id]

@@ -70,9 +70,6 @@ class Hex(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True)
 
 
-type Map = list[Hex]
-
-
 class PlayedSettlement(pydantic.BaseModel):
     owner: player.Nickname
     location: VertexCoordinate
@@ -96,7 +93,7 @@ class Player(pydantic.BaseModel):
 
 class ActiveGame(pydantic.BaseModel):
     id: uuid.UUID
-    map: entities.Map
+    map: tuple[Hex, ...]
     conquistator_location: HexCoordinate
     players: list[Player]
     settlements: list[PlayedSettlement]

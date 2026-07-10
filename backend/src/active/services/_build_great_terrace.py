@@ -1,8 +1,6 @@
-import collections
-
 from ... import player
 from .. import entities
-from . import _errors
+from . import _errors, _map
 
 
 def build_great_terrace(
@@ -35,7 +33,7 @@ def build_great_terrace(
     ):
         raise _errors.InsufficientResources
 
-    coord = entities.canonical_vertex(q, r, direction)
+    coord = _map.canonical_vertex(q, r, direction)
     if (
         coord not in game.players[to].settlements
         or game.players[to].settlements[coord] is not entities.SettlementType.TERRACE
@@ -44,13 +42,16 @@ def build_great_terrace(
             "You must first build a terrace at specified location."
         )
 
-    game.upgrade_terrace(to, q=q, r=r, direction=direction)
-    game.discount_resources(
-        to,
-        resources=collections.Counter(
-            {
-                entities.ResourceCard.GOLD: 3,
-                entities.ResourceCard.MAIZE: 2,
-            }
-        ),
+    game.players[to].settlements[coord] = entities.SettlementType.GREAT_TERRACE
+    game.players[to].resources.update(
+        {
+            entities.ResourceCard.GOLD: -3,
+            entities.ResourceCard.MAIZE: -2,
+        }
+    )
+    game.resource_supply.update(
+        {
+            entities.ResourceCard.GOLD: 3,
+            entities.ResourceCard.MAIZE: 2,
+        }
     )

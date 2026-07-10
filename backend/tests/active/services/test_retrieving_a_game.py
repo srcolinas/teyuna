@@ -1,42 +1,50 @@
 from src import active
+from src.active import ports, services
 
 from ... import utils
 
 
 def test_game_id(
-    repository: active.InMemoryActiveGameRepository,
+    repository: active.repository.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
 
-    game = active.retrieve_game(game_id, repository=repository)
+    game = services.retrieve_game(game_id, repository=repository)
     assert game.id == game_id
 
 
 def test_map(
-    repository: active.InMemoryActiveGameRepository,
+    repository: active.repository.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
     entity_game = repository.retrieve(game_id)
 
-    game = active.retrieve_game(game_id, repository=repository)
+    game = services.retrieve_game(game_id, repository=repository)
 
-    assert game.map == entity_game.map
+    assert game.map == tuple(
+        ports.Hex(
+            coordinate=ports.HexCoordinate(q=hex.q, r=hex.r),
+            type=hex.type,
+            number=hex.number,
+        )
+        for hex in entity_game.map
+    )
 
 
 def test_conquistator_location(
-    repository: active.InMemoryActiveGameRepository,
+    repository: active.repository.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
     entity_game = repository.retrieve(game_id)
 
-    game = active.retrieve_game(game_id, repository=repository)
+    game = services.retrieve_game(game_id, repository=repository)
 
     assert game.conquistator_location.q == entity_game.conquistator_location.q
     assert game.conquistator_location.r == entity_game.conquistator_location.r
 
 
 def test_players(
-    repository: active.InMemoryActiveGameRepository,
+    repository: active.repository.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(
         active_repository=repository,
@@ -47,7 +55,7 @@ def test_players(
         ],
     )
 
-    game = active.retrieve_game(game_id, repository=repository)
+    game = services.retrieve_game(game_id, repository=repository)
 
     assert game is not None
     assert len(game.players) == 3
@@ -69,34 +77,34 @@ def test_players(
 
 
 def test_settlements(
-    repository: active.InMemoryActiveGameRepository,
+    repository: active.repository.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
 
-    game = active.retrieve_game(game_id, repository=repository)
+    game = services.retrieve_game(game_id, repository=repository)
 
     assert game is not None
     assert game.settlements == []
 
 
 def test_paths(
-    repository: active.InMemoryActiveGameRepository,
+    repository: active.repository.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(active_repository=repository)
 
-    game = active.retrieve_game(game_id, repository=repository)
+    game = services.retrieve_game(game_id, repository=repository)
 
     assert game is not None
     assert game.paths == []
 
 
 def test_turn_order(
-    repository: active.InMemoryActiveGameRepository,
+    repository: active.repository.InMemoryActiveGameRepository,
 ) -> None:
     game_id = utils.create_game_and_add_players(
         active_repository=repository,
         nicknames=["srcolinas-1", "srcolinas-2", "srcolinas-3"],
     )
-    game = active.retrieve_game(game_id, repository=repository)
+    game = services.retrieve_game(game_id, repository=repository)
     assert game is not None
     assert sorted(game.turn_order) == ["srcolinas-1", "srcolinas-2", "srcolinas-3"]

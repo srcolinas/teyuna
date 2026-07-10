@@ -3,7 +3,7 @@ from __future__ import annotations
 import fastapi
 from fastapi import testclient
 
-from src import active
+from src.active import dependencies
 
 from . import utils
 
@@ -16,7 +16,7 @@ def test_player_can_add_settlement(
     )
     game = client.get(f"/active-games/{game_id}").json()
     player_in_turn = game["turn_order"][0]
-    app.dependency_overrides[active.dependencies.get_player] = lambda: player_in_turn
+    app.dependency_overrides[dependencies.get_player] = lambda: player_in_turn
     response = client.post(f"/active-games/{game_id}/settlements/0/0/0")
     assert response.status_code == 200, response.text
     assert response.json() == {

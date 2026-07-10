@@ -9,7 +9,7 @@ from src import active, player, proposed
 
 def test_player_can_be_added_before_expiration(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.InMemoryActiveGameRepository,
+    game_repository: active.repository.InMemoryActiveGameRepository,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     game_id = repository.add(
@@ -29,7 +29,7 @@ def test_player_can_be_added_before_expiration(
 
 def test_player_cannot_be_added_after_expiration(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.InMemoryActiveGameRepository,
+    game_repository: active.repository.InMemoryActiveGameRepository,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     game_id = repository.add(
@@ -48,7 +48,7 @@ def test_player_cannot_be_added_after_expiration(
 
 def test_full_game_starts(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.InMemoryActiveGameRepository,
+    game_repository: active.repository.InMemoryActiveGameRepository,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     game_id = repository.add(
@@ -79,7 +79,7 @@ def test_full_game_starts(
 
 def test_not_full_game_is_not_started(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.InMemoryActiveGameRepository,
+    game_repository: active.repository.InMemoryActiveGameRepository,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     num_players = 3
@@ -104,8 +104,8 @@ def repository() -> proposed.InMemoryProposedGameRepository:
 
 
 @pytest.fixture
-def game_repository() -> active.InMemoryActiveGameRepository:
-    return active.InMemoryActiveGameRepository()
+def game_repository() -> active.repository.InMemoryActiveGameRepository:
+    return active.repository.InMemoryActiveGameRepository()
 
 
 @pytest.fixture

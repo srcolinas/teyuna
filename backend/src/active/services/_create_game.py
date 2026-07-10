@@ -1,10 +1,12 @@
 import collections
+import itertools
 import random
 
 from collections.abc import Sequence
 
 from ... import player
 from .. import entities
+from . import _map
 
 
 def create_new(players: Sequence[player.Nickname]) -> entities.ActiveGame:
@@ -12,6 +14,7 @@ def create_new(players: Sequence[player.Nickname]) -> entities.ActiveGame:
     deserts = [hex for hex in map if hex.type == entities.HexType.DESERT]
     players = list(players)
     random.shuffle(players)
+    free_verticies, free_edges = _initial_buildable_locations()
     return entities.ActiveGame(
         map=map,
         conquistator_location=random.choice(deserts),
@@ -26,10 +29,24 @@ def create_new(players: Sequence[player.Nickname]) -> entities.ActiveGame:
             )
             for nickname in players
         },
+        free_verticies=free_verticies,
+        free_edges=free_edges,
     )
 
 
-def _generate_map() -> entities.Map:
+def _initial_buildable_locations() -> tuple[
+    set[entities.Coordinate], set[entities.Coordinate]
+]:
+    free_verticies: set[entities.Coordinate] = set()
+    free_edges: set[entities.Coordinate] = set()
+    for item in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
+        if item not in entities.INVALID_HEX_COORDINATES:
+            free_verticies.add(_map.canonical_vertex(*item))
+            free_edges.add(_map.canonical_edge(*item))
+    return free_verticies, free_edges
+
+
+def _generate_map() -> tuple[entities.Hex, ...]:
     random.shuffle(_TYPES)
     random.shuffle(_NUMBERS)
 

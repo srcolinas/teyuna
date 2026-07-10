@@ -81,7 +81,7 @@ def test_terrace_cannot_be_added_by_player_not_in_turn(
     services.build_path(game, nickname, q=0, r=0, direction=0)
     services.build_path(game, nickname, q=0, r=0, direction=1)
     helpers.fund_terrace_purchase(game, nickname)
-    game.set_turn_order((game.turn_order[1], game.turn_order[0], game.turn_order[2]))
+    game.turn_order = (game.turn_order[1], game.turn_order[0], game.turn_order[2])
     with pytest.raises(services.PlayerNotInTurn):
         services.build_terrace(game, nickname, q=0, r=0, direction=2)
 
@@ -176,7 +176,7 @@ def test_player_not_in_turn_cannot_build_terrace(game: entities.ActiveGame) -> N
     services.build_path(game, nickname, q=0, r=0, direction=0)
     services.build_path(game, nickname, q=0, r=0, direction=1)
     helpers.fund_terrace_purchase(game, nickname)
-    game.set_turn_order((game.turn_order[1], game.turn_order[0], game.turn_order[2]))
+    game.turn_order = (game.turn_order[1], game.turn_order[0], game.turn_order[2])
     with pytest.raises(services.PlayerNotInTurn):
         services.build_terrace(game, nickname, q=0, r=0, direction=2)
 
@@ -225,7 +225,7 @@ def test_cannot_build_terrace_if_game_is_not_in_main_phase(
     services.build_path(game, nickname, q=0, r=0, direction=0)
     services.build_path(game, nickname, q=0, r=0, direction=1)
     helpers.fund_terrace_purchase(game, nickname)
-    game.set_game_phase(phase)
+    game.phase = phase
     with pytest.raises(services.InvalidGamePhase):
         services.build_terrace(game, nickname, q=0, r=0, direction=2)
 
@@ -248,6 +248,6 @@ def test_cannot_build_terrace_if_turn_is_not_in_construction_phase(
     services.build_path(game, nickname, q=0, r=0, direction=0)
     services.build_path(game, nickname, q=0, r=0, direction=1)
     helpers.fund_terrace_purchase(game, nickname)
-    game.set_turn_phase(turn_phase)
+    game.turn_phase = turn_phase
     with pytest.raises(services.InvalidGamePhase):
         services.build_terrace(game, nickname, q=0, r=0, direction=2)

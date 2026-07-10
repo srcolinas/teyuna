@@ -74,7 +74,7 @@ def test_player_not_in_turn_cannot_build_path(game: entities.ActiveGame) -> None
     services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
     helpers.fund_path_purchase(game, nickname)
     helpers.setup_construction_phase(game)
-    game.set_turn_order((game.turn_order[1], game.turn_order[0], game.turn_order[2]))
+    game.turn_order = (game.turn_order[1], game.turn_order[0], game.turn_order[2])
     with pytest.raises(services.PlayerNotInTurn):
         services.build_path(game, nickname, q=0, r=0, direction=0)
 
@@ -133,7 +133,7 @@ def test_path_cannot_be_bought_if_blocked_by_another_players_terrace(
 ) -> None:
     nickname = game.turn_order[0]
     services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
-    game.set_turn_order((game.turn_order[1], game.turn_order[0], game.turn_order[2]))
+    game.turn_order = (game.turn_order[1], game.turn_order[0], game.turn_order[2])
     nickname = game.turn_order[0]
     services.add_initial_terrace(game, nickname, q=0, r=0, direction=2)
     helpers.fund_path_purchase(game, nickname, count=3)
@@ -184,8 +184,8 @@ def test_cannot_build_path_if_game_is_not_in_main_phase(
     nickname = game.turn_order[0]
     services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
     helpers.fund_path_purchase(game, nickname)
-    game.set_game_phase(phase)
-    game.set_turn_phase(entities.TurnPhase.CONSTRUCTION)
+    game.phase = phase
+    game.turn_phase = entities.TurnPhase.CONSTRUCTION
     with pytest.raises(services.InvalidGamePhase):
         services.build_path(game, nickname, q=0, r=0, direction=0)
 
@@ -204,7 +204,7 @@ def test_cannot_build_path_if_turn_is_not_in_construction_phase(
     nickname = game.turn_order[0]
     services.add_initial_terrace(game, nickname, q=0, r=0, direction=0)
     helpers.fund_path_purchase(game, nickname)
-    game.set_game_phase(entities.GamePhase.MAIN)
-    game.set_turn_phase(turn_phase)
+    game.phase = entities.GamePhase.MAIN
+    game.turn_phase = turn_phase
     with pytest.raises(services.InvalidGamePhase):
         services.build_path(game, nickname, q=0, r=0, direction=0)

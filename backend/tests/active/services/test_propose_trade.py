@@ -8,9 +8,8 @@ from src.active import entities, services
 
 def test_propose_trade_returns_id(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
-    game.grant_resources(
-        nickname,
-        resources=collections.Counter({entities.ResourceCard.GOLD: 2}),
+    services.grant_resources(
+        game, nickname, resources=collections.Counter({entities.ResourceCard.GOLD: 2})
     )
     id = services.propose_trade(
         game,
@@ -35,9 +34,8 @@ def test_cannot_propose_if_not_enough_resources(game: entities.ActiveGame) -> No
 
 def test_propose_trade_is_added_to_trade_proposals(game: entities.ActiveGame) -> None:
     nickname = game.turn_order[0]
-    game.grant_resources(
-        nickname,
-        resources=collections.Counter({entities.ResourceCard.GOLD: 2}),
+    services.grant_resources(
+        game, nickname, resources=collections.Counter({entities.ResourceCard.GOLD: 2})
     )
     id = services.propose_trade(
         game,

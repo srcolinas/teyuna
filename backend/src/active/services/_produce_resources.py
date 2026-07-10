@@ -2,7 +2,7 @@ import collections
 import random
 
 from .. import entities
-from . import _errors
+from . import _errors, _helpers, _map
 
 _RND: random.Random = random.Random()
 
@@ -23,20 +23,20 @@ def produce_resources(game: entities.ActiveGame, *, rnd: random.Random = _RND) -
                 for p in game.turn_order:
                     settlements = game.players[p].settlements
                     for i in range(6):
-                        coord = entities.canonical_vertex(hex.q, hex.r, i)
+                        coord = _map.canonical_vertex(hex.q, hex.r, i)
                         if coord not in settlements:
                             continue
                         if settlements[coord] is entities.SettlementType.TERRACE:
-                            game.grant_resources(
-                                p, resources=collections.Counter({resource: 1})
+                            _helpers.grant_resources(
+                                game, p, resources=collections.Counter({resource: 1})
                             )
                         elif (
                             settlements[coord] is entities.SettlementType.GREAT_TERRACE
                         ):
-                            game.grant_resources(
-                                p, resources=collections.Counter({resource: 2})
+                            _helpers.grant_resources(
+                                game, p, resources=collections.Counter({resource: 2})
                             )
-    game.set_turn_phase(entities.TurnPhase.TRADE)
+    game.turn_phase = entities.TurnPhase.TRADE
 
 
 _HEX_TYPE_TO_RESOURCE: dict[entities.HexType, entities.ResourceCard] = {

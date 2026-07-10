@@ -29,6 +29,6 @@ def create_app() -> fastapi.FastAPI:
     logging.basicConfig(level=loglevel)
 
     app.include_router(proposed.router)
-    app.include_router(active.router)
+    app.include_router(active.routes.router)
 
     return app

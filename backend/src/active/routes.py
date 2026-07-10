@@ -23,7 +23,7 @@ def get_game(
 @router.get("/{game_id}/map")
 def get_game_map(
     game: Annotated[ports.ActiveGame, fastapi.Depends(dependencies.get_game)],
-) -> entities.Map:
+) -> tuple[ports.Hex, ...]:
     return game.map
 
 

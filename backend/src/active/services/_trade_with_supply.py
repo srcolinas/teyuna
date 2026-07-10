@@ -3,7 +3,7 @@ from typing import Final
 
 from ... import player
 from .. import entities
-from . import _errors
+from . import _errors, _helpers, _map
 
 
 def trade(
@@ -25,8 +25,8 @@ def trade(
             f"The supply does not have enough {requests.value} to request."
         )
 
-    game.discount_resources(by, resources=collections.Counter({offers: rate}))
-    game.grant_resources(by, resources=collections.Counter({requests: 1}))
+    _helpers.discount_resources(game, by, resources=collections.Counter({offers: rate}))
+    _helpers.grant_resources(game, by, resources=collections.Counter({requests: 1}))
 
 
 def _trade_rate(
@@ -36,7 +36,7 @@ def _trade_rate(
 ) -> int:
     rate = _DEFAULT_TRADE_RATE
     settlements = game.players[by].settlements
-    for location, harbour_resource in entities.HARBOUR_LOCATIONS.items():
+    for location, harbour_resource in _map.HARBOUR_LOCATIONS.items():
         if location not in settlements:
             continue
         if harbour_resource is None:
