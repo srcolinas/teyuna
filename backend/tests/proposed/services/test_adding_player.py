@@ -5,7 +5,8 @@ import datetime
 import pytest
 
 from src import active, player, proposed
-from src.active import entities, services
+from src.active import entities
+from src.active.services import phases
 
 
 def test_player_can_be_added_before_expiration(
@@ -106,17 +107,15 @@ def repository() -> proposed.InMemoryProposedGameRepository:
 
 @pytest.fixture
 def game_manager() -> active.services.GameManager:
-    class FirstNode(services.GamePhaseNode):
-        def run(
-            self, game: entities.ActiveGame, request: services.PlayerRequest
-        ) -> bool:
+    class FirstNode(phases.GamePhaseNode):
+        def run(self, game: entities.ActiveGame, request: phases.PlayerRequest) -> bool:
             return False
 
-        def on_exit(self, game: entities.ActiveGame) -> entities.GamePhaseName:
-            return entities.GamePhaseName.FIRST_PLACEMENT
+        def on_exit(self, game: entities.ActiveGame) -> phases.GamePhaseName:
+            return phases.GamePhaseName.FIRST_PLACEMENT
 
     return active.services.GameManager(
-        {entities.GamePhaseName.FIRST_PLACEMENT: FirstNode()}
+        {phases.GamePhaseName.FIRST_PLACEMENT: FirstNode()}
     )
 
 

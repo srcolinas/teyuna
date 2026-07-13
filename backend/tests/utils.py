@@ -4,7 +4,8 @@ import uuid
 from typing import cast
 
 from src import active, player, proposed
-from src.active import entities, services
+from src.active import entities
+from src.active.services import phases
 
 
 def create_game_and_add_players(
@@ -65,15 +66,13 @@ def assert_not_raises(ExpectedException):
 
 
 def _stub_game_manager() -> active.services.GameManager:
-    class FirstNode(services.GamePhaseNode):
-        def run(
-            self, game: entities.ActiveGame, request: services.PlayerRequest
-        ) -> bool:
+    class FirstNode(phases.GamePhaseNode):
+        def run(self, game: entities.ActiveGame, request: phases.PlayerRequest) -> bool:
             return False
 
-        def on_exit(self, game: entities.ActiveGame) -> entities.GamePhaseName:
-            return entities.GamePhaseName.FIRST_PLACEMENT
+        def on_exit(self, game: entities.ActiveGame) -> phases.GamePhaseName:
+            return phases.GamePhaseName.FIRST_PLACEMENT
 
     return active.services.GameManager(
-        {entities.GamePhaseName.FIRST_PLACEMENT: FirstNode()}
+        {phases.GamePhaseName.FIRST_PLACEMENT: FirstNode()}
     )

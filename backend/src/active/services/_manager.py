@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-import abc
-import dataclasses
 import itertools
 import random
 import uuid
@@ -11,86 +7,7 @@ from collections.abc import Sequence
 
 from ... import player
 from .. import entities, ports
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class AddInitialBuildingsAction:
-    terrace: entities.Coordinate
-    path: entities.Coordinate
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class BuildTerraceAction:
-    coordinate: entities.Coordinate
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class BuildGreatTerraceAction:
-    coordinate: entities.Coordinate
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class BuildPathAction:
-    coordinate: entities.Coordinate
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class ProposeTradeToPlayerInTurnAction:
-    offer: entities.ResourceCount
-    request: entities.ResourceCount
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class AcceptTradeProposalAction:
-    id: uuid.UUID
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class TradeWithSupplyAction:
-    offers: entities.ResourceCard
-    requests: entities.ResourceCard
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class AdvancePhaseAction: ...
-
-
-PlayerAction = (
-    BuildTerraceAction
-    | BuildGreatTerraceAction
-    | BuildPathAction
-    | ProposeTradeToPlayerInTurnAction
-    | AcceptTradeProposalAction
-    | TradeWithSupplyAction
-    | AddInitialBuildingsAction
-    | AdvancePhaseAction
-)
-
-
-@dataclasses.dataclass
-class PlayerRequest:
-    by: player.Nickname
-    action: PlayerAction
-
-
-class GamePhaseNode(abc.ABC):
-    @abc.abstractmethod
-    def run(self, game: entities.ActiveGame, request: PlayerRequest) -> bool:
-        """Handle a player request.
-
-        Returns True if the phase is finished and the manager should use a different
-        node implementation. False if the phase is not finished.
-        """
-
-    @abc.abstractmethod
-    def on_exit(self, game: entities.ActiveGame) -> entities.GamePhaseName:
-        """Return the next phase to run and perform any necessary side effects."""
-
-    def on_enter(self, game: entities.ActiveGame) -> None:
-        """
-        Perform any necessary side effects when the phase is about to
-        become active.
-        """
+from . import phases
 
 
 class ActiveGameDoesNotExistError(Exception): ...
@@ -103,10 +20,12 @@ class GamePhaseNodeNotConfiguredError(Exception):
 class GameManager:
     def __init__(
         self,
-        nodes: dict[entities.GamePhaseName, GamePhaseNode],
-        start: entities.GamePhaseName = entities.GamePhaseName.FIRST_PLACEMENT,
+        nodes: dict[phases.GamePhaseName, phases.GamePhaseNode],
+        start: phases.GamePhaseName = phases.GamePhaseName.FIRST_PLACEMENT,
     ):
-        self._memory: dict[uuid.UUID, tuple[entities.ActiveGame, GamePhaseNode]] = {}
+        self._memory: dict[
+            uuid.UUID, tuple[entities.ActiveGame, phases.GamePhaseNode]
+        ] = {}
         self._nodes = nodes
         self._start = start
 
@@ -116,7 +35,7 @@ class GameManager:
         self._memory[game_id] = (game, self._require_node(self._start))
         return game_id
 
-    def run(self, game_id: uuid.UUID, request: PlayerRequest) -> None:
+    def run(self, game_id: uuid.UUID, request: phases.PlayerRequest) -> None:
         game, phase = self._validate_game_exists(game_id)
         is_finished = phase.run(game, request)
         if is_finished:
@@ -172,7 +91,7 @@ class GameManager:
             + game.turn_order[: game.player_idx],
         )
 
-    def _require_node(self, phase: entities.GamePhaseName) -> GamePhaseNode:
+    def _require_node(self, phase: phases.GamePhaseName) -> phases.GamePhaseNode:
         try:
             return self._nodes[phase]
         except KeyError:
@@ -182,7 +101,7 @@ class GameManager:
 
     def _validate_game_exists(
         self, id: uuid.UUID
-    ) -> tuple[entities.ActiveGame, GamePhaseNode]:
+    ) -> tuple[entities.ActiveGame, phases.GamePhaseNode]:
         if id not in self._memory:
             raise ActiveGameDoesNotExistError(f"Game {id} does not exist")
         return self._memory[id]

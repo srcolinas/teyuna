@@ -22,16 +22,6 @@ INVALID_HEX_COORDINATES: Final[set[tuple[int, int]]] = {
 }
 
 
-class GamePhaseName(Enum):
-    FIRST_PLACEMENT = "first placement"
-    SECOND_PLACEMENT = "second placement"
-    PRE_PRODUCTION = "pre-production"
-    DICE_ROLL = "dice roll"
-    PRODUCTION = "production"
-    CONQUEST = "conquest"
-    TRADE_AND_BUILD = "trade and build"
-
-
 class HexType(str, Enum):
     """Types of hex tiles on the board."""
 
