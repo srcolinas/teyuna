@@ -1,5 +1,6 @@
 from ._errors import InvalidActionError, PlayerNotInTurnError
 from ._first_placement import FirstPlacementPhase
+from ._second_placement import SecondPlacementPhase
 from ._core import (
     AddInitialBuildingsAction,
     PlayerRequest,
@@ -19,6 +20,7 @@ __all__ = [
     "InvalidActionError",
     "PlayerNotInTurnError",
     "FirstPlacementPhase",
+    "SecondPlacementPhase",
     "AddInitialBuildingsAction",
     "PlayerRequest",
     "PlayerAction",
