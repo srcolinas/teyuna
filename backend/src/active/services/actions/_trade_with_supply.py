@@ -1,9 +1,9 @@
 import collections
 from typing import Final
 
-from ... import player
-from .. import entities
-from . import _errors, _helpers, _map
+from .... import player
+from ... import entities
+from . import _errors
 
 
 def trade(
@@ -13,8 +13,6 @@ def trade(
     offers: entities.ResourceCard,
     requests: entities.ResourceCard,
 ) -> None:
-    if by != game.turn_order[0]:
-        raise _errors.PlayerNotInTurn
     rate = _trade_rate(game, by, offers)
     if game.players[by].resources[offers] < rate:
         raise _errors.InsufficientResources(
@@ -25,8 +23,12 @@ def trade(
             f"The supply does not have enough {requests.value} to request."
         )
 
-    _helpers.discount_resources(game, by, resources=collections.Counter({offers: rate}))
-    _helpers.grant_resources(game, by, resources=collections.Counter({requests: 1}))
+    offered = collections.Counter({offers: rate})
+    requested = collections.Counter({requests: 1})
+    game.players[by].resources -= offered
+    game.resource_supply += offered
+    game.players[by].resources += requested
+    game.resource_supply -= requested
 
 
 def _trade_rate(
@@ -36,7 +38,7 @@ def _trade_rate(
 ) -> int:
     rate = _DEFAULT_TRADE_RATE
     settlements = game.players[by].settlements
-    for location, harbour_resource in _map.HARBOUR_LOCATIONS.items():
+    for location, harbour_resource in entities.HARBOUR_LOCATIONS.items():
         if location not in settlements:
             continue
         if harbour_resource is None:

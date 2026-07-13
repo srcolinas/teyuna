@@ -4,17 +4,20 @@ import uuid
 from typing import cast
 
 from src import active, player, proposed
+from src.active import entities, services
 
 
 def create_game_and_add_players(
     *,
-    active_repository: active.repository.InMemoryActiveGameRepository,
+    game_manager: active.services.GameManager | None = None,
     max_players: int = 3,
     players_to_add: int = 3,
     nicknames: list[player.Nickname] | None = None,
 ) -> uuid.UUID:
     auth = player.PlayerAuthenticationService()
     proposed_repository = proposed.InMemoryProposedGameRepository()
+    if game_manager is None:
+        game_manager = _stub_game_manager()
 
     proposed_game_id = proposed_repository.add(
         num_players=max_players,
@@ -29,7 +32,7 @@ def create_game_and_add_players(
             game_id=proposed_game_id,
             nickname=nicknames[i],
             repository=proposed_repository,
-            game_repository=active_repository,
+            game_manager=game_manager,
             auth=auth,
         )
 
@@ -37,7 +40,7 @@ def create_game_and_add_players(
         game_id=proposed_game_id,
         nickname=nicknames[players_to_add - 1],
         repository=proposed_repository,
-        game_repository=active_repository,
+        game_manager=game_manager,
         auth=auth,
     )
     result = cast(proposed.PlayerAddedResult, result)
@@ -59,3 +62,18 @@ def assert_not_raises(ExpectedException):
 
     except Exception as e:
         raise AssertionError("An unexpected exception {0} raised.".format(repr(e)))
+
+
+def _stub_game_manager() -> active.services.GameManager:
+    class FirstNode(services.GamePhaseNode):
+        def run(
+            self, game: entities.ActiveGame, request: services.PlayerRequest
+        ) -> bool:
+            return False
+
+        def on_exit(self, game: entities.ActiveGame) -> entities.GamePhaseName:
+            return entities.GamePhaseName.FIRST_PLACEMENT
+
+    return active.services.GameManager(
+        {entities.GamePhaseName.FIRST_PLACEMENT: FirstNode()}
+    )

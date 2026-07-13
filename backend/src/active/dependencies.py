@@ -1,31 +1,26 @@
 import functools
 import uuid
-from typing import Annotated, cast
+from typing import Annotated
 
 import fastapi
 from fastapi import status
 
 from .. import player
-from . import ports, repository, services
+from . import ports, services
 
 
 @functools.cache
-def get_repository() -> repository.InMemoryActiveGameRepository:
-    return repository.InMemoryActiveGameRepository()
+def get_game_manager() -> services.GameManager:
+    return services.GameManager(nodes={})
 
 
 def get_game(
     game_id: uuid.UUID,
-    repository_: Annotated[
-        repository.InMemoryActiveGameRepository,
-        fastapi.Depends(get_repository),
-    ],
+    manager: Annotated[services.GameManager, fastapi.Depends(get_game_manager)],
 ) -> ports.ActiveGame:
     try:
-        game = services.retrieve_game(
-            game_id, repository=cast(services.RetrieveGameRepository, repository_)
-        )
-    except repository.ActiveGameDoesNotExistError:
+        game = manager.retrieve(game_id)
+    except services.ActiveGameDoesNotExistError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return game
 

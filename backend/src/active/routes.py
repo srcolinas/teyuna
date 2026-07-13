@@ -5,7 +5,7 @@ import fastapi
 from fastapi import status
 
 from .. import player
-from . import dependencies, entities, ports, repository, services
+from . import dependencies, ports, services
 
 router = fastapi.APIRouter(prefix="/active-games")
 
@@ -82,44 +82,12 @@ def buy_settlement(
     r: int,
     direction: int,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
-    repository_: Annotated[
-        repository.InMemoryActiveGameRepository,
-        fastapi.Depends(dependencies.get_repository),
+    manager: Annotated[
+        services.GameManager,
+        fastapi.Depends(dependencies.get_game_manager),
     ],
 ) -> ports.PlayedSettlement:
-    game = repository_.retrieve(game_id)
-    try:
-        if game.phase is entities.GamePhase.INITIAL:
-            services.add_initial_terrace(game, nickname, q=q, r=r, direction=direction)
-        else:
-            services.build_terrace(game, nickname, q=q, r=r, direction=direction)
-    except services.InvalidSettlementLocation:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="invalid settlement location",
-        )
-    except services.PlayerNotInTurn:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="player not in turn",
-        )
-    except services.InsufficientResources:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="insufficient resources",
-        )
-    except services.InvalidGamePhase:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="invalid game phase",
-        )
-    return ports.PlayedSettlement(
-        location=ports.VertexCoordinate(
-            hex_coord=ports.HexCoordinate(q=q, r=r), direction=direction
-        ),
-        type=entities.SettlementType.TERRACE,
-        owner=nickname,
-    )
+    raise NotImplementedError
 
 
 # --- Stone paths (buildings) ---

@@ -3,14 +3,14 @@ from __future__ import annotations
 import abc
 import dataclasses
 import itertools
-import threading
 import random
 import uuid
+import collections
+from collections.abc import Sequence
 
 
 from ... import player
 from .. import entities, ports
-from . import _errors
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -51,6 +51,10 @@ class TradeWithSupplyAction:
     requests: entities.ResourceCard
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class AdvancePhaseAction: ...
+
+
 PlayerAction = (
     BuildTerraceAction
     | BuildGreatTerraceAction
@@ -59,6 +63,7 @@ PlayerAction = (
     | AcceptTradeProposalAction
     | TradeWithSupplyAction
     | AddInitialBuildingsAction
+    | AdvancePhaseAction
 )
 
 
@@ -69,102 +74,63 @@ class PlayerRequest:
 
 
 class GamePhaseNode(abc.ABC):
-    @property
     @abc.abstractmethod
-    def name(self) -> entities.GamePhaseName: ...
-
-    @abc.abstractmethod
-    def process_player_request(
-        self, game: entities.ActiveGame, request: PlayerRequest
-    ) -> entities.GamePhaseName | None:
+    def run(self, game: entities.ActiveGame, request: PlayerRequest) -> bool:
         """Handle a player request.
 
-        Returns the next phase when the phase is finished and the manager should advance
-        to ``next``; None when the game remains in this phase.
+        Returns True if the phase is finished and the manager should use a different
+        node implementation. False if the phase is not finished.
         """
 
-    def on_enter(self, game: entities.ActiveGame) -> None:
-        return
+    @abc.abstractmethod
+    def on_exit(self, game: entities.ActiveGame) -> entities.GamePhaseName:
+        """Return the next phase to run and perform any necessary side effects."""
 
-    def on_exit(self, game: entities.ActiveGame) -> None:
-        return
+    def on_enter(self, game: entities.ActiveGame) -> None:
+        """
+        Perform any necessary side effects when the phase is about to
+        become active.
+        """
 
 
 class ActiveGameDoesNotExistError(Exception): ...
 
 
+class GamePhaseNodeNotConfiguredError(Exception):
+    """Raised when a required phase node was not provided to the manager."""
+
+
 class GameManager:
     def __init__(
         self,
-        initial_phase: GamePhaseNode,
-        graph: dict[uuid.UUID, tuple[uuid.UUID, ...]],
+        nodes: dict[entities.GamePhaseName, GamePhaseNode],
+        start: entities.GamePhaseName = entities.GamePhaseName.FIRST_PLACEMENT,
     ):
-        self._repository: dict[
-            uuid.UUID, tuple[entities.ActiveGame, GamePhaseNode]
-        ] = {}
-        self._phase = initial_phase
-        self._phase_change_lock = threading.Lock()
+        self._memory: dict[uuid.UUID, tuple[entities.ActiveGame, GamePhaseNode]] = {}
+        self._nodes = nodes
+        self._start = start
 
-    def advance_phase(
-        self,
-        game_id: uuid.UUID,
-        *,
-        by: player.Nickname | None = None,
-    ) -> None:
-        game, phase = self._repository[game_id]
-        if by is not None and by != game.active_player:
-            raise _errors.PlayerNotInTurn(f"Player {by} is not in turn")
-        with self._phase_change_lock:
-            if game.phase != phase.valid_phase:
-                raise _errors.InvalidGamePhase(
-                    f"Game is in {game.phase}, but manager is in {phase.valid_phase}"
-                )
-            self._transition(game)
-        self._repository.update(game_id, game)
+    def create_game(self, players: Sequence[player.Nickname]) -> uuid.UUID:
+        game = _create_new(players)
+        game_id = uuid.uuid4()
+        self._memory[game_id] = (game, self._require_node(self._start))
+        return game_id
 
-    def process_player_request(
-        self, game_id: uuid.UUID, request: PlayerRequest
-    ) -> None:
-        game = self._repository.retrieve(game_id)
-        if game.phase != self._phase.valid_phase:
-            raise _errors.InvalidGamePhase(
-                f"Player {request.by} can only make requests in the"
-                f" {self._phase.valid_phase} phase"
-            )
-        next = self._phase.process_player_request(game, request)
-        if next:
-            with self._phase_change_lock:
-                self._transition(game_id, next)
-                self._repository.update(game_id, game)
+    def run(self, game_id: uuid.UUID, request: PlayerRequest) -> None:
+        game, phase = self._validate_game_exists(game_id)
+        is_finished = phase.run(game, request)
+        if is_finished:
+            next = phase.on_exit(game)
+            phase = self._require_node(next)
+            phase.on_enter(game)
+            self._memory[game_id] = (game, phase)
 
-    def _transition(self, game: entities.ActiveGame) -> None:
-        ...
-        
-
-
-    def create(self, players: list[player.Nickname]) -> uuid.UUID:
-        map = _generate_map()
-        deserts = [hex for hex in map if hex.type == entities.HexType.DESERT]
-        players = list(players)
-        random.shuffle(players)
-        free_verticies, free_edges = _initial_buildable_locations()
-        game = entities.ActiveGame(
-            map=map,
-            conquistator_location=random.choice(deserts),
-            turn_order=tuple(players),
-            players={nickname: entities.Player() for nickname in players},
-            free_verticies=free_verticies,
-            free_edges=free_edges,
-        )
-        return game
-
-    def retrieve(self, id: uuid.UUID) -> ports.ActiveGame:
-        game, phase = self._repository[id]
-
+    def retrieve(self, game_id: uuid.UUID) -> ports.ActiveGame:
+        game, _ = self._validate_game_exists(game_id)
         players, settlements, paths = [], [], []
         for nickname, entity_player in game.players.items():
             players.append(_to_port_player(nickname, entity_player))
-            for location, type in player.settlements.items():
+            for location, type in entity_player.settlements.items():
                 settlements.append(
                     ports.PlayedSettlement(
                         location=ports.VertexCoordinate(
@@ -187,7 +153,7 @@ class GameManager:
                 )
 
         return ports.ActiveGame(
-            id=id,
+            id=game_id,
             map=tuple(
                 ports.Hex(
                     coordinate=ports.HexCoordinate(q=hex.q, r=hex.r),
@@ -202,14 +168,102 @@ class GameManager:
             players=players,
             settlements=settlements,
             paths=paths,
-            turn_order=list(game.turn_order[game.player_idx :])
-            + list(game.turn_order[: game.player_idx]),
-            phase=phase.name,
+            turn_order=game.turn_order[game.player_idx :]
+            + game.turn_order[: game.player_idx],
         )
 
-    def _validate_game_exists(self, id: uuid.UUID) -> None:
-        if id not in self._repository:
+    def _require_node(self, phase: entities.GamePhaseName) -> GamePhaseNode:
+        try:
+            return self._nodes[phase]
+        except KeyError:
+            raise GamePhaseNodeNotConfiguredError(
+                f"No GamePhaseNode configured for phase {phase.value!r}."
+            ) from None
+
+    def _validate_game_exists(
+        self, id: uuid.UUID
+    ) -> tuple[entities.ActiveGame, GamePhaseNode]:
+        if id not in self._memory:
             raise ActiveGameDoesNotExistError(f"Game {id} does not exist")
+        return self._memory[id]
+
+
+def _create_new(players: Sequence[player.Nickname]) -> entities.ActiveGame:
+    map = _generate_map()
+    deserts = [hex for hex in map if hex.type == entities.HexType.DESERT]
+    players = list(players)
+    random.shuffle(players)
+    free_verticies, free_edges = _initial_buildable_locations()
+    return entities.ActiveGame(
+        map=map,
+        conquistator_location=random.choice(deserts),
+        turn_order=tuple(players),
+        players={
+            nickname: entities.Player(
+                cards=collections.Counter(),
+                played_cards=collections.Counter(),
+                resources=collections.Counter(),
+                settlements=entities.SettlementsCollection(),
+                paths=set(),
+            )
+            for nickname in players
+        },
+        free_verticies=free_verticies,
+        free_edges=free_edges,
+    )
+
+
+def _initial_buildable_locations() -> tuple[
+    set[entities.Coordinate], set[entities.Coordinate]
+]:
+    free_verticies: set[entities.Coordinate] = set()
+    free_edges: set[entities.Coordinate] = set()
+    for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
+        if (q, r) not in entities.INVALID_HEX_COORDINATES:
+            free_verticies.add(entities.canonical_vertex(q, r, d))
+            free_edges.add(entities.canonical_edge(q, r, d))
+    return free_verticies, free_edges
+
+
+def _generate_map() -> tuple[entities.Hex, ...]:
+    random.shuffle(_TYPES)
+    random.shuffle(_NUMBERS)
+
+    tiles = []
+    type_idx = -1
+    number_idx = -1
+    for q in range(-2, 3):
+        for r in range(-2, 3):
+            if (q, r) in entities.INVALID_HEX_COORDINATES:
+                continue
+            type_idx += 1
+            type = _TYPES[type_idx]
+            if type is entities.HexType.DESERT:
+                number = 7
+            else:
+                number_idx += 1
+                number = _NUMBERS[number_idx]
+            tiles.append(
+                entities.Hex(
+                    q=q,
+                    r=r,
+                    type=type,
+                    number=number,
+                )
+            )
+
+    return tuple(tiles)
+
+
+_TYPES = (
+    [entities.HexType.MOUNTAINS] * 3
+    + [entities.HexType.QUARRIES] * 3
+    + [entities.HexType.HIGHLANDS] * 4
+    + [entities.HexType.VALLEYS] * 4
+    + [entities.HexType.JUNGLE] * 4
+    + [entities.HexType.DESERT]
+)
+_NUMBERS = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
 
 
 def _to_port_player(
@@ -231,56 +285,3 @@ def _to_port_player(
         - counts[entities.SettlementType.GREAT_TERRACE],
         available_paths=entities.MAX_PATHS - len(entity_player.paths),
     )
-
-
-def _initial_buildable_locations() -> tuple[
-    set[entities.Coordinate], set[entities.Coordinate]
-]:
-    free_verticies: set[entities.Coordinate] = set()
-    free_edges: set[entities.Coordinate] = set()
-    for item in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
-        if item not in entities.INVALID_HEX_COORDINATES:
-            free_verticies.add(_map.canonical_vertex(*item))
-            free_edges.add(_map.canonical_edge(*item))
-    return free_verticies, free_edges
-
-
-def _generate_map() -> tuple[entities.Hex, ...]:
-    random.shuffle(_TYPES)
-    random.shuffle(_NUMBERS)
-
-    map = []
-    type_idx = -1
-    number_idx = -1
-    for q in range(-2, 3):
-        for r in range(-2, 3):
-            if (q, r) in entities.INVALID_HEX_COORDINATES:
-                continue
-            type_idx += 1
-            type = _TYPES[type_idx]
-            if type is entities.HexType.DESERT:
-                number = 7
-            else:
-                number_idx += 1
-                number = _NUMBERS[number_idx]
-            map.append(
-                entities.Hex(
-                    q=q,
-                    r=r,
-                    type=type,
-                    number=number,
-                )
-            )
-
-    return tuple(map)
-
-
-_TYPES = (
-    [entities.HexType.MOUNTAINS] * 3
-    + [entities.HexType.QUARRIES] * 3
-    + [entities.HexType.HIGHLANDS] * 4
-    + [entities.HexType.VALLEYS] * 4
-    + [entities.HexType.JUNGLE] * 4
-    + [entities.HexType.DESERT]
-)
-_NUMBERS = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2

@@ -1,6 +1,6 @@
-from ... import player
-from .. import entities
-from . import _errors, _map
+from .... import player
+from ... import entities
+from . import _errors
 
 
 def build_great_terrace(
@@ -12,15 +12,6 @@ def build_great_terrace(
     r: int,
     direction: int,
 ) -> None:
-    if game.phase is not entities.GamePhase.MAIN:
-        raise _errors.InvalidGamePhase
-
-    if game.turn_phase is not entities.TurnPhase.CONSTRUCTION:
-        raise _errors.InvalidGamePhase
-
-    if to != game.turn_order[0]:
-        raise _errors.PlayerNotInTurn
-
     resources = game.players[to].resources
     if resources[entities.ResourceCard.GOLD] < 3:
         raise _errors.InsufficientResources
@@ -33,13 +24,16 @@ def build_great_terrace(
     ):
         raise _errors.InsufficientResources
 
-    coord = _map.canonical_vertex(q, r, direction)
-    if (
-        coord not in game.players[to].settlements
-        or game.players[to].settlements[coord] is not entities.SettlementType.TERRACE
-    ):
+    coord = entities.canonical_vertex(q, r, direction)
+    settlements = game.players[to].settlements
+    if coord not in settlements:
         raise _errors.InvalidSettlementLocation(
             "You must first build a terrace at specified location."
+        )
+
+    if settlements[coord] is entities.SettlementType.GREAT_TERRACE:
+        raise _errors.InvalidSettlementLocation(
+            "You have already built a great terrace at specified location."
         )
 
     game.players[to].settlements[coord] = entities.SettlementType.GREAT_TERRACE

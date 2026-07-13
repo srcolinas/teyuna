@@ -5,11 +5,12 @@ import datetime
 import pytest
 
 from src import active, player, proposed
+from src.active import entities, services
 
 
 def test_player_can_be_added_before_expiration(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.repository.InMemoryActiveGameRepository,
+    game_manager: active.services.GameManager,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     game_id = repository.add(
@@ -20,7 +21,7 @@ def test_player_can_be_added_before_expiration(
         game_id=game_id,
         nickname="srcolinas",
         repository=repository,
-        game_repository=game_repository,
+        game_manager=game_manager,
         auth=auth,
     )
     assert len(result.proposed.players) == 1
@@ -29,7 +30,7 @@ def test_player_can_be_added_before_expiration(
 
 def test_player_cannot_be_added_after_expiration(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.repository.InMemoryActiveGameRepository,
+    game_manager: active.services.GameManager,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     game_id = repository.add(
@@ -41,14 +42,14 @@ def test_player_cannot_be_added_after_expiration(
             game_id=game_id,
             nickname="srcolinas",
             repository=repository,
-            game_repository=game_repository,
+            game_manager=game_manager,
             auth=auth,
         )
 
 
 def test_full_game_starts(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.repository.InMemoryActiveGameRepository,
+    game_manager: active.services.GameManager,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     game_id = repository.add(
@@ -61,25 +62,25 @@ def test_full_game_starts(
             game_id=game_id,
             nickname=p,
             repository=repository,
-            game_repository=game_repository,
+            game_manager=game_manager,
             auth=auth,
         )
     result, _ = proposed.add_player(
         game_id=game_id,
         nickname=players[-1],
         repository=repository,
-        game_repository=game_repository,
+        game_manager=game_manager,
         auth=auth,
     )
 
     assert result.game is not None
-    entity_game = game_repository.retrieve(result.game)
+    entity_game = game_manager.retrieve(result.game)
     assert sorted(entity_game.turn_order) == sorted(players)
 
 
 def test_not_full_game_is_not_started(
     repository: proposed.InMemoryProposedGameRepository,
-    game_repository: active.repository.InMemoryActiveGameRepository,
+    game_manager: active.services.GameManager,
     auth: player.PlayerAuthenticationService,
 ) -> None:
     num_players = 3
@@ -92,7 +93,7 @@ def test_not_full_game_is_not_started(
             game_id=game_id,
             nickname=f"srcolinas-{i}",
             repository=repository,
-            game_repository=game_repository,
+            game_manager=game_manager,
             auth=auth,
         )
         assert result.game is None
@@ -104,8 +105,19 @@ def repository() -> proposed.InMemoryProposedGameRepository:
 
 
 @pytest.fixture
-def game_repository() -> active.repository.InMemoryActiveGameRepository:
-    return active.repository.InMemoryActiveGameRepository()
+def game_manager() -> active.services.GameManager:
+    class FirstNode(services.GamePhaseNode):
+        def run(
+            self, game: entities.ActiveGame, request: services.PlayerRequest
+        ) -> bool:
+            return False
+
+        def on_exit(self, game: entities.ActiveGame) -> entities.GamePhaseName:
+            return entities.GamePhaseName.FIRST_PLACEMENT
+
+    return active.services.GameManager(
+        {entities.GamePhaseName.FIRST_PLACEMENT: FirstNode()}
+    )
 
 
 @pytest.fixture

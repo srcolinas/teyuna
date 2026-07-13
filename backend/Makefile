@@ -1,7 +1,9 @@
 .PHONY: install dev format lint test check run
 
 clean:
-	rm -rf .venv __pycache__ src/__pycache__ src/**/__pycache__ .mypy_cache .ruff_cache
+	rm -rf .venv __pycache__ .mypy_cache .ruff_cache
+	rm -rf src/__pycache__ src/**/__pycache__
+	rm -rf tests/__pycache__ tests/**/__pycache__
 	
 setup:
 	uv sync --dev
@@ -26,6 +28,9 @@ check: lint test
 	@echo "All checks passed!"
 
 coverage:
+	uv run pytest tests --cov=src
+
+coverage-html:
 	uv run pytest tests --cov=src --cov-report=html
 
 run:

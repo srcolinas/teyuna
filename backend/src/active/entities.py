@@ -22,6 +22,16 @@ INVALID_HEX_COORDINATES: Final[set[tuple[int, int]]] = {
 }
 
 
+class GamePhaseName(Enum):
+    FIRST_PLACEMENT = "first placement"
+    SECOND_PLACEMENT = "second placement"
+    PRE_PRODUCTION = "pre-production"
+    DICE_ROLL = "dice roll"
+    PRODUCTION = "production"
+    CONQUEST = "conquest"
+    TRADE_AND_BUILD = "trade and build"
+
+
 class HexType(str, Enum):
     """Types of hex tiles on the board."""
 
@@ -54,6 +64,46 @@ class Hex(NamedTuple):
     number: int
 
 
+def canonical_vertex(q: int, r: int, d: int) -> Coordinate:
+    aliases = vertex_aliases(q, r, d)
+    aliases.add(Coordinate(q=q, r=r, d=d))
+    return min(aliases)
+
+
+def vertex_aliases(q: int, r: int, d: int) -> set[Coordinate]:
+    dq, dr = delta_to_neighbor(d)
+    dq5, dr5 = delta_to_neighbor((d + 5) % 6)
+    return {
+        Coordinate(q=q + dq, r=r + dr, d=(d + 4) % 6),
+        Coordinate(q=q + dq5, r=r + dr5, d=(d + 2) % 6),
+    }
+
+
+def canonical_edge(q: int, r: int, d: int) -> Coordinate:
+    alias = edge_alias(q, r, d)
+    return min(alias, Coordinate(q=q, r=r, d=d))
+
+
+def edge_alias(q: int, r: int, d: int) -> Coordinate:
+    dq, dr = delta_to_neighbor(d)
+    return Coordinate(q=q + dq, r=r + dr, d=(d + 3) % 6)
+
+
+def delta_to_neighbor(d: int) -> tuple[int, int]:
+    dq, dr = _NEIGHBOR[d]
+    return dq, dr
+
+
+_NEIGHBOR: Final[list[tuple[int, int]]] = [
+    (1, -1),
+    (1, 0),
+    (0, 1),
+    (-1, 1),
+    (-1, 0),
+    (0, -1),
+]
+
+
 class ResourceCard(str, Enum):
     GOLD = "gold"
     STONE = "stone"
@@ -73,6 +123,28 @@ class WisdomCard(str, Enum):
 class SettlementType(str, Enum):
     TERRACE = "terrace"
     GREAT_TERRACE = "great terrace"
+
+
+HARBOUR_LOCATIONS: Final[dict[Coordinate, ResourceCard | None]] = {
+    canonical_vertex(-1, -1, 4): ResourceCard.WOOD,
+    canonical_vertex(-1, -1, 5): ResourceCard.WOOD,
+    canonical_vertex(0, -2, 0): None,
+    canonical_vertex(0, -2, 5): None,
+    canonical_vertex(1, -2, 0): ResourceCard.MAIZE,
+    canonical_vertex(1, -2, 1): ResourceCard.MAIZE,
+    canonical_vertex(2, -1, 0): ResourceCard.STONE,
+    canonical_vertex(2, -1, 1): ResourceCard.STONE,
+    canonical_vertex(2, 0, 1): None,
+    canonical_vertex(2, 0, 2): None,
+    canonical_vertex(1, 1, 2): ResourceCard.COTTON,
+    canonical_vertex(1, 1, 3): ResourceCard.COTTON,
+    canonical_vertex(-1, 2, 2): None,
+    canonical_vertex(-1, 2, 3): None,
+    canonical_vertex(-2, 2, 3): None,
+    canonical_vertex(-2, 2, 4): None,
+    canonical_vertex(-2, 1, 4): ResourceCard.GOLD,
+    canonical_vertex(-2, 1, 5): ResourceCard.GOLD,
+}
 
 
 @dataclasses.dataclass
@@ -140,18 +212,6 @@ class Player:
     paths: set[Coordinate] = dataclasses.field(default_factory=set)
 
 
-class GamePhase(str, Enum):
-    INITIAL = "initial"
-    MAIN = "main"
-    FINISHED = "finished"
-
-
-class TurnPhase(str, Enum):
-    PRODUCTION = "production"
-    TRADE = "trade"
-    CONSTRUCTION = "construction"
-
-
 class TradeProposal(NamedTuple):
     by: player.Nickname
     offer: ResourceCount
@@ -176,10 +236,9 @@ class ActiveGame:
     players: dict[player.Nickname, Player]
     conquistator_location: Hex
     turn_order: tuple[player.Nickname, ...]
+    player_idx: int = 0
     free_verticies: set[Coordinate] = dataclasses.field(default_factory=set)
     free_edges: set[Coordinate] = dataclasses.field(default_factory=set)
-    phase: GamePhase = GamePhase.INITIAL
-    turn_phase: TurnPhase = TurnPhase.PRODUCTION
     resource_supply: ResourceCount = dataclasses.field(
         default_factory=_default_resource_supply
     )
@@ -187,3 +246,7 @@ class ActiveGame:
         default_factory=dict
     )
     restricted_verticies: set[Coordinate] = dataclasses.field(default_factory=set)
+
+    @property
+    def active_player(self) -> player.Nickname:
+        return self.turn_order[self.player_idx]
