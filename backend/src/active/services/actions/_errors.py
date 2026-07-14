@@ -24,3 +24,11 @@ class WisdomCardNotPlayable(Exception):
 
 class InvalidDiscard(Exception):
     pass
+
+
+class InvalidConquistatorLocation(Exception):
+    pass
+
+
+class InvalidStealTarget(Exception):
+    pass

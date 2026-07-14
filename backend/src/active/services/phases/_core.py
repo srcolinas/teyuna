@@ -70,6 +70,13 @@ class DiscardCardsAction:
     resources: entities.ResourceCount
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class MoveConquistatorAction:
+    q: int
+    r: int
+    from_player: player.Nickname | None = None
+
+
 PlayerAction = (
     BuildTerraceAction
     | BuildGreatTerraceAction
@@ -82,6 +89,7 @@ PlayerAction = (
     | BuyWisdomCardAction
     | PlayWisdomCardAction
     | DiscardCardsAction
+    | MoveConquistatorAction
 )
 
 
