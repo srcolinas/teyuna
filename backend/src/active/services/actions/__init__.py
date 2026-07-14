@@ -5,6 +5,7 @@ from ._build_great_terrace import build_great_terrace
 from ._build_path import build_path
 from ._build_terrace import build_terrace
 from ._buy_wisdom_card import buy_wisdom_card
+from ._discard_cards import discard_cards, discard_random_half
 from ._maybe_add_random_placements import maybe_add_random_placements
 from ._play_wisdom_card import play_wisdom_card
 from ._produce_resources import produce_resources
@@ -13,6 +14,7 @@ from ._trade_with_supply import trade
 from ._errors import (
     EmptyWisdomDeck,
     InsufficientResources,
+    InvalidDiscard,
     InvalidPathLocation,
     InvalidSettlementLocation,
     TradeProposalNotFound,
@@ -27,6 +29,8 @@ __all__ = [
     "build_path",
     "build_terrace",
     "buy_wisdom_card",
+    "discard_cards",
+    "discard_random_half",
     "maybe_add_random_placements",
     "play_wisdom_card",
     "produce_resources",
@@ -34,6 +38,7 @@ __all__ = [
     "trade",
     "EmptyWisdomDeck",
     "InsufficientResources",
+    "InvalidDiscard",
     "InvalidPathLocation",
     "InvalidSettlementLocation",
     "TradeProposalNotFound",

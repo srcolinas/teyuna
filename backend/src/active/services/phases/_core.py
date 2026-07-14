@@ -65,6 +65,11 @@ class PlayWisdomCardAction:
     card: entities.WisdomCard
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class DiscardCardsAction:
+    resources: entities.ResourceCount
+
+
 PlayerAction = (
     BuildTerraceAction
     | BuildGreatTerraceAction
@@ -76,6 +81,7 @@ PlayerAction = (
     | AdvancePhaseAction
     | BuyWisdomCardAction
     | PlayWisdomCardAction
+    | DiscardCardsAction
 )
 
 
@@ -91,7 +97,8 @@ class GamePhaseName(str, Enum):
     PRE_DICE_ROLL = "pre-dice roll"
     DICE_ROLL = "dice roll"
     PRODUCTION = "production"
-    CONQUEST = "conquest"
+    DISCARD_CARDS = "discard cards"
+    MOVE_CONQUISTATOR = "move conquistator"
     TRADE_AND_BUILD = "trade and build"
 
 

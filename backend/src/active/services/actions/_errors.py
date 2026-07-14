@@ -20,3 +20,7 @@ class EmptyWisdomDeck(Exception):
 
 class WisdomCardNotPlayable(Exception):
     pass
+
+
+class InvalidDiscard(Exception):
+    pass

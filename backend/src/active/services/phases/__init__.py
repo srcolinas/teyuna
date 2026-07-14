@@ -1,5 +1,6 @@
 from ._errors import InvalidActionError, PlayerNotInTurnError
 from ._dice_roll import DiceRollPhase, DiceRollResult
+from ._discard_cards import DiscardCardsPhase, DiscardRequirement
 from ._first_placement import FirstPlacementPhase
 from ._pre_dice_roll import PreDiceRollPhase
 from ._production import ProductionPhase
@@ -12,6 +13,7 @@ from ._core import (
     AdvancePhaseAction,
     BuyWisdomCardAction,
     PlayWisdomCardAction,
+    DiscardCardsAction,
     BuildTerraceAction,
     BuildGreatTerraceAction,
     BuildPathAction,
@@ -29,6 +31,8 @@ __all__ = [
     "PlayerNotInTurnError",
     "DiceRollPhase",
     "DiceRollResult",
+    "DiscardCardsPhase",
+    "DiscardRequirement",
     "FirstPlacementPhase",
     "PreDiceRollPhase",
     "ProductionPhase",
@@ -40,6 +44,7 @@ __all__ = [
     "AdvancePhaseAction",
     "BuyWisdomCardAction",
     "PlayWisdomCardAction",
+    "DiscardCardsAction",
     "BuildTerraceAction",
     "BuildGreatTerraceAction",
     "BuildPathAction",

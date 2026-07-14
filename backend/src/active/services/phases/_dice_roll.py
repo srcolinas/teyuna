@@ -35,7 +35,7 @@ class DiceRollPhase(_core.GamePhaseNode[None, DiceRollResult, None]):
         second = self._rnd.randint(1, 6)
         game.last_dice_roll = first + second
         next_phase = (
-            _core.GamePhaseName.CONQUEST
+            _core.GamePhaseName.DISCARD_CARDS
             if first + second == 7
             else _core.GamePhaseName.PRODUCTION
         )

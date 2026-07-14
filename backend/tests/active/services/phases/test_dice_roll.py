@@ -58,12 +58,12 @@ def test_on_exit_returns_production_when_sum_is_not_seven(
     assert game.last_dice_roll == 3
 
 
-def test_on_exit_returns_conquest_when_sum_is_seven(
+def test_on_exit_returns_discard_cards_when_sum_is_seven(
     game: entities.ActiveGame,
 ) -> None:
     phase = phases.DiceRollPhase(rnd=_FixedRandom(2, 5))
     outcome = phase.on_exit(game)
-    assert outcome.next is phases.GamePhaseName.CONQUEST
+    assert outcome.next is phases.GamePhaseName.DISCARD_CARDS
     assert outcome.value == phases.DiceRollResult(first=2, second=5)
     assert game.last_dice_roll == 7
 
