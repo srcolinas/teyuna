@@ -13,7 +13,9 @@ def test_moves_conquistator_to_target_hex(multi_hex_game: entities.ActiveGame) -
     actions.move_conquistator(
         multi_hex_game, multi_hex_game.active_player, q=target.q, r=target.r
     )
-    assert multi_hex_game.conquistator_location == target
+    assert multi_hex_game.conquistator_location == entities.HexLocation(
+        q=target.q, r=target.r
+    )
 
 
 def test_steals_one_random_resource_from_victim(
@@ -41,7 +43,9 @@ def test_steals_one_random_resource_from_victim(
         rnd=_FixedChoiceRandom(0),
     )
 
-    assert multi_hex_game.conquistator_location == target
+    assert multi_hex_game.conquistator_location == entities.HexLocation(
+        q=target.q, r=target.r
+    )
     assert multi_hex_game.players[victim].resources[entities.ResourceCard.GOLD] == 0
     assert multi_hex_game.players[victim].resources[entities.ResourceCard.STONE] == 1
     assert multi_hex_game.players[active].resources[entities.ResourceCard.GOLD] == 1
@@ -115,7 +119,9 @@ def test_empty_victim_hand_moves_without_transfer(
         from_player=victim,
     )
 
-    assert multi_hex_game.conquistator_location == target
+    assert multi_hex_game.conquistator_location == entities.HexLocation(
+        q=target.q, r=target.r
+    )
     assert sum(multi_hex_game.players[active].resources.values()) == 0
     assert sum(multi_hex_game.players[victim].resources.values()) == 0
 
@@ -126,7 +132,9 @@ def test_move_conquistator_randomly_excludes_current(
     current = multi_hex_game.conquistator_location
     other = multi_hex_game.map[1]
     actions.move_conquistator_randomly(multi_hex_game, rnd=_FixedChoiceRandom(0))
-    assert multi_hex_game.conquistator_location == other
+    assert multi_hex_game.conquistator_location == entities.HexLocation(
+        q=other.q, r=other.r
+    )
     assert multi_hex_game.conquistator_location != current
 
 
@@ -135,7 +143,7 @@ def multi_hex_game(game: entities.ActiveGame) -> entities.ActiveGame:
     jungle = entities.Hex(q=1, r=0, type=entities.HexType.JUNGLE, number=6)
     desert = entities.Hex(q=0, r=1, type=entities.HexType.DESERT, number=0)
     game.map = (game.map[0], jungle, desert)
-    game.conquistator_location = game.map[0]
+    game.conquistator_location = entities.HexLocation(q=game.map[0].q, r=game.map[0].r)
     return game
 
 

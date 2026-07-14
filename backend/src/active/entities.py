@@ -45,6 +45,13 @@ class Coordinate(NamedTuple):
     d: int
 
 
+class HexLocation(NamedTuple):
+    """A the coordintes of the hex, not including any vertex or edge."""
+
+    q: int
+    r: int
+
+
 class Hex(NamedTuple):
     """A hex tile on the game board."""
 
@@ -228,7 +235,7 @@ def _default_resource_supply() -> ResourceCount:
 class ActiveGame:
     map: tuple[Hex, ...]
     players: dict[player.Nickname, Player]
-    conquistator_location: Hex
+    conquistator_location: HexLocation
     turn_order: tuple[player.Nickname, ...]
     player_idx: int = 0
     free_verticies: set[Coordinate] = dataclasses.field(default_factory=set)

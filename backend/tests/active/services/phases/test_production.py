@@ -53,7 +53,7 @@ def test_on_enter_produces_resources_from_last_dice_roll(
     mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=8)
     desert = entities.Hex(q=0, r=1, type=entities.HexType.DESERT, number=7)
     game.map = (mountains, desert)
-    game.conquistator_location = desert
+    game.conquistator_location = entities.HexLocation(q=desert.q, r=desert.r)
     game.last_dice_roll = 8
     game.players[game.active_player].settlements = entities.SettlementsCollection(
         {

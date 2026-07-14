@@ -13,12 +13,12 @@ _RND: random.Random = random.Random()
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class MoveConquistatorResult:
-    location: entities.Hex
+    location: entities.HexLocation
     stolen_from: player.Nickname | None
 
 
 class MoveConquistatorPhase(
-    _core.GamePhaseNode[MoveConquistatorResult | None, entities.Hex, None]
+    _core.GamePhaseNode[MoveConquistatorResult | None, entities.HexLocation, None]
 ):
     def __init__(self, rnd: random.Random = _RND) -> None:
         self._rnd = rnd
@@ -52,7 +52,9 @@ class MoveConquistatorPhase(
             case _:
                 raise _errors.InvalidActionError(f"Unknown action: {request.action}")
 
-    def on_exit(self, game: entities.ActiveGame) -> _core.ExitOutcome[entities.Hex]:
+    def on_exit(
+        self, game: entities.ActiveGame
+    ) -> _core.ExitOutcome[entities.HexLocation]:
         if not self._performed:
             actions.move_conquistator_randomly(game, rnd=self._rnd)
         return _core.ExitOutcome(

@@ -24,12 +24,7 @@ def _mountains_game(
                 number=7,
             ),
         ),
-        conquistator_location=entities.Hex(
-            q=0,
-            r=1,
-            type=entities.HexType.DESERT,
-            number=7,
-        ),
+        conquistator_location=entities.HexLocation(q=0, r=1),
         turn_order=("srcolinas-1", "srcolinas-2", "srcolinas-3"),
         players={
             "srcolinas-1": entities.Player(
@@ -149,3 +144,21 @@ def test_turn_order_gets_remaining_supply_first() -> None:
     assert game.players["srcolinas-1"].resources[entities.ResourceCard.GOLD] == 1
     assert game.players["srcolinas-2"].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 0
+
+
+def test_does_not_produce_from_conquistator_hex() -> None:
+    game = _mountains_game(
+        settlements={
+            "srcolinas-1": entities.SettlementsCollection(
+                {
+                    entities.Coordinate(
+                        q=0, r=-1, d=2
+                    ): entities.SettlementType.TERRACE,
+                },
+            ),
+        },
+    )
+    game.conquistator_location = entities.HexLocation(q=0, r=0)
+    actions.produce_resources(game, roll=8)
+    assert game.players["srcolinas-1"].resources[entities.ResourceCard.GOLD] == 0
+    assert game.resource_supply[entities.ResourceCard.GOLD] == 19

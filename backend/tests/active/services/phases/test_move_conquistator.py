@@ -42,6 +42,7 @@ def test_move_without_steal_returns_result(
     phase: phases.MoveConquistatorPhase,
 ) -> None:
     target = multi_hex_game.map[1]
+    expected = entities.HexLocation(q=target.q, r=target.r)
     phase.on_enter(multi_hex_game)
 
     result = phase.run(
@@ -54,9 +55,9 @@ def test_move_without_steal_returns_result(
 
     assert result == phases.RunOutcome(
         finished=True,
-        value=phases.MoveConquistatorResult(location=target, stolen_from=None),
+        value=phases.MoveConquistatorResult(location=expected, stolen_from=None),
     )
-    assert multi_hex_game.conquistator_location == target
+    assert multi_hex_game.conquistator_location == expected
 
 
 def test_move_with_steal_reports_stolen_from(
@@ -65,6 +66,7 @@ def test_move_with_steal_reports_stolen_from(
     active = multi_hex_game.active_player
     victim = multi_hex_game.turn_order[1]
     target = multi_hex_game.map[1]
+    expected = entities.HexLocation(q=target.q, r=target.r)
     vertex = entities.canonical_vertex(target.q, target.r, 0)
     multi_hex_game.players[victim].settlements[vertex] = entities.SettlementType.TERRACE
     multi_hex_game.players[victim].resources = collections.Counter(
@@ -85,7 +87,7 @@ def test_move_with_steal_reports_stolen_from(
 
     assert result == phases.RunOutcome(
         finished=True,
-        value=phases.MoveConquistatorResult(location=target, stolen_from=victim),
+        value=phases.MoveConquistatorResult(location=expected, stolen_from=victim),
     )
     assert multi_hex_game.players[active].resources[entities.ResourceCard.WOOD] == 1
     assert multi_hex_game.players[victim].resources[entities.ResourceCard.WOOD] == 1
@@ -111,6 +113,7 @@ def test_on_exit_after_action_keeps_location(
     phase: phases.MoveConquistatorPhase,
 ) -> None:
     target = multi_hex_game.map[1]
+    expected = entities.HexLocation(q=target.q, r=target.r)
     phase.on_enter(multi_hex_game)
     phase.run(
         multi_hex_game,
@@ -123,15 +126,17 @@ def test_on_exit_after_action_keeps_location(
     outcome = phase.on_exit(multi_hex_game)
 
     assert outcome.next is phases.GamePhaseName.TRADE_AND_BUILD
-    assert outcome.value == target
-    assert multi_hex_game.conquistator_location == target
+    assert outcome.value == expected
+    assert multi_hex_game.conquistator_location == expected
 
 
 def test_on_exit_without_action_relocates_randomly(
     multi_hex_game: entities.ActiveGame,
 ) -> None:
     original = multi_hex_game.conquistator_location
-    expected = multi_hex_game.map[1]
+    expected = entities.HexLocation(
+        q=multi_hex_game.map[1].q, r=multi_hex_game.map[1].r
+    )
     phase = phases.MoveConquistatorPhase(rnd=_FixedChoiceRandom(0))
     phase.on_enter(multi_hex_game)
 
@@ -155,7 +160,7 @@ def multi_hex_game(game: entities.ActiveGame) -> entities.ActiveGame:
     jungle = entities.Hex(q=1, r=0, type=entities.HexType.JUNGLE, number=6)
     desert = entities.Hex(q=0, r=1, type=entities.HexType.DESERT, number=0)
     game.map = (game.map[0], jungle, desert)
-    game.conquistator_location = game.map[0]
+    game.conquistator_location = entities.HexLocation(q=game.map[0].q, r=game.map[0].r)
     return game
 
 

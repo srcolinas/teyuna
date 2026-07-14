@@ -38,7 +38,7 @@ def move_conquistator_randomly(
 ) -> None:
     current = game.conquistator_location
     candidates = [
-        hex_tile
+        entities.HexLocation(q=hex_tile.q, r=hex_tile.r)
         for hex_tile in game.map
         if (hex_tile.q, hex_tile.r) != (current.q, current.r)
     ]
@@ -49,7 +49,9 @@ def move_conquistator_randomly(
     game.conquistator_location = rnd.choice(candidates)
 
 
-def _require_new_hex(game: entities.ActiveGame, *, q: int, r: int) -> entities.Hex:
+def _require_new_hex(
+    game: entities.ActiveGame, *, q: int, r: int
+) -> entities.HexLocation:
     current = game.conquistator_location
     if current.q == q and current.r == r:
         raise _errors.InvalidConquistatorLocation(
@@ -57,7 +59,7 @@ def _require_new_hex(game: entities.ActiveGame, *, q: int, r: int) -> entities.H
         )
     for hex_tile in game.map:
         if hex_tile.q == q and hex_tile.r == r:
-            return hex_tile
+            return entities.HexLocation(q=q, r=r)
     raise _errors.InvalidConquistatorLocation(f"Hex ({q}, {r}) is not on the map.")
 
 

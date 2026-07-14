@@ -13,6 +13,11 @@ def produce_resources(
             continue
         if hex_tile.type is entities.HexType.DESERT:
             continue
+        if (hex_tile.q, hex_tile.r) == (
+            game.conquistator_location.q,
+            game.conquistator_location.r,
+        ):
+            continue
         resource = _HEX_TYPE_TO_RESOURCE[hex_tile.type]
         for nickname in game.turn_order:
             settlements = game.players[nickname].settlements

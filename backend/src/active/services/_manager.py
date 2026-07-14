@@ -122,9 +122,10 @@ def _create_new(players: Sequence[player.Nickname]) -> entities.ActiveGame:
     players = list(players)
     random.shuffle(players)
     free_verticies, free_edges = _initial_buildable_locations()
+    desert = random.choice(deserts)
     return entities.ActiveGame(
         map=map,
-        conquistator_location=random.choice(deserts),
+        conquistator_location=entities.HexLocation(q=desert.q, r=desert.r),
         turn_order=tuple(players),
         players={
             nickname: entities.Player(

@@ -12,7 +12,7 @@ def game() -> entities.ActiveGame:
     mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
     return entities.ActiveGame(
         map=(mountains,),
-        conquistator_location=mountains,
+        conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),
         turn_order=("srcolinas-1", "srcolinas-2", "srcolinas-3"),
         players={
             nickname: entities.Player(
