@@ -10,12 +10,17 @@ from src.active import dependencies, entities, services
 from src.active.services import phases
 
 
-class _StubFirstNode(phases.GamePhaseNode):
-    def run(self, game: entities.ActiveGame, request: phases.PlayerRequest) -> bool:
-        return False
+class _StubFirstNode(phases.GamePhaseNode[None, None, None]):
+    def run(
+        self, game: entities.ActiveGame, request: phases.PlayerRequest
+    ) -> phases.RunOutcome[None]:
+        return phases.RunOutcome(finished=False, value=None)
 
-    def on_exit(self, game: entities.ActiveGame) -> phases.GamePhaseName:
-        return phases.GamePhaseName.FIRST_PLACEMENT
+    def on_exit(self, game: entities.ActiveGame) -> phases.ExitOutcome[None]:
+        return phases.ExitOutcome(next=phases.GamePhaseName.FIRST_PLACEMENT, value=None)
+
+    def on_enter(self, game: entities.ActiveGame) -> phases.EnterOutcome[None]:
+        return phases.EnterOutcome(value=None)
 
 
 @pytest.fixture

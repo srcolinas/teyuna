@@ -14,6 +14,9 @@ from ._core import (
     AcceptTradeProposalAction,
     TradeWithSupplyAction,
     GamePhaseName,
+    RunOutcome,
+    ExitOutcome,
+    EnterOutcome,
 )
 
 __all__ = [
@@ -33,4 +36,7 @@ __all__ = [
     "AcceptTradeProposalAction",
     "TradeWithSupplyAction",
     "GamePhaseName",
+    "RunOutcome",
+    "ExitOutcome",
+    "EnterOutcome",
 ]

@@ -17,12 +17,19 @@ def test_cannot_run_game_that_does_not_exist():
 def test_runs_player_request_through_nodes():
     class SuperFakeError(Exception): ...
 
-    class FakeNode(phases.GamePhaseNode):
-        def run(self, game: entities.ActiveGame, request: phases.PlayerRequest) -> bool:
+    class FakeNode(phases.GamePhaseNode[None, None, None]):
+        def run(
+            self, game: entities.ActiveGame, request: phases.PlayerRequest
+        ) -> phases.RunOutcome[None]:
             raise SuperFakeError
 
-        def on_exit(self, game: entities.ActiveGame) -> phases.GamePhaseName:
-            return phases.GamePhaseName.FIRST_PLACEMENT
+        def on_exit(self, game: entities.ActiveGame) -> phases.ExitOutcome[None]:
+            return phases.ExitOutcome(
+                next=phases.GamePhaseName.FIRST_PLACEMENT, value=None
+            )
+
+        def on_enter(self, game: entities.ActiveGame) -> phases.EnterOutcome[None]:
+            return phases.EnterOutcome(value=None)
 
     manager = services.GameManager(
         {phases.GamePhaseName.FIRST_PLACEMENT: FakeNode()},
@@ -37,19 +44,33 @@ def test_runs_player_request_through_nodes():
 def test_advances_phase_if_run_triggers_termination():
     class SuperFakeError(Exception): ...
 
-    class FirstNode(phases.GamePhaseNode):
-        def run(self, game: entities.ActiveGame, request: phases.PlayerRequest) -> bool:
-            return True
+    class FirstNode(phases.GamePhaseNode[None, None, None]):
+        def run(
+            self, game: entities.ActiveGame, request: phases.PlayerRequest
+        ) -> phases.RunOutcome[None]:
+            return phases.RunOutcome(finished=True, value=None)
 
-        def on_exit(self, game: entities.ActiveGame) -> phases.GamePhaseName:
-            return phases.GamePhaseName.SECOND_PLACEMENT
+        def on_exit(self, game: entities.ActiveGame) -> phases.ExitOutcome[None]:
+            return phases.ExitOutcome(
+                next=phases.GamePhaseName.SECOND_PLACEMENT, value=None
+            )
 
-    class SecondNode(phases.GamePhaseNode):
-        def run(self, game: entities.ActiveGame, request: phases.PlayerRequest) -> bool:
+        def on_enter(self, game: entities.ActiveGame) -> phases.EnterOutcome[None]:
+            return phases.EnterOutcome(value=None)
+
+    class SecondNode(phases.GamePhaseNode[None, None, None]):
+        def run(
+            self, game: entities.ActiveGame, request: phases.PlayerRequest
+        ) -> phases.RunOutcome[None]:
             raise SuperFakeError
 
-        def on_exit(self, game: entities.ActiveGame) -> phases.GamePhaseName:
-            return phases.GamePhaseName.PRE_PRODUCTION
+        def on_exit(self, game: entities.ActiveGame) -> phases.ExitOutcome[None]:
+            return phases.ExitOutcome(
+                next=phases.GamePhaseName.PRE_DICE_ROLL, value=None
+            )
+
+        def on_enter(self, game: entities.ActiveGame) -> phases.EnterOutcome[None]:
+            return phases.EnterOutcome(value=None)
 
     manager = services.GameManager(
         {

@@ -3,11 +3,14 @@ import random
 import uuid
 import collections
 from collections.abc import Sequence
+from typing import Any
 
 
 from ... import player
 from .. import entities, ports
 from . import phases
+
+PhaseNode = phases.GamePhaseNode[Any, Any, Any]
 
 
 class ActiveGameDoesNotExistError(Exception): ...
@@ -20,12 +23,10 @@ class GamePhaseNodeNotConfiguredError(Exception):
 class GameManager:
     def __init__(
         self,
-        nodes: dict[phases.GamePhaseName, phases.GamePhaseNode],
+        nodes: dict[phases.GamePhaseName, PhaseNode],
         start: phases.GamePhaseName = phases.GamePhaseName.FIRST_PLACEMENT,
     ):
-        self._memory: dict[
-            uuid.UUID, tuple[entities.ActiveGame, phases.GamePhaseNode]
-        ] = {}
+        self._memory: dict[uuid.UUID, tuple[entities.ActiveGame, PhaseNode]] = {}
         self._nodes = nodes
         self._start = start
 
@@ -35,14 +36,22 @@ class GameManager:
         self._memory[game_id] = (game, self._require_node(self._start))
         return game_id
 
-    def run(self, game_id: uuid.UUID, request: phases.PlayerRequest) -> None:
+    def run(self, game_id: uuid.UUID, request: phases.PlayerRequest) -> list[Any]:
         game, phase = self._validate_game_exists(game_id)
-        is_finished = phase.run(game, request)
-        if is_finished:
-            next = phase.on_exit(game)
-            phase = self._require_node(next)
-            phase.on_enter(game)
+        reports: list[Any] = []
+        step = phase.run(game, request)
+        if step.value is not None:
+            reports.append(step.value)
+        if step.finished:
+            leaving = phase.on_exit(game)
+            if leaving.value is not None:
+                reports.append(leaving.value)
+            phase = self._require_node(leaving.next)
+            entering = phase.on_enter(game)
+            if entering.value is not None:
+                reports.append(entering.value)
             self._memory[game_id] = (game, phase)
+        return reports
 
     def retrieve(self, game_id: uuid.UUID) -> ports.ActiveGame:
         game, _ = self._validate_game_exists(game_id)
@@ -91,7 +100,7 @@ class GameManager:
             + game.turn_order[: game.player_idx],
         )
 
-    def _require_node(self, phase: phases.GamePhaseName) -> phases.GamePhaseNode:
+    def _require_node(self, phase: phases.GamePhaseName) -> PhaseNode:
         try:
             return self._nodes[phase]
         except KeyError:
@@ -101,7 +110,7 @@ class GameManager:
 
     def _validate_game_exists(
         self, id: uuid.UUID
-    ) -> tuple[entities.ActiveGame, phases.GamePhaseNode]:
+    ) -> tuple[entities.ActiveGame, PhaseNode]:
         if id not in self._memory:
             raise ActiveGameDoesNotExistError(f"Game {id} does not exist")
         return self._memory[id]

@@ -4,9 +4,14 @@ import abc
 import dataclasses
 import uuid
 from enum import Enum
+from typing import Generic, TypeVar
 
 from .... import player
 from ... import entities
+
+TRun = TypeVar("TRun")
+TExit = TypeVar("TExit")
+TEnter = TypeVar("TEnter")
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -72,28 +77,45 @@ class PlayerRequest:
 class GamePhaseName(str, Enum):
     FIRST_PLACEMENT = "first placement"
     SECOND_PLACEMENT = "second placement"
-    PRE_PRODUCTION = "pre-production"
+    PRE_DICE_ROLL = "pre-dice roll"
     DICE_ROLL = "dice roll"
     PRODUCTION = "production"
     CONQUEST = "conquest"
     TRADE_AND_BUILD = "trade and build"
 
 
-class GamePhaseNode(abc.ABC):
+@dataclasses.dataclass(frozen=True, slots=True)
+class RunOutcome(Generic[TRun]):
+    finished: bool
+    value: TRun
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class ExitOutcome(Generic[TExit]):
+    next: GamePhaseName
+    value: TExit
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class EnterOutcome(Generic[TEnter]):
+    value: TEnter
+
+
+class GamePhaseNode(abc.ABC, Generic[TRun, TExit, TEnter]):
     @abc.abstractmethod
-    def run(self, game: entities.ActiveGame, request: PlayerRequest) -> bool:
+    def run(
+        self, game: entities.ActiveGame, request: PlayerRequest
+    ) -> RunOutcome[TRun]:
         """Handle a player request.
 
-        Returns True if the phase is finished and the manager should use a different
-        node implementation. False if the phase is not finished.
+        Returns whether the phase is finished (manager should advance) and an
+        optional phase-specific value to report to callers.
         """
 
     @abc.abstractmethod
-    def on_exit(self, game: entities.ActiveGame) -> GamePhaseName:
-        """Return the next phase to run and perform any necessary side effects."""
+    def on_exit(self, game: entities.ActiveGame) -> ExitOutcome[TExit]:
+        """Return the next phase, optional report value, and any side effects."""
 
-    def on_enter(self, game: entities.ActiveGame) -> None:
-        """
-        Perform any necessary side effects when the phase is about to
-        become active.
-        """
+    @abc.abstractmethod
+    def on_enter(self, game: entities.ActiveGame) -> EnterOutcome[TEnter]:
+        """Perform side effects when the phase is about to become active."""

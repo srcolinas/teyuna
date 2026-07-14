@@ -73,7 +73,7 @@ def test_returns_false_before_last_player_has_added_initial_buildings(
             ),
         ),
     )
-    assert result is False
+    assert result.finished is False
 
 
 def test_returns_true_after_last_player_has_added_initial_buildings(
@@ -91,7 +91,7 @@ def test_returns_true_after_last_player_has_added_initial_buildings(
             ),
         ),
     )
-    assert result is True
+    assert result.finished is True
 
 
 def test_on_exit_returns_second_placement_phase(
@@ -99,7 +99,7 @@ def test_on_exit_returns_second_placement_phase(
     phase: phases.FirstPlacementPhase,
 ) -> None:
     phase.on_enter(game)
-    assert phase.on_exit(game) is phases.GamePhaseName.SECOND_PLACEMENT
+    assert phase.on_exit(game).next is phases.GamePhaseName.SECOND_PLACEMENT
 
 
 def test_on_enter_sets_player_idx_to_0(

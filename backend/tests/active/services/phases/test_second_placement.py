@@ -73,7 +73,7 @@ def test_returns_false_before_last_player_has_added_initial_buildings(
             ),
         ),
     )
-    assert result is False
+    assert result.finished is False
 
 
 def test_returns_true_after_first_player_has_added_initial_buildings(
@@ -91,16 +91,16 @@ def test_returns_true_after_first_player_has_added_initial_buildings(
             ),
         ),
     )
-    assert result is True
+    assert result.finished is True
     assert game.player_idx == -1
 
 
-def test_on_exit_returns_pre_production_phase(
+def test_on_exit_returns_pre_dice_roll_phase(
     game: entities.ActiveGame,
     phase: phases.SecondPlacementPhase,
 ) -> None:
     phase.on_enter(game)
-    assert phase.on_exit(game) is phases.GamePhaseName.PRE_PRODUCTION
+    assert phase.on_exit(game).next is phases.GamePhaseName.PRE_DICE_ROLL
 
 
 def test_on_enter_sets_player_idx_to_last_player(

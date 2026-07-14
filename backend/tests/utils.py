@@ -66,12 +66,19 @@ def assert_not_raises(ExpectedException):
 
 
 def _stub_game_manager() -> active.services.GameManager:
-    class FirstNode(phases.GamePhaseNode):
-        def run(self, game: entities.ActiveGame, request: phases.PlayerRequest) -> bool:
-            return False
+    class FirstNode(phases.GamePhaseNode[None, None, None]):
+        def run(
+            self, game: entities.ActiveGame, request: phases.PlayerRequest
+        ) -> phases.RunOutcome[None]:
+            return phases.RunOutcome(finished=False, value=None)
 
-        def on_exit(self, game: entities.ActiveGame) -> phases.GamePhaseName:
-            return phases.GamePhaseName.FIRST_PLACEMENT
+        def on_exit(self, game: entities.ActiveGame) -> phases.ExitOutcome[None]:
+            return phases.ExitOutcome(
+                next=phases.GamePhaseName.FIRST_PLACEMENT, value=None
+            )
+
+        def on_enter(self, game: entities.ActiveGame) -> phases.EnterOutcome[None]:
+            return phases.EnterOutcome(value=None)
 
     return active.services.GameManager(
         {phases.GamePhaseName.FIRST_PLACEMENT: FirstNode()}
