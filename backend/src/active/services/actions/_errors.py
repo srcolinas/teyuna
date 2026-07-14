@@ -12,3 +12,7 @@ class InsufficientResources(Exception):
 
 class TradeProposalNotFound(Exception):
     pass
+
+
+class EmptyWisdomDeck(Exception):
+    pass

@@ -56,6 +56,10 @@ class TradeWithSupplyAction:
 class AdvancePhaseAction: ...
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class BuyWisdomCardAction: ...
+
+
 PlayerAction = (
     BuildTerraceAction
     | BuildGreatTerraceAction
@@ -65,6 +69,7 @@ PlayerAction = (
     | TradeWithSupplyAction
     | AddInitialBuildingsAction
     | AdvancePhaseAction
+    | BuyWisdomCardAction
 )
 
 

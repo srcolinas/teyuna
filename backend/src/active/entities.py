@@ -236,6 +236,7 @@ class ActiveGame:
         default_factory=dict
     )
     restricted_verticies: set[Coordinate] = dataclasses.field(default_factory=set)
+    wisdom_deck: list[WisdomCard] = dataclasses.field(default_factory=list)
 
     @property
     def active_player(self) -> player.Nickname:
