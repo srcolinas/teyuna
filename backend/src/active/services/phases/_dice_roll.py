@@ -29,7 +29,6 @@ class DiceRollPhase(_core.GamePhaseNode[None, DiceRollResult, None]):
                 return _core.RunOutcome(finished=True, value=None)
             case _:
                 raise _errors.InvalidActionError(f"Unknown action: {request.action}")
-        return _core.RunOutcome(finished=True, value=None)
 
     def on_exit(self, game: entities.ActiveGame) -> _core.ExitOutcome[DiceRollResult]:
         first = self._rnd.randint(1, 6)
