@@ -33,6 +33,7 @@ class DiceRollPhase(_core.GamePhaseNode[None, DiceRollResult, None]):
     def on_exit(self, game: entities.ActiveGame) -> _core.ExitOutcome[DiceRollResult]:
         first = self._rnd.randint(1, 6)
         second = self._rnd.randint(1, 6)
+        game.last_dice_roll = first + second
         next_phase = (
             _core.GamePhaseName.CONQUEST
             if first + second == 7

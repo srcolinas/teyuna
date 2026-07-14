@@ -1,5 +1,3 @@
-import random
-
 import pytest
 
 from src.active import entities
@@ -8,7 +6,7 @@ from src.active.services import phases
 
 def test_raises_player_not_in_turn_error_if_not_in_turn(
     game: entities.ActiveGame,
-    phase: phases.DiceRollPhase,
+    phase: phases.ProductionPhase,
 ) -> None:
     with pytest.raises(phases.PlayerNotInTurnError):
         phase.run(
@@ -22,7 +20,7 @@ def test_raises_player_not_in_turn_error_if_not_in_turn(
 
 def test_raises_invalid_action_if_not_allowed(
     game: entities.ActiveGame,
-    phase: phases.DiceRollPhase,
+    phase: phases.ProductionPhase,
 ) -> None:
     with pytest.raises(phases.InvalidActionError):
         phase.run(
@@ -36,7 +34,7 @@ def test_raises_invalid_action_if_not_allowed(
 
 def test_advance_phase_finishes(
     game: entities.ActiveGame,
-    phase: phases.DiceRollPhase,
+    phase: phases.ProductionPhase,
 ) -> None:
     result = phase.run(
         game,
@@ -48,35 +46,32 @@ def test_advance_phase_finishes(
     assert result == phases.RunOutcome(finished=True, value=None)
 
 
-def test_on_exit_returns_production_when_sum_is_not_seven(
+def test_on_enter_produces_resources_from_last_dice_roll(
     game: entities.ActiveGame,
+    phase: phases.ProductionPhase,
 ) -> None:
-    phase = phases.DiceRollPhase(rnd=_FixedRandom(1, 2))
-    outcome = phase.on_exit(game)
-    assert outcome.next is phases.GamePhaseName.PRODUCTION
-    assert outcome.value == phases.DiceRollResult(first=1, second=2)
-    assert game.last_dice_roll == 3
+    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=8)
+    desert = entities.Hex(q=0, r=1, type=entities.HexType.DESERT, number=7)
+    game.map = (mountains, desert)
+    game.conquistator_location = desert
+    game.last_dice_roll = 8
+    game.players[game.active_player].settlements = entities.SettlementsCollection(
+        {
+            entities.Coordinate(q=0, r=-1, d=2): entities.SettlementType.TERRACE,
+        },
+    )
+    phase.on_enter(game)
+    assert game.players[game.active_player].resources[entities.ResourceCard.GOLD] == 1
+    assert game.resource_supply[entities.ResourceCard.GOLD] == 18
 
 
-def test_on_exit_returns_conquest_when_sum_is_seven(
+def test_on_exit_returns_trade_and_build_phase(
     game: entities.ActiveGame,
+    phase: phases.ProductionPhase,
 ) -> None:
-    phase = phases.DiceRollPhase(rnd=_FixedRandom(2, 5))
-    outcome = phase.on_exit(game)
-    assert outcome.next is phases.GamePhaseName.CONQUEST
-    assert outcome.value == phases.DiceRollResult(first=2, second=5)
-    assert game.last_dice_roll == 7
+    assert phase.on_exit(game).next is phases.GamePhaseName.TRADE_AND_BUILD
 
 
 @pytest.fixture
-def phase() -> phases.DiceRollPhase:
-    return phases.DiceRollPhase()
-
-
-class _FixedRandom(random.Random):
-    def __init__(self, *values: int) -> None:
-        super().__init__()
-        self._values = iter(values)
-
-    def randint(self, a: int, b: int) -> int:
-        return next(self._values)
+def phase() -> phases.ProductionPhase:
+    return phases.ProductionPhase()

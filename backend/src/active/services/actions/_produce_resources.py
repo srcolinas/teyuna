@@ -27,7 +27,11 @@ def produce_resources(
                     amount = 2
                 else:
                     continue
-                granted = collections.Counter({resource: amount})
+                available = game.resource_supply[resource]
+                to_grant = min(amount, available)
+                if to_grant <= 0:
+                    continue
+                granted = collections.Counter({resource: to_grant})
                 game.players[nickname].resources += granted
                 game.resource_supply -= granted
 
