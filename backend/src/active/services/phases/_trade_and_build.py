@@ -13,15 +13,13 @@ class TradeAndBuildPhase(
         self, game: entities.ActiveGame, request: _core.PlayerRequest
     ) -> _core.RunOutcome[entities.TradeProposal | None]:
         match request.action:
-            case _core.ProposeTradeToPlayerInTurnAction(
-                offer=offer, request=trade_request
-            ):
-                if request.by == game.active_player:
+            case _core.ProposeTradeAction(offer=offer, request=trade_request, to=to):
+                if request.by != game.active_player and to != (game.active_player,):
                     raise _errors.InvalidActionError(
-                        f"Active player {request.by} cannot propose trades"
+                        f"Player {request.by} can only propose trades to the active player"
                     )
                 actions.propose_trade(
-                    game, by=request.by, offer=offer, request=trade_request
+                    game, by=request.by, offer=offer, request=trade_request, to=to
                 )
                 return _core.RunOutcome(finished=False, value=None)
             case _core.TradeWithSupplyAction(offers=offers, requests=requests):
@@ -29,8 +27,11 @@ class TradeAndBuildPhase(
                 actions.trade(game, by=request.by, offers=offers, requests=requests)
                 return _core.RunOutcome(finished=False, value=None)
             case _core.AcceptTradeProposalAction(id=proposal_id):
-                _require_active_player(game, request.by)
                 proposal = game.trade_proposals.get(proposal_id)
+                if proposal is not None and request.by not in proposal.to:
+                    raise _errors.InvalidActionError(
+                        f"Player {request.by} cannot accept this trade proposal"
+                    )
                 actions.accept_trade(game, by=request.by, id=proposal_id)
                 return _core.RunOutcome(finished=False, value=proposal)
             case _core.BuyAction(item=item, coordinate=coordinate):

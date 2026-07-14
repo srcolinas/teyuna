@@ -11,7 +11,13 @@ def propose_trade(
     by: player.Nickname,
     offer: entities.ResourceCount,
     request: entities.ResourceCount,
+    to: tuple[player.Nickname, ...],
 ) -> uuid.UUID:
+    if not to:
+        raise _errors.InvalidTradeTargets(
+            "Trade proposal must target at least one player."
+        )
+
     for resource, amount in offer.items():
         if game.players[by].resources[resource] < amount:
             raise _errors.InsufficientResources(
@@ -19,5 +25,5 @@ def propose_trade(
             )
 
     id = uuid.uuid4()
-    game.trade_proposals[id] = entities.TradeProposal(by, offer, request)
+    game.trade_proposals[id] = entities.TradeProposal(by, offer, request, to)
     return id

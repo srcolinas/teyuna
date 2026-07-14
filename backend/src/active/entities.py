@@ -209,6 +209,7 @@ class TradeProposal(NamedTuple):
     by: player.Nickname
     offer: ResourceCount
     request: ResourceCount
+    to: tuple[player.Nickname, ...]
 
 
 def _default_resource_supply() -> ResourceCount:

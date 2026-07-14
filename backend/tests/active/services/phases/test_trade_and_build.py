@@ -4,29 +4,33 @@ import uuid
 import pytest
 
 from src.active import entities
-from src.active.services import phases
+from src.active.services import actions, phases
 
 
-def test_active_player_cannot_propose_trade(
+def test_active_player_can_propose_trade_to_others(
     game: entities.ActiveGame,
     phase: phases.TradeAndBuildPhase,
 ) -> None:
     player = game.players[game.active_player]
-    player.resources = collections.Counter({entities.ResourceCard.GOLD: 1})
-    with pytest.raises(phases.InvalidActionError):
-        phase.run(
-            game,
-            phases.PlayerRequest(
-                by=game.active_player,
-                action=phases.ProposeTradeToPlayerInTurnAction(
-                    offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
-                    request=collections.Counter({entities.ResourceCard.STONE: 1}),
-                ),
+    player.resources = collections.Counter({entities.ResourceCard.GOLD: 2})
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.ProposeTradeAction(
+                offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+                request=collections.Counter({entities.ResourceCard.STONE: 1}),
+                to=(game.turn_order[1], game.turn_order[2]),
             ),
-        )
+        ),
+    )
+    assert result == phases.RunOutcome(finished=False, value=None)
+    assert len(game.trade_proposals) == 1
+    proposal = next(iter(game.trade_proposals.values()))
+    assert proposal.to == (game.turn_order[1], game.turn_order[2])
 
 
-def test_non_active_player_can_propose_trade(
+def test_non_active_player_can_propose_trade_to_active(
     game: entities.ActiveGame,
     phase: phases.TradeAndBuildPhase,
 ) -> None:
@@ -38,14 +42,57 @@ def test_non_active_player_can_propose_trade(
         game,
         phases.PlayerRequest(
             by=proposer,
-            action=phases.ProposeTradeToPlayerInTurnAction(
+            action=phases.ProposeTradeAction(
                 offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
                 request=collections.Counter({entities.ResourceCard.STONE: 1}),
+                to=(game.active_player,),
             ),
         ),
     )
     assert result == phases.RunOutcome(finished=False, value=None)
     assert len(game.trade_proposals) == 1
+
+
+def test_non_active_player_cannot_propose_to_non_active(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    proposer = game.turn_order[1]
+    game.players[proposer].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 2}
+    )
+    with pytest.raises(phases.InvalidActionError):
+        phase.run(
+            game,
+            phases.PlayerRequest(
+                by=proposer,
+                action=phases.ProposeTradeAction(
+                    offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+                    request=collections.Counter({entities.ResourceCard.STONE: 1}),
+                    to=(game.turn_order[2],),
+                ),
+            ),
+        )
+
+
+def test_empty_trade_targets_raises(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.resources = collections.Counter({entities.ResourceCard.GOLD: 2})
+    with pytest.raises(actions.InvalidTradeTargets):
+        phase.run(
+            game,
+            phases.PlayerRequest(
+                by=game.active_player,
+                action=phases.ProposeTradeAction(
+                    offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+                    request=collections.Counter({entities.ResourceCard.STONE: 1}),
+                    to=(),
+                ),
+            ),
+        )
 
 
 @pytest.mark.parametrize(
@@ -55,7 +102,6 @@ def test_non_active_player_can_propose_trade(
             offers=entities.ResourceCard.GOLD,
             requests=entities.ResourceCard.STONE,
         ),
-        phases.AcceptTradeProposalAction(id=uuid.uuid4()),
         phases.BuyAction(
             item=phases.Buyable.PATH,
             coordinate=entities.Coordinate(q=0, r=0, d=0),
@@ -111,7 +157,7 @@ def test_trade_with_supply_keeps_phase_open(
     assert player.resources[entities.ResourceCard.STONE] == 1
 
 
-def test_accept_trade_returns_proposal(
+def test_active_player_can_accept_trade(
     game: entities.ActiveGame,
     phase: phases.TradeAndBuildPhase,
 ) -> None:
@@ -121,6 +167,7 @@ def test_accept_trade_returns_proposal(
         by=proposer,
         offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
         request=collections.Counter({entities.ResourceCard.STONE: 1}),
+        to=(game.active_player,),
     )
     game.trade_proposals = {proposal_id: proposal}
     game.players[proposer].resources = collections.Counter(
@@ -140,6 +187,110 @@ def test_accept_trade_returns_proposal(
 
     assert result == phases.RunOutcome(finished=False, value=proposal)
     assert game.trade_proposals == {}
+
+
+def test_directed_non_active_can_accept_trade(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    proposal_id = uuid.uuid4()
+    acceptor = game.turn_order[1]
+    proposal = entities.TradeProposal(
+        by=game.active_player,
+        offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+        request=collections.Counter({entities.ResourceCard.STONE: 1}),
+        to=(acceptor, game.turn_order[2]),
+    )
+    game.trade_proposals = {proposal_id: proposal}
+    game.players[game.active_player].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 2}
+    )
+    game.players[acceptor].resources = collections.Counter(
+        {entities.ResourceCard.STONE: 1}
+    )
+
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=acceptor,
+            action=phases.AcceptTradeProposalAction(id=proposal_id),
+        ),
+    )
+
+    assert result == phases.RunOutcome(finished=False, value=proposal)
+    assert game.trade_proposals == {}
+
+
+def test_acceptor_not_in_to_raises(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    proposal_id = uuid.uuid4()
+    game.trade_proposals = {
+        proposal_id: entities.TradeProposal(
+            by=game.active_player,
+            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(game.turn_order[1],),
+        )
+    }
+    game.players[game.active_player].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 2}
+    )
+    game.players[game.turn_order[2]].resources = collections.Counter(
+        {entities.ResourceCard.STONE: 1}
+    )
+    with pytest.raises(phases.InvalidActionError):
+        phase.run(
+            game,
+            phases.PlayerRequest(
+                by=game.turn_order[2],
+                action=phases.AcceptTradeProposalAction(id=proposal_id),
+            ),
+        )
+
+
+def test_first_acceptor_wins_among_multiple_recipients(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    proposal_id = uuid.uuid4()
+    first = game.turn_order[1]
+    second = game.turn_order[2]
+    proposal = entities.TradeProposal(
+        by=game.active_player,
+        offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+        request=collections.Counter({entities.ResourceCard.STONE: 1}),
+        to=(first, second),
+    )
+    game.trade_proposals = {proposal_id: proposal}
+    game.players[game.active_player].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 2}
+    )
+    game.players[first].resources = collections.Counter(
+        {entities.ResourceCard.STONE: 1}
+    )
+    game.players[second].resources = collections.Counter(
+        {entities.ResourceCard.STONE: 1}
+    )
+
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=first,
+            action=phases.AcceptTradeProposalAction(id=proposal_id),
+        ),
+    )
+    assert game.trade_proposals == {}
+
+    with pytest.raises(actions.TradeProposalNotFound):
+        phase.run(
+            game,
+            phases.PlayerRequest(
+                by=second,
+                action=phases.AcceptTradeProposalAction(id=proposal_id),
+            ),
+        )
 
 
 def test_buy_path_keeps_phase_open(
@@ -274,6 +425,7 @@ def test_on_enter_clears_trade_proposals(
             by=game.turn_order[1],
             offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
             request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(game.active_player,),
         )
     }
     phase.on_enter(game)
@@ -290,6 +442,7 @@ def test_on_exit_clears_trade_proposals_and_advances_player(
             by=game.turn_order[1],
             offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
             request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(game.active_player,),
         )
     }
     outcome = phase.on_exit(game)

@@ -30,6 +30,7 @@ def test_cannot_accept_if_not_enough_resources(game: entities.ActiveGame) -> Non
             by=proposes,
             offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
             request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(accepts,),
         )
     }
     with pytest.raises(
@@ -54,6 +55,7 @@ def test_accepted_trade_is_removed_from_trade_proposals(
             by=proposes,
             offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
             request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(accepts,),
         )
     }
     game.players[proposes].resources = collections.Counter(
@@ -81,6 +83,7 @@ def test_accepted_trade_changes_proposer_resources(
             by=proposes,
             offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
             request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(accepts,),
         )
     }
     game.players[proposes].resources = collections.Counter(
@@ -110,6 +113,7 @@ def test_accepted_trade_changes_acceptor_resources(
             by=proposes,
             offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
             request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(accepts,),
         )
     }
     game.players[proposes].resources = collections.Counter(

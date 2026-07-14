@@ -14,6 +14,10 @@ class TradeProposalNotFound(Exception):
     pass
 
 
+class InvalidTradeTargets(Exception):
+    pass
+
+
 class EmptyWisdomDeck(Exception):
     pass
 

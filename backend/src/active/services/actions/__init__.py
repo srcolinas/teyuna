@@ -20,6 +20,7 @@ from ._errors import (
     InvalidPathLocation,
     InvalidSettlementLocation,
     InvalidStealTarget,
+    InvalidTradeTargets,
     TradeProposalNotFound,
     WisdomCardNotPlayable,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "InvalidPathLocation",
     "InvalidSettlementLocation",
     "InvalidStealTarget",
+    "InvalidTradeTargets",
     "TradeProposalNotFound",
     "WisdomCardNotPlayable",
 ]

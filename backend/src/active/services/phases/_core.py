@@ -33,9 +33,10 @@ class BuyAction:
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class ProposeTradeToPlayerInTurnAction:
+class ProposeTradeAction:
     offer: entities.ResourceCount
     request: entities.ResourceCount
+    to: tuple[player.Nickname, ...]
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -76,7 +77,7 @@ class MoveConquistatorAction:
 
 PlayerAction = (
     BuyAction
-    | ProposeTradeToPlayerInTurnAction
+    | ProposeTradeAction
     | AcceptTradeProposalAction
     | TradeWithSupplyAction
     | AddInitialBuildingsAction
