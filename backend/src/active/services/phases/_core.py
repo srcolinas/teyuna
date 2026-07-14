@@ -20,18 +20,15 @@ class AddInitialBuildingsAction:
     path: entities.Coordinate
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
-class BuildTerraceAction:
-    coordinate: entities.Coordinate
+class Buyable(str, Enum):
+    TERRACE = "terrace"
+    GREAT_TERRACE = "great terrace"
+    PATH = "path"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class BuildGreatTerraceAction:
-    coordinate: entities.Coordinate
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class BuildPathAction:
+class BuyAction:
+    item: Buyable
     coordinate: entities.Coordinate
 
 
@@ -78,9 +75,7 @@ class MoveConquistatorAction:
 
 
 PlayerAction = (
-    BuildTerraceAction
-    | BuildGreatTerraceAction
-    | BuildPathAction
+    BuyAction
     | ProposeTradeToPlayerInTurnAction
     | AcceptTradeProposalAction
     | TradeWithSupplyAction

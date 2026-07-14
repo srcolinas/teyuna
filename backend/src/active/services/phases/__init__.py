@@ -6,6 +6,7 @@ from ._move_conquistator import MoveConquistatorPhase, MoveConquistatorResult
 from ._pre_dice_roll import PreDiceRollPhase
 from ._production import ProductionPhase
 from ._second_placement import SecondPlacementPhase
+from ._trade_and_build import TradeAndBuildPhase
 from ._core import (
     AddInitialBuildingsAction,
     PlayerRequest,
@@ -16,9 +17,8 @@ from ._core import (
     PlayWisdomCardAction,
     DiscardCardsAction,
     MoveConquistatorAction,
-    BuildTerraceAction,
-    BuildGreatTerraceAction,
-    BuildPathAction,
+    Buyable,
+    BuyAction,
     ProposeTradeToPlayerInTurnAction,
     AcceptTradeProposalAction,
     TradeWithSupplyAction,
@@ -41,6 +41,7 @@ __all__ = [
     "PreDiceRollPhase",
     "ProductionPhase",
     "SecondPlacementPhase",
+    "TradeAndBuildPhase",
     "AddInitialBuildingsAction",
     "PlayerRequest",
     "PlayerAction",
@@ -50,9 +51,8 @@ __all__ = [
     "PlayWisdomCardAction",
     "DiscardCardsAction",
     "MoveConquistatorAction",
-    "BuildTerraceAction",
-    "BuildGreatTerraceAction",
-    "BuildPathAction",
+    "Buyable",
+    "BuyAction",
     "ProposeTradeToPlayerInTurnAction",
     "AcceptTradeProposalAction",
     "TradeWithSupplyAction",

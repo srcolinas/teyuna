@@ -30,8 +30,9 @@ def test_raises_invalid_action_if_not_allowed(
             game,
             phases.PlayerRequest(
                 by=game.active_player,
-                action=phases.BuildTerraceAction(
-                    coordinate=entities.Coordinate(q=0, r=0, d=0)
+                action=phases.BuyAction(
+                    item=phases.Buyable.TERRACE,
+                    coordinate=entities.Coordinate(q=0, r=0, d=0),
                 ),
             ),
         )

@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+from .... import player
+from ... import entities
+from .. import actions
+from . import _core, _errors
+
+
+class TradeAndBuildPhase(
+    _core.GamePhaseNode[entities.TradeProposal | None, None, None]
+):
+    def run(
+        self, game: entities.ActiveGame, request: _core.PlayerRequest
+    ) -> _core.RunOutcome[entities.TradeProposal | None]:
+        match request.action:
+            case _core.ProposeTradeToPlayerInTurnAction(
+                offer=offer, request=trade_request
+            ):
+                if request.by == game.active_player:
+                    raise _errors.InvalidActionError(
+                        f"Active player {request.by} cannot propose trades"
+                    )
+                actions.propose_trade(
+                    game, by=request.by, offer=offer, request=trade_request
+                )
+                return _core.RunOutcome(finished=False, value=None)
+            case _core.TradeWithSupplyAction(offers=offers, requests=requests):
+                _require_active_player(game, request.by)
+                actions.trade(game, by=request.by, offers=offers, requests=requests)
+                return _core.RunOutcome(finished=False, value=None)
+            case _core.AcceptTradeProposalAction(id=proposal_id):
+                _require_active_player(game, request.by)
+                proposal = game.trade_proposals.get(proposal_id)
+                actions.accept_trade(game, by=request.by, id=proposal_id)
+                return _core.RunOutcome(finished=False, value=proposal)
+            case _core.BuyAction(item=item, coordinate=coordinate):
+                _require_active_player(game, request.by)
+                match item:
+                    case _core.Buyable.TERRACE:
+                        actions.build_terrace(
+                            game,
+                            request.by,
+                            q=coordinate.q,
+                            r=coordinate.r,
+                            direction=coordinate.d,
+                        )
+                    case _core.Buyable.GREAT_TERRACE:
+                        actions.build_great_terrace(
+                            game,
+                            request.by,
+                            q=coordinate.q,
+                            r=coordinate.r,
+                            direction=coordinate.d,
+                        )
+                    case _core.Buyable.PATH:
+                        actions.build_path(
+                            game,
+                            request.by,
+                            q=coordinate.q,
+                            r=coordinate.r,
+                            direction=coordinate.d,
+                        )
+                return _core.RunOutcome(finished=False, value=None)
+            case _core.BuyWisdomCardAction():
+                _require_active_player(game, request.by)
+                actions.buy_wisdom_card(game, request.by)
+                return _core.RunOutcome(finished=False, value=None)
+            case _core.AdvancePhaseAction():
+                _require_active_player(game, request.by)
+                return _core.RunOutcome(finished=True, value=None)
+            case _:
+                raise _errors.InvalidActionError(f"Unknown action: {request.action}")
+
+    def on_exit(self, game: entities.ActiveGame) -> _core.ExitOutcome[None]:
+        game.trade_proposals.clear()
+        game.player_idx = (game.player_idx + 1) % len(game.turn_order)
+        return _core.ExitOutcome(next=_core.GamePhaseName.PRE_DICE_ROLL, value=None)
+
+    def on_enter(self, game: entities.ActiveGame) -> _core.EnterOutcome[None]:
+        game.trade_proposals.clear()
+        return _core.EnterOutcome(value=None)
+
+
+def _require_active_player(game: entities.ActiveGame, by: player.Nickname) -> None:
+    if game.active_player != by:
+        raise _errors.PlayerNotInTurnError(f"Player {by} is not in turn")
