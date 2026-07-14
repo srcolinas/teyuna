@@ -1,4 +1,5 @@
 from ._errors import InvalidActionError, PlayerNotInTurnError
+from ._dice_roll import DiceRollPhase, DiceRollResult
 from ._first_placement import FirstPlacementPhase
 from ._pre_dice_roll import PreDiceRollPhase
 from ._second_placement import SecondPlacementPhase
@@ -25,6 +26,8 @@ from ._core import (
 __all__ = [
     "InvalidActionError",
     "PlayerNotInTurnError",
+    "DiceRollPhase",
+    "DiceRollResult",
     "FirstPlacementPhase",
     "PreDiceRollPhase",
     "SecondPlacementPhase",
