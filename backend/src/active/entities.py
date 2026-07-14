@@ -195,6 +195,9 @@ def _default_resources() -> ResourceCount:
 class Player:
     cards: CardCount = dataclasses.field(default_factory=collections.Counter)
     played_cards: CardCount = dataclasses.field(default_factory=collections.Counter)
+    cards_bought_this_turn: CardCount = dataclasses.field(
+        default_factory=collections.Counter
+    )
     resources: ResourceCount = dataclasses.field(default_factory=_default_resources)
     settlements: SettlementsCollection = dataclasses.field(
         default_factory=SettlementsCollection

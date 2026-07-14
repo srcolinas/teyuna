@@ -20,7 +20,7 @@ def test_raises_player_not_in_turn_error_if_not_in_turn(
         )
 
 
-def test_raises_invalid_action_if_not_buy_or_advance(
+def test_raises_invalid_action_if_not_allowed(
     game: entities.ActiveGame,
     phase: phases.PreDiceRollPhase,
 ) -> None:
@@ -37,27 +37,22 @@ def test_raises_invalid_action_if_not_buy_or_advance(
         )
 
 
-def test_buy_wisdom_card_keeps_phase_open(
+def test_play_wisdom_card_keeps_phase_open(
     game: entities.ActiveGame,
     phase: phases.PreDiceRollPhase,
 ) -> None:
-    game.wisdom_deck = [entities.WisdomCard.WARRIOR]
-    game.players[game.active_player].resources.update(
-        {
-            entities.ResourceCard.GOLD: 1,
-            entities.ResourceCard.COTTON: 1,
-            entities.ResourceCard.MAIZE: 1,
-        }
-    )
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.WARRIOR] = 1
     result = phase.run(
         game,
         phases.PlayerRequest(
             by=game.active_player,
-            action=phases.BuyWisdomCardAction(),
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
         ),
     )
     assert result.finished is False
-    assert game.players[game.active_player].cards[entities.WisdomCard.WARRIOR] == 1
+    assert player.played_cards[entities.WisdomCard.WARRIOR] == 1
+    assert player.cards[entities.WisdomCard.WARRIOR] == 0
 
 
 def test_advance_phase_finishes(
@@ -79,6 +74,16 @@ def test_on_exit_returns_dice_roll_phase(
     phase: phases.PreDiceRollPhase,
 ) -> None:
     assert phase.on_exit(game).next is phases.GamePhaseName.DICE_ROLL
+
+
+def test_on_enter_clears_cards_bought_this_turn(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards_bought_this_turn[entities.WisdomCard.WARRIOR] = 1
+    phase.on_enter(game)
+    assert player.cards_bought_this_turn[entities.WisdomCard.WARRIOR] == 0
 
 
 @pytest.fixture

@@ -52,6 +52,7 @@ def test_buy_wisdom_card_updates_player_cards_resources_supply_and_deck(
     actions.buy_wisdom_card(game, game.active_player)
 
     assert player.cards[card] == 1
+    assert player.cards_bought_this_turn[card] == 1
     assert player.resources[entities.ResourceCard.GOLD] == 0
     assert player.resources[entities.ResourceCard.COTTON] == 0
     assert player.resources[entities.ResourceCard.MAIZE] == 0

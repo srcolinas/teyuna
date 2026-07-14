@@ -16,3 +16,7 @@ class TradeProposalNotFound(Exception):
 
 class EmptyWisdomDeck(Exception):
     pass
+
+
+class WisdomCardNotPlayable(Exception):
+    pass

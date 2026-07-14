@@ -60,6 +60,11 @@ class AdvancePhaseAction: ...
 class BuyWisdomCardAction: ...
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class PlayWisdomCardAction:
+    card: entities.WisdomCard
+
+
 PlayerAction = (
     BuildTerraceAction
     | BuildGreatTerraceAction
@@ -70,6 +75,7 @@ PlayerAction = (
     | AddInitialBuildingsAction
     | AdvancePhaseAction
     | BuyWisdomCardAction
+    | PlayWisdomCardAction
 )
 
 

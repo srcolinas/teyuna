@@ -35,3 +35,4 @@ def buy_wisdom_card(
     )
     card = game.wisdom_deck.pop()
     game.players[to].cards[card] += 1
+    game.players[to].cards_bought_this_turn[card] += 1
