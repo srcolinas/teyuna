@@ -1,9 +1,16 @@
+import random
+
 from ... import entities
 from .. import actions
 from . import _core, _errors
 
+_RND: random.Random = random.Random()
+
 
 class SecondPlacementPhase(_core.GamePhaseNode[None, None, None]):
+    def __init__(self, rnd: random.Random = _RND) -> None:
+        self._rnd = rnd
+
     def run(
         self, game: entities.ActiveGame, request: _core.PlayerRequest
     ) -> _core.RunOutcome[None]:
@@ -16,6 +23,10 @@ class SecondPlacementPhase(_core.GamePhaseNode[None, None, None]):
                 )
                 actions.add_free_path(
                     game, request.by, q=path.q, r=path.r, direction=path.d
+                )
+            case _core.AdvancePhaseAction():
+                actions.maybe_add_random_placements(
+                    game, expected_count=2, rnd=self._rnd
                 )
             case _:
                 raise _errors.InvalidActionError(f"Unknown action: {request.action}")

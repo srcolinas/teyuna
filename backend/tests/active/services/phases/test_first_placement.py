@@ -1,7 +1,10 @@
+import random
+from typing import Any
+
 import pytest
 
 from src.active import entities
-from src.active.services import phases
+from src.active.services import actions, phases
 
 
 def test_raises_player_not_in_turn_error_if_not_in_turn(
@@ -95,6 +98,93 @@ def test_returns_true_after_last_player_has_added_initial_buildings(
     assert result.finished is True
 
 
+def test_advance_increases_player_idx_by_1(
+    game: entities.ActiveGame,
+) -> None:
+    phase = phases.FirstPlacementPhase(rnd=_FixedChoiceRandom(0))
+    game.player_idx = 0
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.AdvancePhaseAction(),
+        ),
+    )
+    assert game.player_idx == 1
+
+
+def test_advance_returns_false_before_last_player(
+    game: entities.ActiveGame,
+) -> None:
+    phase = phases.FirstPlacementPhase(rnd=_FixedChoiceRandom(0))
+    game.player_idx = 0
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.AdvancePhaseAction(),
+        ),
+    )
+    assert result.finished is False
+
+
+def test_advance_returns_true_after_last_player(
+    game: entities.ActiveGame,
+) -> None:
+    phase = phases.FirstPlacementPhase(rnd=_FixedChoiceRandom(0))
+    game.player_idx = len(game.players) - 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.AdvancePhaseAction(),
+        ),
+    )
+    assert result.finished is True
+
+
+def test_advance_adds_random_placements_when_player_has_none(
+    game: entities.ActiveGame,
+) -> None:
+    phase = phases.FirstPlacementPhase(rnd=_FixedChoiceRandom(0))
+    game.player_idx = 0
+    nickname = game.active_player
+
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=nickname,
+            action=phases.AdvancePhaseAction(),
+        ),
+    )
+
+    player_state = game.players[nickname]
+    assert player_state.settlements.count(entities.SettlementType.TERRACE) == 1
+    assert len(player_state.paths) == 1
+
+
+def test_advance_does_not_add_placements_when_already_placed(
+    game: entities.ActiveGame,
+) -> None:
+    phase = phases.FirstPlacementPhase(rnd=_FixedChoiceRandom(0))
+    game.player_idx = 0
+    nickname = game.active_player
+    actions.add_free_terrace(game, nickname, q=0, r=0, direction=0)
+    actions.add_free_path(game, nickname, q=0, r=0, direction=0)
+
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=nickname,
+            action=phases.AdvancePhaseAction(),
+        ),
+    )
+
+    player_state = game.players[nickname]
+    assert player_state.settlements.count(entities.SettlementType.TERRACE) == 1
+    assert len(player_state.paths) == 1
+
+
 def test_on_exit_returns_second_placement_phase(
     game: entities.ActiveGame,
     phase: phases.FirstPlacementPhase,
@@ -123,3 +213,12 @@ def test_on_exit_assigns_player_idx_to_last_player(
 @pytest.fixture
 def phase() -> phases.FirstPlacementPhase:
     return phases.FirstPlacementPhase()
+
+
+class _FixedChoiceRandom(random.Random):
+    def __init__(self, index: int) -> None:
+        super().__init__()
+        self._index = index
+
+    def choice(self, seq: Any) -> Any:
+        return seq[self._index]
