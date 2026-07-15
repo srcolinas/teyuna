@@ -80,7 +80,28 @@ def test_play_blessing_finishes_phase(
     assert game.blessing_return_phase == phases.GamePhaseName.PRE_DICE_ROLL.value
 
 
-def test_play_non_interrupt_wisdom_keeps_phase_open(
+def test_play_mamo_finishes_phase(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.WINDOM_OF_MAMO] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WINDOM_OF_MAMO),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=entities.WisdomCard.WINDOM_OF_MAMO
+    )
+    assert player.played_cards[entities.WisdomCard.WINDOM_OF_MAMO] == 1
+    assert player.cards[entities.WisdomCard.WINDOM_OF_MAMO] == 0
+    assert game.mamo_return_phase == phases.GamePhaseName.PRE_DICE_ROLL.value
+
+
+def test_play_pathfinder_finishes_phase(
     game: entities.ActiveGame,
     phase: phases.PreDiceRollPhase,
 ) -> None:
@@ -94,11 +115,34 @@ def test_play_non_interrupt_wisdom_keeps_phase_open(
         ),
     )
     assert result == phases.RunOutcome(
-        finished=False, value=entities.WisdomCard.PATHFINDER
+        finished=True, value=entities.WisdomCard.PATHFINDER
     )
     assert player.played_cards[entities.WisdomCard.PATHFINDER] == 1
-    assert game.warrior_return_phase is None
-    assert game.blessing_return_phase is None
+    assert player.cards[entities.WisdomCard.PATHFINDER] == 0
+    assert game.pathfinder_return_phase == phases.GamePhaseName.PRE_DICE_ROLL.value
+
+
+def test_play_legacy_finishes_phase(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(
+                card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+            ),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+    )
+    assert player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] == 1
+    assert player.cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] == 0
+    assert game.legacy_return_phase == phases.GamePhaseName.PRE_DICE_ROLL.value
 
 
 def test_advance_phase_finishes(
@@ -147,6 +191,56 @@ def test_on_exit_after_blessing_returns_blessing_phase(
         ),
     )
     assert phase.on_exit(game).next is phases.GamePhaseName.BLESSING_OF_ALUNA
+
+
+def test_on_exit_after_mamo_returns_mamo_phase(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.WINDOM_OF_MAMO] = 1
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WINDOM_OF_MAMO),
+        ),
+    )
+    assert phase.on_exit(game).next is phases.GamePhaseName.WISDOM_OF_THE_MAMO
+
+
+def test_on_exit_after_pathfinder_returns_pathfinder_phase(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.PATHFINDER] = 1
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.PATHFINDER),
+        ),
+    )
+    assert phase.on_exit(game).next is phases.GamePhaseName.PATHFINDER
+
+
+def test_on_exit_after_legacy_returns_legacy_phase(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(
+                card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+            ),
+        ),
+    )
+    assert phase.on_exit(game).next is phases.GamePhaseName.LEGACY_OF_THE_ELDERS
 
 
 def test_on_exit_returns_dice_roll_phase(

@@ -118,6 +118,17 @@ class TradeAndBuildPhase(
                         _core.GamePhaseName.TRADE_AND_BUILD.value
                     )
                     return _core.RunOutcome(finished=True, value=card)
+                if card is entities.WisdomCard.WINDOM_OF_MAMO:
+                    game.mamo_return_phase = _core.GamePhaseName.TRADE_AND_BUILD.value
+                    return _core.RunOutcome(finished=True, value=card)
+                if card is entities.WisdomCard.PATHFINDER:
+                    game.pathfinder_return_phase = (
+                        _core.GamePhaseName.TRADE_AND_BUILD.value
+                    )
+                    return _core.RunOutcome(finished=True, value=card)
+                if card is entities.WisdomCard.LEGACY_OF_THE_ELDERS:
+                    game.legacy_return_phase = _core.GamePhaseName.TRADE_AND_BUILD.value
+                    return _core.RunOutcome(finished=True, value=card)
                 return _core.RunOutcome(finished=False, value=card)
             case _core.AdvancePhaseAction():
                 _require_active_player(game, request.by)
@@ -133,6 +144,16 @@ class TradeAndBuildPhase(
         if game.blessing_return_phase is not None:
             return _core.ExitOutcome(
                 next=_core.GamePhaseName.BLESSING_OF_ALUNA, value=None
+            )
+        if game.mamo_return_phase is not None:
+            return _core.ExitOutcome(
+                next=_core.GamePhaseName.WISDOM_OF_THE_MAMO, value=None
+            )
+        if game.pathfinder_return_phase is not None:
+            return _core.ExitOutcome(next=_core.GamePhaseName.PATHFINDER, value=None)
+        if game.legacy_return_phase is not None:
+            return _core.ExitOutcome(
+                next=_core.GamePhaseName.LEGACY_OF_THE_ELDERS, value=None
             )
         game.trade_proposals.clear()
         game.player_idx = (game.player_idx + 1) % len(game.turn_order)

@@ -271,6 +271,9 @@ class ActiveGame:
     )
     warrior_return_phase: str | None = None
     blessing_return_phase: str | None = None
+    mamo_return_phase: str | None = None
+    pathfinder_return_phase: str | None = None
+    legacy_return_phase: str | None = None
 
     @property
     def active_player(self) -> player.Nickname:

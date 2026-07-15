@@ -80,6 +80,11 @@ class TakeFromSupplyAction:
     resources: entities.ResourceCount
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class ClaimResourceAction:
+    resource: entities.ResourceCard
+
+
 PlayerAction = (
     BuyAction
     | ProposeTradeAction
@@ -92,6 +97,7 @@ PlayerAction = (
     | DiscardCardsAction
     | MoveConquistatorAction
     | TakeFromSupplyAction
+    | ClaimResourceAction
 )
 
 
@@ -112,6 +118,9 @@ class GamePhaseName(str, Enum):
     WARRIOR_MOVE_CONQUISTATOR = "warrior move conquistator"
     TRADE_AND_BUILD = "trade and build"
     BLESSING_OF_ALUNA = "blessing of aluna"
+    WISDOM_OF_THE_MAMO = "wisdom of the mamo"
+    PATHFINDER = "pathfinder"
+    LEGACY_OF_THE_ELDERS = "legacy of the elders"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

@@ -5,6 +5,10 @@ from ._build_great_terrace import build_great_terrace
 from ._build_path import build_path
 from ._build_terrace import build_terrace
 from ._buy_wisdom_card import buy_wisdom_card
+from ._claim_resource_monopoly import (
+    claim_resource_monopoly,
+    claim_resource_monopoly_randomly,
+)
 from ._discard_cards import discard_cards, discard_random_half
 from ._maybe_add_random_placements import maybe_add_random_placements
 from ._move_conquistator import move_conquistator, move_conquistator_randomly
@@ -36,6 +40,8 @@ __all__ = [
     "build_path",
     "build_terrace",
     "buy_wisdom_card",
+    "claim_resource_monopoly",
+    "claim_resource_monopoly_randomly",
     "discard_cards",
     "discard_random_half",
     "maybe_add_random_placements",
