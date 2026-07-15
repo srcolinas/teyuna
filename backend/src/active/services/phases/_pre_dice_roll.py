@@ -15,6 +15,9 @@ class PreDiceRollPhase(_core.GamePhaseNode[entities.WisdomCard | None, None, Non
                 if card is entities.WisdomCard.WARRIOR:
                     game.warrior_return_phase = _core.GamePhaseName.PRE_DICE_ROLL.value
                     return _core.RunOutcome(finished=True, value=card)
+                if card is entities.WisdomCard.BLESSING_OF_ALUNA:
+                    game.blessing_return_phase = _core.GamePhaseName.PRE_DICE_ROLL.value
+                    return _core.RunOutcome(finished=True, value=card)
                 return _core.RunOutcome(finished=False, value=card)
             case _core.AdvancePhaseAction():
                 return _core.RunOutcome(finished=True, value=None)
@@ -25,6 +28,10 @@ class PreDiceRollPhase(_core.GamePhaseNode[entities.WisdomCard | None, None, Non
         if game.warrior_return_phase is not None:
             return _core.ExitOutcome(
                 next=_core.GamePhaseName.WARRIOR_MOVE_CONQUISTATOR, value=None
+            )
+        if game.blessing_return_phase is not None:
+            return _core.ExitOutcome(
+                next=_core.GamePhaseName.BLESSING_OF_ALUNA, value=None
             )
         return _core.ExitOutcome(next=_core.GamePhaseName.DICE_ROLL, value=None)
 

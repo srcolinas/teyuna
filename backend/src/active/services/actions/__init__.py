@@ -11,6 +11,7 @@ from ._move_conquistator import move_conquistator, move_conquistator_randomly
 from ._play_wisdom_card import play_wisdom_card
 from ._produce_resources import produce_resources
 from ._propose_trade import propose_trade
+from ._take_from_supply import take_from_supply, take_from_supply_randomly
 from ._trade_with_supply import trade
 from ._update_longest_road import recompute_longest_road, update_longest_road
 from ._errors import (
@@ -21,6 +22,7 @@ from ._errors import (
     InvalidPathLocation,
     InvalidSettlementLocation,
     InvalidStealTarget,
+    InvalidTakeFromSupply,
     InvalidTradeTargets,
     TradeProposalNotFound,
     WisdomCardNotPlayable,
@@ -42,6 +44,8 @@ __all__ = [
     "play_wisdom_card",
     "produce_resources",
     "propose_trade",
+    "take_from_supply",
+    "take_from_supply_randomly",
     "trade",
     "recompute_longest_road",
     "update_longest_road",
@@ -52,6 +56,7 @@ __all__ = [
     "InvalidPathLocation",
     "InvalidSettlementLocation",
     "InvalidStealTarget",
+    "InvalidTakeFromSupply",
     "InvalidTradeTargets",
     "TradeProposalNotFound",
     "WisdomCardNotPlayable",

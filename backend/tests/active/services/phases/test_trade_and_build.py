@@ -561,7 +561,29 @@ def test_play_warrior_finishes_phase(
     assert game.warrior_return_phase == phases.GamePhaseName.TRADE_AND_BUILD.value
 
 
-def test_play_non_warrior_wisdom_keeps_phase_open(
+def test_play_blessing_finishes_phase(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.BLESSING_OF_ALUNA] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(
+                card=entities.WisdomCard.BLESSING_OF_ALUNA
+            ),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=entities.WisdomCard.BLESSING_OF_ALUNA
+    )
+    assert player.played_cards[entities.WisdomCard.BLESSING_OF_ALUNA] == 1
+    assert game.blessing_return_phase == phases.GamePhaseName.TRADE_AND_BUILD.value
+
+
+def test_play_non_interrupt_wisdom_keeps_phase_open(
     game: entities.ActiveGame,
     phase: phases.TradeAndBuildPhase,
 ) -> None:
@@ -579,6 +601,7 @@ def test_play_non_warrior_wisdom_keeps_phase_open(
     )
     assert player.played_cards[entities.WisdomCard.PATHFINDER] == 1
     assert game.warrior_return_phase is None
+    assert game.blessing_return_phase is None
 
 
 def test_advance_phase_finishes(
@@ -654,6 +677,36 @@ def test_on_exit_after_warrior_goes_to_warrior_move_without_rotating(
     )
     outcome = phase.on_exit(game)
     assert outcome.next is phases.GamePhaseName.WARRIOR_MOVE_CONQUISTATOR
+    assert game.player_idx == 0
+    assert len(game.trade_proposals) == 1
+
+
+def test_on_exit_after_blessing_goes_to_blessing_without_rotating(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.BLESSING_OF_ALUNA] = 1
+    game.player_idx = 0
+    game.trade_proposals = {
+        uuid.uuid4(): entities.TradeProposal(
+            by=game.turn_order[1],
+            offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(game.active_player,),
+        )
+    }
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(
+                card=entities.WisdomCard.BLESSING_OF_ALUNA
+            ),
+        ),
+    )
+    outcome = phase.on_exit(game)
+    assert outcome.next is phases.GamePhaseName.BLESSING_OF_ALUNA
     assert game.player_idx == 0
     assert len(game.trade_proposals) == 1
 

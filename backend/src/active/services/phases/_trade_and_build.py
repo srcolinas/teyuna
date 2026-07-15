@@ -113,6 +113,11 @@ class TradeAndBuildPhase(
                         _core.GamePhaseName.TRADE_AND_BUILD.value
                     )
                     return _core.RunOutcome(finished=True, value=card)
+                if card is entities.WisdomCard.BLESSING_OF_ALUNA:
+                    game.blessing_return_phase = (
+                        _core.GamePhaseName.TRADE_AND_BUILD.value
+                    )
+                    return _core.RunOutcome(finished=True, value=card)
                 return _core.RunOutcome(finished=False, value=card)
             case _core.AdvancePhaseAction():
                 _require_active_player(game, request.by)
@@ -124,6 +129,10 @@ class TradeAndBuildPhase(
         if game.warrior_return_phase is not None:
             return _core.ExitOutcome(
                 next=_core.GamePhaseName.WARRIOR_MOVE_CONQUISTATOR, value=None
+            )
+        if game.blessing_return_phase is not None:
+            return _core.ExitOutcome(
+                next=_core.GamePhaseName.BLESSING_OF_ALUNA, value=None
             )
         game.trade_proposals.clear()
         game.player_idx = (game.player_idx + 1) % len(game.turn_order)

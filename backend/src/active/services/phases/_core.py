@@ -75,6 +75,11 @@ class MoveConquistatorAction:
     from_player: player.Nickname | None = None
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class TakeFromSupplyAction:
+    resources: entities.ResourceCount
+
+
 PlayerAction = (
     BuyAction
     | ProposeTradeAction
@@ -86,6 +91,7 @@ PlayerAction = (
     | PlayWisdomCardAction
     | DiscardCardsAction
     | MoveConquistatorAction
+    | TakeFromSupplyAction
 )
 
 
@@ -105,6 +111,7 @@ class GamePhaseName(str, Enum):
     MOVE_CONQUISTATOR = "move conquistator"
     WARRIOR_MOVE_CONQUISTATOR = "warrior move conquistator"
     TRADE_AND_BUILD = "trade and build"
+    BLESSING_OF_ALUNA = "blessing of aluna"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

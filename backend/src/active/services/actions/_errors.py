@@ -36,3 +36,7 @@ class InvalidConquistatorLocation(Exception):
 
 class InvalidStealTarget(Exception):
     pass
+
+
+class InvalidTakeFromSupply(Exception):
+    pass

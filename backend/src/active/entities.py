@@ -270,6 +270,7 @@ class ActiveGame:
         default_factory=lambda: (None, 0)
     )
     warrior_return_phase: str | None = None
+    blessing_return_phase: str | None = None
 
     @property
     def active_player(self) -> player.Nickname:
