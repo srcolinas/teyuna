@@ -107,6 +107,7 @@ def test_empty_trade_targets_raises(
             coordinate=entities.Coordinate(q=0, r=0, d=0),
         ),
         phases.BuyWisdomCardAction(),
+        phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
         phases.AdvancePhaseAction(),
     ],
 )
@@ -131,7 +132,7 @@ def test_raises_invalid_action_if_not_allowed(
             game,
             phases.PlayerRequest(
                 by=game.active_player,
-                action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
+                action=phases.MoveConquistatorAction(q=0, r=0),
             ),
         )
 
@@ -542,6 +543,44 @@ def test_buy_wisdom_card_keeps_phase_open(
     assert player.cards[entities.WisdomCard.WARRIOR] == 1
 
 
+def test_play_warrior_finishes_phase(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.WARRIOR] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
+        ),
+    )
+    assert result == phases.RunOutcome(finished=True, value=entities.WisdomCard.WARRIOR)
+    assert player.played_cards[entities.WisdomCard.WARRIOR] == 1
+    assert game.warrior_return_phase == phases.GamePhaseName.TRADE_AND_BUILD.value
+
+
+def test_play_non_warrior_wisdom_keeps_phase_open(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.PATHFINDER] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.PATHFINDER),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=False, value=entities.WisdomCard.PATHFINDER
+    )
+    assert player.played_cards[entities.WisdomCard.PATHFINDER] == 1
+    assert game.warrior_return_phase is None
+
+
 def test_advance_phase_finishes(
     game: entities.ActiveGame,
     phase: phases.TradeAndBuildPhase,
@@ -589,6 +628,34 @@ def test_on_exit_clears_trade_proposals_and_advances_player(
     assert outcome.next is phases.GamePhaseName.PRE_DICE_ROLL
     assert game.player_idx == 1
     assert game.trade_proposals == {}
+
+
+def test_on_exit_after_warrior_goes_to_warrior_move_without_rotating(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.cards[entities.WisdomCard.WARRIOR] = 1
+    game.player_idx = 0
+    game.trade_proposals = {
+        uuid.uuid4(): entities.TradeProposal(
+            by=game.turn_order[1],
+            offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=(game.active_player,),
+        )
+    }
+    phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
+        ),
+    )
+    outcome = phase.on_exit(game)
+    assert outcome.next is phases.GamePhaseName.WARRIOR_MOVE_CONQUISTATOR
+    assert game.player_idx == 0
+    assert len(game.trade_proposals) == 1
 
 
 def test_on_exit_wraps_player_idx_to_first(

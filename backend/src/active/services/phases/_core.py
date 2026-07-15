@@ -103,6 +103,7 @@ class GamePhaseName(str, Enum):
     PRODUCTION = "production"
     DISCARD_CARDS = "discard cards"
     MOVE_CONQUISTATOR = "move conquistator"
+    WARRIOR_MOVE_CONQUISTATOR = "warrior move conquistator"
     TRADE_AND_BUILD = "trade and build"
 
 

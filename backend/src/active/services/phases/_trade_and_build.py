@@ -15,11 +15,17 @@ class LongestRoadResult:
 
 
 class TradeAndBuildPhase(
-    _core.GamePhaseNode[entities.TradeProposal | LongestRoadResult | None, None, None]
+    _core.GamePhaseNode[
+        entities.TradeProposal | LongestRoadResult | entities.WisdomCard | None,
+        None,
+        None,
+    ]
 ):
     def run(
         self, game: entities.ActiveGame, request: _core.PlayerRequest
-    ) -> _core.RunOutcome[entities.TradeProposal | LongestRoadResult | None]:
+    ) -> _core.RunOutcome[
+        entities.TradeProposal | LongestRoadResult | entities.WisdomCard | None
+    ]:
         match request.action:
             case _core.ProposeTradeAction(offer=offer, request=trade_request, to=to):
                 if request.by != game.active_player and to != (game.active_player,):
@@ -99,6 +105,15 @@ class TradeAndBuildPhase(
                 _require_active_player(game, request.by)
                 actions.buy_wisdom_card(game, request.by)
                 return _core.RunOutcome(finished=False, value=None)
+            case _core.PlayWisdomCardAction(card=card):
+                _require_active_player(game, request.by)
+                actions.play_wisdom_card(game, request.by, card=card)
+                if card is entities.WisdomCard.WARRIOR:
+                    game.warrior_return_phase = (
+                        _core.GamePhaseName.TRADE_AND_BUILD.value
+                    )
+                    return _core.RunOutcome(finished=True, value=card)
+                return _core.RunOutcome(finished=False, value=card)
             case _core.AdvancePhaseAction():
                 _require_active_player(game, request.by)
                 return _core.RunOutcome(finished=True, value=None)
@@ -106,6 +121,10 @@ class TradeAndBuildPhase(
                 raise _errors.InvalidActionError(f"Unknown action: {request.action}")
 
     def on_exit(self, game: entities.ActiveGame) -> _core.ExitOutcome[None]:
+        if game.warrior_return_phase is not None:
+            return _core.ExitOutcome(
+                next=_core.GamePhaseName.WARRIOR_MOVE_CONQUISTATOR, value=None
+            )
         game.trade_proposals.clear()
         game.player_idx = (game.player_idx + 1) % len(game.turn_order)
         return _core.ExitOutcome(next=_core.GamePhaseName.PRE_DICE_ROLL, value=None)
