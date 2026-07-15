@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+import dataclasses
+
 from .... import player
 from ... import entities
 from .. import actions
 from . import _core, _errors
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class LongestRoadResult:
+    owner: player.Nickname
+    length: int
+
+
 class TradeAndBuildPhase(
-    _core.GamePhaseNode[entities.TradeProposal | None, None, None]
+    _core.GamePhaseNode[entities.TradeProposal | LongestRoadResult | None, None, None]
 ):
     def run(
         self, game: entities.ActiveGame, request: _core.PlayerRequest
-    ) -> _core.RunOutcome[entities.TradeProposal | None]:
+    ) -> _core.RunOutcome[entities.TradeProposal | LongestRoadResult | None]:
         match request.action:
             case _core.ProposeTradeAction(offer=offer, request=trade_request, to=to):
                 if request.by != game.active_player and to != (game.active_player,):
@@ -54,6 +62,9 @@ class TradeAndBuildPhase(
                             direction=coordinate.d,
                         )
                     case _core.Buyable.PATH:
+                        edge = entities.canonical_edge(
+                            coordinate.q, coordinate.r, coordinate.d
+                        )
                         actions.build_path(
                             game,
                             request.by,
@@ -61,6 +72,15 @@ class TradeAndBuildPhase(
                             r=coordinate.r,
                             direction=coordinate.d,
                         )
+                        awarded = actions.update_longest_road(
+                            game, request.by, edge=edge
+                        )
+                        if awarded is not None:
+                            owner, length = awarded
+                            return _core.RunOutcome(
+                                finished=False,
+                                value=LongestRoadResult(owner=owner, length=length),
+                            )
                 return _core.RunOutcome(finished=False, value=None)
             case _core.BuyWisdomCardAction():
                 _require_active_player(game, request.by)

@@ -6,7 +6,7 @@ from ._move_conquistator import MoveConquistatorPhase, MoveConquistatorResult
 from ._pre_dice_roll import PreDiceRollPhase
 from ._production import ProductionPhase
 from ._second_placement import SecondPlacementPhase
-from ._trade_and_build import TradeAndBuildPhase
+from ._trade_and_build import TradeAndBuildPhase, LongestRoadResult
 from ._core import (
     AddInitialBuildingsAction,
     PlayerRequest,
@@ -42,6 +42,7 @@ __all__ = [
     "ProductionPhase",
     "SecondPlacementPhase",
     "TradeAndBuildPhase",
+    "LongestRoadResult",
     "AddInitialBuildingsAction",
     "PlayerRequest",
     "PlayerAction",

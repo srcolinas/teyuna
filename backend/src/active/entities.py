@@ -91,6 +91,23 @@ def delta_to_neighbor(d: int) -> tuple[int, int]:
     return dq, dr
 
 
+def vertices_of_edge(edge: Coordinate) -> tuple[Coordinate, Coordinate]:
+    q, r, d = edge
+    return (
+        canonical_vertex(q, r, d),
+        canonical_vertex(q, r, (d + 1) % 6),
+    )
+
+
+def edges_adjacent_to_vertex(q: int, r: int, d: int) -> set[Coordinate]:
+    dq5, dr5 = delta_to_neighbor((d + 5) % 6)
+    return {
+        canonical_edge(q, r, (d + 5) % 6),
+        canonical_edge(q, r, d),
+        canonical_edge(q + dq5, r + dr5, (d + 1) % 6),
+    }
+
+
 _NEIGHBOR: Final[list[tuple[int, int]]] = [
     (1, -1),
     (1, 0),
@@ -249,6 +266,9 @@ class ActiveGame:
     restricted_verticies: set[Coordinate] = dataclasses.field(default_factory=set)
     wisdom_deck: list[WisdomCard] = dataclasses.field(default_factory=list)
     last_dice_roll: int = 0
+    longest_road: tuple[player.Nickname | None, int] = dataclasses.field(
+        default_factory=lambda: (None, 0)
+    )
 
     @property
     def active_player(self) -> player.Nickname:

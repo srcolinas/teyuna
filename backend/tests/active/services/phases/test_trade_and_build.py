@@ -318,6 +318,72 @@ def test_buy_path_keeps_phase_open(
     assert entities.canonical_edge(0, 0, 0) in player.paths
 
 
+def test_buy_path_awards_longest_road(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    for d in range(4):
+        edge = entities.canonical_edge(0, 0, d)
+        player.paths.add(edge)
+        game.free_edges.discard(edge)
+    player.settlements[entities.canonical_vertex(0, 0, 0)] = (
+        entities.SettlementType.TERRACE
+    )
+    player.resources = collections.Counter(
+        {entities.ResourceCard.STONE: 1, entities.ResourceCard.WOOD: 1}
+    )
+
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.BuyAction(
+                item=phases.Buyable.PATH,
+                coordinate=entities.Coordinate(q=0, r=0, d=4),
+            ),
+        ),
+    )
+
+    assert result == phases.RunOutcome(
+        finished=False,
+        value=phases.LongestRoadResult(owner=game.active_player, length=5),
+    )
+    assert game.longest_road == (game.active_player, 5)
+
+
+def test_buy_path_same_owner_length_growth_does_not_report(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    for d in range(5):
+        edge = entities.canonical_edge(0, 0, d)
+        player.paths.add(edge)
+        game.free_edges.discard(edge)
+    game.longest_road = (game.active_player, 5)
+    player.settlements[entities.canonical_vertex(0, 0, 0)] = (
+        entities.SettlementType.TERRACE
+    )
+    player.resources = collections.Counter(
+        {entities.ResourceCard.STONE: 1, entities.ResourceCard.WOOD: 1}
+    )
+
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.BuyAction(
+                item=phases.Buyable.PATH,
+                coordinate=entities.Coordinate(q=0, r=0, d=5),
+            ),
+        ),
+    )
+
+    assert result == phases.RunOutcome(finished=False, value=None)
+    assert game.longest_road == (game.active_player, 6)
+
+
 def test_buy_terrace_keeps_phase_open(
     game: entities.ActiveGame,
     phase: phases.TradeAndBuildPhase,

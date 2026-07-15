@@ -12,6 +12,7 @@ from ._play_wisdom_card import play_wisdom_card
 from ._produce_resources import produce_resources
 from ._propose_trade import propose_trade
 from ._trade_with_supply import trade
+from ._update_longest_road import update_longest_road
 from ._errors import (
     EmptyWisdomDeck,
     InsufficientResources,
@@ -42,6 +43,7 @@ __all__ = [
     "produce_resources",
     "propose_trade",
     "trade",
+    "update_longest_road",
     "EmptyWisdomDeck",
     "InsufficientResources",
     "InvalidConquistatorLocation",
