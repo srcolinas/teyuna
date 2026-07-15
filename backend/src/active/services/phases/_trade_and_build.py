@@ -10,7 +10,7 @@ from . import _core, _errors
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class LongestRoadResult:
-    owner: player.Nickname
+    owner: player.Nickname | None
     length: int
 
 
@@ -53,6 +53,19 @@ class TradeAndBuildPhase(
                             r=coordinate.r,
                             direction=coordinate.d,
                         )
+                        if game.longest_road[0] is not None:
+                            vertex = entities.canonical_vertex(
+                                coordinate.q, coordinate.r, coordinate.d
+                            )
+                            updated = actions.recompute_longest_road(
+                                game, request.by, vertex=vertex
+                            )
+                            if updated is not None:
+                                owner, length = updated
+                                return _core.RunOutcome(
+                                    finished=False,
+                                    value=LongestRoadResult(owner=owner, length=length),
+                                )
                     case _core.Buyable.GREAT_TERRACE:
                         actions.build_great_terrace(
                             game,

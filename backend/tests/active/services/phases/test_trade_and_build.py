@@ -416,6 +416,80 @@ def test_buy_terrace_keeps_phase_open(
     assert entities.canonical_vertex(0, 0, 2) in player.settlements
 
 
+def test_buy_terrace_with_longest_road_break_reports_clear(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    holder = game.turn_order[1]
+    breaker = game.active_player
+    _place_paths(
+        game,
+        holder,
+        [(0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 0, 3), (0, 0, 4), (-1, 0, 0)],
+    )
+    actions.add_free_terrace(game, breaker, q=-2, r=2, direction=1)
+    actions.add_free_path(game, breaker, q=-1, r=1, direction=2)
+    actions.add_free_path(game, breaker, q=-1, r=1, direction=1)
+    game.longest_road = (holder, 6)
+    game.players[breaker].resources = collections.Counter(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+            entities.ResourceCard.COTTON: 1,
+            entities.ResourceCard.MAIZE: 1,
+        }
+    )
+
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=breaker,
+            action=phases.BuyAction(
+                item=phases.Buyable.TERRACE,
+                coordinate=entities.Coordinate(q=0, r=0, d=3),
+            ),
+        ),
+    )
+
+    assert result == phases.RunOutcome(
+        finished=False,
+        value=phases.LongestRoadResult(owner=None, length=0),
+    )
+    assert game.longest_road == (None, 0)
+
+
+def test_buy_terrace_with_longest_road_no_break_leaves_award(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    holder = game.turn_order[1]
+    breaker = game.active_player
+    game.longest_road = (holder, 5)
+    _place_paths(game, breaker, [(0, 0, 0), (0, 0, 1)])
+    game.players[breaker].resources = collections.Counter(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+            entities.ResourceCard.COTTON: 1,
+            entities.ResourceCard.MAIZE: 1,
+        }
+    )
+
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=breaker,
+            action=phases.BuyAction(
+                item=phases.Buyable.TERRACE,
+                coordinate=entities.Coordinate(q=0, r=0, d=2),
+            ),
+        ),
+    )
+
+    assert result == phases.RunOutcome(finished=False, value=None)
+    assert game.longest_road == (holder, 5)
+
+
 def test_buy_great_terrace_keeps_phase_open(
     game: entities.ActiveGame,
     phase: phases.TradeAndBuildPhase,
@@ -525,6 +599,21 @@ def test_on_exit_wraps_player_idx_to_first(
     outcome = phase.on_exit(game)
     assert outcome.next is phases.GamePhaseName.PRE_DICE_ROLL
     assert game.player_idx == 0
+
+
+def _place_paths(
+    game: entities.ActiveGame,
+    nickname: str,
+    edges: list[tuple[int, int, int]],
+    *,
+    terrace: tuple[int, int, int] | None = None,
+) -> None:
+    if terrace is None:
+        terrace = edges[0]
+    tq, tr, td = terrace
+    actions.add_free_terrace(game, nickname, q=tq, r=tr, direction=td)
+    for q, r, d in edges:
+        actions.add_free_path(game, nickname, q=q, r=r, direction=d)
 
 
 @pytest.fixture
