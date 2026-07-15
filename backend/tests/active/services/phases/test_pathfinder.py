@@ -232,6 +232,44 @@ def test_on_exit_returns_to_trade_and_build_when_set(
     assert game.pathfinder_return_phase is None
 
 
+def test_path_declares_winner_via_longest_road(
+    game: entities.ActiveGame,
+    phase: phases.PathfinderPhase,
+) -> None:
+    active = game.active_player
+    player = game.players[active]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+    for d in range(4):
+        edge = entities.canonical_edge(0, 0, d)
+        player.paths.add(edge)
+        game.free_edges.discard(edge)
+    player.settlements[entities.canonical_vertex(0, 0, 0)] = (
+        entities.SettlementType.TERRACE
+    )
+    game.pathfinder_return_phase = phases.GamePhaseName.TRADE_AND_BUILD.value
+    phase.on_enter(game)
+
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=active,
+            action=phases.BuyAction(
+                item=phases.Buyable.PATH,
+                coordinate=entities.Coordinate(q=0, r=0, d=4),
+            ),
+        ),
+    )
+
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=active)
+    )
+    assert game.winner == active
+    assert game.longest_road == (active, 5)
+    outcome = phase.on_exit(game)
+    assert outcome.next is phases.GamePhaseName.END
+    assert game.pathfinder_return_phase is None
+
+
 @pytest.fixture
 def phase() -> phases.PathfinderPhase:
     return phases.PathfinderPhase()

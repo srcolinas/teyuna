@@ -260,6 +260,74 @@ def test_on_enter_clears_cards_bought_this_turn(
     assert player.cards_bought_this_turn[entities.WisdomCard.WARRIOR] == 0
 
 
+def test_play_legacy_declares_winner_skips_interrupt(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    player.cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(
+                card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+            ),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=game.active_player)
+    )
+    assert game.winner == game.active_player
+    assert game.legacy_return_phase is None
+    assert phase.on_exit(game).next is phases.GamePhaseName.END
+
+
+def test_play_warrior_awards_biggest_army(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.WARRIOR] = 2
+    player.cards[entities.WisdomCard.WARRIOR] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True,
+        value=phases.BiggestArmyResult(owner=game.active_player, count=3),
+    )
+    assert game.biggest_army == (game.active_player, 3)
+
+
+def test_play_warrior_declares_winner_skips_interrupt(
+    game: entities.ActiveGame,
+    phase: phases.PreDiceRollPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+    player.played_cards[entities.WisdomCard.WARRIOR] = 2
+    player.cards[entities.WisdomCard.WARRIOR] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=game.active_player)
+    )
+    assert game.winner == game.active_player
+    assert game.warrior_return_phase is None
+    assert phase.on_exit(game).next is phases.GamePhaseName.END
+
+
 @pytest.fixture
 def phase() -> phases.PreDiceRollPhase:
     return phases.PreDiceRollPhase()

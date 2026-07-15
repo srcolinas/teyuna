@@ -269,6 +269,10 @@ class ActiveGame:
     longest_road: tuple[player.Nickname | None, int] = dataclasses.field(
         default_factory=lambda: (None, 0)
     )
+    biggest_army: tuple[player.Nickname | None, int] = dataclasses.field(
+        default_factory=lambda: (None, 0)
+    )
+    winner: player.Nickname | None = None
     warrior_return_phase: str | None = None
     blessing_return_phase: str | None = None
     mamo_return_phase: str | None = None

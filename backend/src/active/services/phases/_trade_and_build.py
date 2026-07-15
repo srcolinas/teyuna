@@ -14,9 +14,25 @@ class LongestRoadResult:
     length: int
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class BiggestArmyResult:
+    owner: player.Nickname | None
+    count: int
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class GameWonResult:
+    winner: player.Nickname
+
+
 class TradeAndBuildPhase(
     _core.GamePhaseNode[
-        entities.TradeProposal | LongestRoadResult | entities.WisdomCard | None,
+        entities.TradeProposal
+        | LongestRoadResult
+        | BiggestArmyResult
+        | GameWonResult
+        | entities.WisdomCard
+        | None,
         None,
         None,
     ]
@@ -24,7 +40,12 @@ class TradeAndBuildPhase(
     def run(
         self, game: entities.ActiveGame, request: _core.PlayerRequest
     ) -> _core.RunOutcome[
-        entities.TradeProposal | LongestRoadResult | entities.WisdomCard | None
+        entities.TradeProposal
+        | LongestRoadResult
+        | BiggestArmyResult
+        | GameWonResult
+        | entities.WisdomCard
+        | None
     ]:
         match request.action:
             case _core.ProposeTradeAction(offer=offer, request=trade_request, to=to):
@@ -50,6 +71,7 @@ class TradeAndBuildPhase(
                 return _core.RunOutcome(finished=False, value=proposal)
             case _core.BuyAction(item=item, coordinate=coordinate):
                 _require_active_player(game, request.by)
+                value: LongestRoadResult | None = None
                 match item:
                     case _core.Buyable.TERRACE:
                         actions.build_terrace(
@@ -68,10 +90,7 @@ class TradeAndBuildPhase(
                             )
                             if updated is not None:
                                 owner, length = updated
-                                return _core.RunOutcome(
-                                    finished=False,
-                                    value=LongestRoadResult(owner=owner, length=length),
-                                )
+                                value = LongestRoadResult(owner=owner, length=length)
                     case _core.Buyable.GREAT_TERRACE:
                         actions.build_great_terrace(
                             game,
@@ -96,11 +115,13 @@ class TradeAndBuildPhase(
                         )
                         if awarded is not None:
                             owner, length = awarded
-                            return _core.RunOutcome(
-                                finished=False,
-                                value=LongestRoadResult(owner=owner, length=length),
-                            )
-                return _core.RunOutcome(finished=False, value=None)
+                            value = LongestRoadResult(owner=owner, length=length)
+                if actions.declare_winner_if_eligible(game, request.by):
+                    return _core.RunOutcome(
+                        finished=True,
+                        value=GameWonResult(winner=request.by),
+                    )
+                return _core.RunOutcome(finished=False, value=value)
             case _core.BuyWisdomCardAction():
                 _require_active_player(game, request.by)
                 actions.buy_wisdom_card(game, request.by)
@@ -109,9 +130,21 @@ class TradeAndBuildPhase(
                 _require_active_player(game, request.by)
                 actions.play_wisdom_card(game, request.by, card=card)
                 if card is entities.WisdomCard.WARRIOR:
+                    army = actions.update_biggest_army(game, request.by)
+                    if actions.declare_winner_if_eligible(game, request.by):
+                        return _core.RunOutcome(
+                            finished=True,
+                            value=GameWonResult(winner=request.by),
+                        )
                     game.warrior_return_phase = (
                         _core.GamePhaseName.TRADE_AND_BUILD.value
                     )
+                    if army is not None:
+                        owner, count = army
+                        return _core.RunOutcome(
+                            finished=True,
+                            value=BiggestArmyResult(owner=owner, count=count),
+                        )
                     return _core.RunOutcome(finished=True, value=card)
                 if card is entities.WisdomCard.BLESSING_OF_ALUNA:
                     game.blessing_return_phase = (
@@ -127,6 +160,11 @@ class TradeAndBuildPhase(
                     )
                     return _core.RunOutcome(finished=True, value=card)
                 if card is entities.WisdomCard.LEGACY_OF_THE_ELDERS:
+                    if actions.declare_winner_if_eligible(game, request.by):
+                        return _core.RunOutcome(
+                            finished=True,
+                            value=GameWonResult(winner=request.by),
+                        )
                     game.legacy_return_phase = _core.GamePhaseName.TRADE_AND_BUILD.value
                     return _core.RunOutcome(finished=True, value=card)
                 return _core.RunOutcome(finished=False, value=card)
@@ -137,6 +175,9 @@ class TradeAndBuildPhase(
                 raise _errors.InvalidActionError(f"Unknown action: {request.action}")
 
     def on_exit(self, game: entities.ActiveGame) -> _core.ExitOutcome[None]:
+        if game.winner is not None:
+            _clear_interrupt_return_phases(game)
+            return _core.ExitOutcome(next=_core.GamePhaseName.END, value=None)
         if game.warrior_return_phase is not None:
             return _core.ExitOutcome(
                 next=_core.GamePhaseName.WARRIOR_MOVE_CONQUISTATOR, value=None
@@ -167,3 +208,11 @@ class TradeAndBuildPhase(
 def _require_active_player(game: entities.ActiveGame, by: player.Nickname) -> None:
     if game.active_player != by:
         raise _errors.PlayerNotInTurnError(f"Player {by} is not in turn")
+
+
+def _clear_interrupt_return_phases(game: entities.ActiveGame) -> None:
+    game.warrior_return_phase = None
+    game.blessing_return_phase = None
+    game.mamo_return_phase = None
+    game.pathfinder_return_phase = None
+    game.legacy_return_phase = None

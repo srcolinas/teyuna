@@ -821,6 +821,186 @@ def test_on_exit_wraps_player_idx_to_first(
     assert game.player_idx == 0
 
 
+def test_buy_terrace_declares_winner_and_finishes(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+    player.settlements[entities.canonical_vertex(0, 0, 0)] = (
+        entities.SettlementType.TERRACE
+    )
+    player.paths.add(entities.canonical_edge(0, 0, 0))
+    player.paths.add(entities.canonical_edge(0, 0, 1))
+    player.resources = collections.Counter(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+            entities.ResourceCard.COTTON: 1,
+            entities.ResourceCard.MAIZE: 1,
+        }
+    )
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.BuyAction(
+                item=phases.Buyable.TERRACE,
+                coordinate=entities.Coordinate(q=0, r=0, d=2),
+            ),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=game.active_player)
+    )
+    assert game.winner == game.active_player
+    assert phase.on_exit(game).next is phases.GamePhaseName.END
+    assert game.player_idx == 0
+
+
+def test_buy_great_terrace_declares_winner(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+    target = entities.canonical_vertex(0, 0, 0)
+    player.settlements[target] = entities.SettlementType.TERRACE
+    player.resources = collections.Counter(
+        {
+            entities.ResourceCard.GOLD: 3,
+            entities.ResourceCard.MAIZE: 2,
+        }
+    )
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.BuyAction(
+                item=phases.Buyable.GREAT_TERRACE,
+                coordinate=entities.Coordinate(q=0, r=0, d=0),
+            ),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=game.active_player)
+    )
+    assert game.winner == game.active_player
+
+
+def test_buy_path_declares_winner_via_longest_road(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    active = game.active_player
+    player = game.players[active]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+    _place_paths(game, active, [(0, 0, d) for d in range(4)])
+    player.resources = collections.Counter(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+        }
+    )
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=active,
+            action=phases.BuyAction(
+                item=phases.Buyable.PATH,
+                coordinate=entities.Coordinate(q=0, r=0, d=4),
+            ),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=active)
+    )
+    assert game.longest_road == (active, 5)
+    assert game.winner == active
+
+
+def test_play_legacy_declares_winner_skips_interrupt(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    player.cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(
+                card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+            ),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=game.active_player)
+    )
+    assert game.winner == game.active_player
+    assert game.legacy_return_phase is None
+    assert phase.on_exit(game).next is phases.GamePhaseName.END
+
+
+def test_play_warrior_awards_biggest_army(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.WARRIOR] = 2
+    player.cards[entities.WisdomCard.WARRIOR] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True,
+        value=phases.BiggestArmyResult(owner=game.active_player, count=3),
+    )
+    assert game.biggest_army == (game.active_player, 3)
+    assert game.warrior_return_phase == phases.GamePhaseName.TRADE_AND_BUILD.value
+
+
+def test_play_warrior_declares_winner_skips_interrupt(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    player = game.players[game.active_player]
+    player.played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+    player.played_cards[entities.WisdomCard.WARRIOR] = 2
+    player.cards[entities.WisdomCard.WARRIOR] = 1
+    result = phase.run(
+        game,
+        phases.PlayerRequest(
+            by=game.active_player,
+            action=phases.PlayWisdomCardAction(card=entities.WisdomCard.WARRIOR),
+        ),
+    )
+    assert result == phases.RunOutcome(
+        finished=True, value=phases.GameWonResult(winner=game.active_player)
+    )
+    assert game.winner == game.active_player
+    assert game.biggest_army == (game.active_player, 3)
+    assert game.warrior_return_phase is None
+    assert phase.on_exit(game).next is phases.GamePhaseName.END
+
+
+def test_on_exit_with_winner_does_not_rotate(
+    game: entities.ActiveGame,
+    phase: phases.TradeAndBuildPhase,
+) -> None:
+    game.winner = game.active_player
+    game.warrior_return_phase = phases.GamePhaseName.TRADE_AND_BUILD.value
+    outcome = phase.on_exit(game)
+    assert outcome.next is phases.GamePhaseName.END
+    assert game.player_idx == 0
+    assert game.warrior_return_phase is None
+
+
 def _place_paths(
     game: entities.ActiveGame,
     nickname: str,

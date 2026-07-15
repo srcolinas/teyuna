@@ -121,6 +121,7 @@ class GamePhaseName(str, Enum):
     WISDOM_OF_THE_MAMO = "wisdom of the mamo"
     PATHFINDER = "pathfinder"
     LEGACY_OF_THE_ELDERS = "legacy of the elders"
+    END = "end"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

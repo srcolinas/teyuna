@@ -17,7 +17,9 @@ from ._produce_resources import produce_resources
 from ._propose_trade import propose_trade
 from ._take_from_supply import take_from_supply, take_from_supply_randomly
 from ._trade_with_supply import trade
+from ._update_biggest_army import update_biggest_army
 from ._update_longest_road import recompute_longest_road, update_longest_road
+from ._victory_points import declare_winner_if_eligible, victory_points
 from ._errors import (
     EmptyWisdomDeck,
     InsufficientResources,
@@ -54,7 +56,10 @@ __all__ = [
     "take_from_supply_randomly",
     "trade",
     "recompute_longest_road",
+    "update_biggest_army",
     "update_longest_road",
+    "declare_winner_if_eligible",
+    "victory_points",
     "EmptyWisdomDeck",
     "InsufficientResources",
     "InvalidConquistatorLocation",
