@@ -32,7 +32,7 @@ def add_player(
     game_id: uuid.UUID,
     nickname: player.Nickname,
     repository: AddPlayerGameRepository,
-    game_manager: active.services.GameManager,
+    active_repository: active.services.CreateGameRepository,
     auth: player.PlayerAuthenticationService,
 ) -> tuple[PlayerAddedResult, player.Token]:
     game = repository.retrieve(game_id)
@@ -45,6 +45,8 @@ def add_player(
     token = auth.add(nickname)
     proposed = repository.add_player(game_id=game_id, nickname=nickname)
     if proposed.max_players == len(proposed.players):
-        id = game_manager.create_game(players=tuple(proposed.players))
+        id = active.services.create_game(
+            repository=active_repository, players=tuple(proposed.players)
+        )
         return PlayerAddedResult(proposed=proposed, game=id), token
     return PlayerAddedResult(proposed=proposed), token

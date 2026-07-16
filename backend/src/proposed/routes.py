@@ -35,9 +35,9 @@ def join_game(
         _add_player.AddPlayerGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
-    game_manager: Annotated[
-        active.services.GameManager,
-        fastapi.Depends(active.dependencies.get_game_manager),
+    active_repository: Annotated[
+        active.services.CreateGameRepository,
+        fastapi.Depends(active.dependencies.get_repository),
     ],
     auth: Annotated[
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
@@ -48,7 +48,7 @@ def join_game(
             game_id=game_id,
             nickname=payload.nickname,
             repository=repository_,
-            game_manager=game_manager,
+            active_repository=active_repository,
             auth=auth,
         )
     except _add_player.GameAlreadyFullError:
@@ -60,6 +60,14 @@ def join_game(
             status_code=status.HTTP_400_BAD_REQUEST, detail="game expired"
         )
     except repository.ProposedGameDoesNotExistError:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="game doesn't exist"
+        )
+    except repository.NicknameAlreadyExists:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="nickname already exists"
+        )
+    except active.repository.ActiveGameDoesNotExistError:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="game doesn't exist"
         )

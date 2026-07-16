@@ -2,10 +2,11 @@ import uuid
 from typing import Annotated
 
 import fastapi
+import pydantic
 from fastapi import status
 
 from .. import player
-from . import dependencies, ports, services
+from . import dependencies, ports, repository as repostory_module, actions, entities
 
 router = fastapi.APIRouter(prefix="/active-games")
 
@@ -48,6 +49,82 @@ def get_player(
     raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
+# --- Initial placements ---
+
+
+class InitialPlacementPayload(pydantic.BaseModel):
+    terrace: ports.VertexCoordinate
+    path: ports.EdgeCoordinate
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/initial-placements")
+def add_initial_placements(
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    payload: InitialPlacementPayload,
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> tuple[ports.PlayedSettlement, ports.PlayedStonePath]:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.FirstPlacementAction(
+                by=nickname,
+                terrace=entities.Coordinate(
+                    q=payload.terrace.hex_coord.q,
+                    r=payload.terrace.hex_coord.r,
+                    d=payload.terrace.direction,
+                ),
+                path=entities.Coordinate(
+                    q=payload.path.hex_coord.q,
+                    r=payload.path.hex_coord.r,
+                    d=payload.path.direction,
+                ),
+            ),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.PlayerNotInTurnError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
+        )
+    except actions.InvalidSettlementLocation as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.InvalidPathLocation as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+    return ports.PlayedSettlement(
+        location=payload.terrace,
+        type=entities.SettlementType.TERRACE,
+        owner=nickname,
+    ), ports.PlayedStonePath(
+        location=payload.path,
+        owner=nickname,
+    )
+
+
 # --- Settlements (buildings) ---
 
 
@@ -76,15 +153,15 @@ def get_settlement(
 
 
 @router.post("/{game_id}/settlements/{q}/{r}/{direction}")
-def buy_settlement(
+async def build_settlement(
     game_id: uuid.UUID,
     q: int,
     r: int,
     direction: int,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
-    manager: Annotated[
-        services.GameManager,
-        fastapi.Depends(dependencies.get_game_manager),
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
     ],
 ) -> ports.PlayedSettlement:
     raise NotImplementedError
@@ -117,3 +194,18 @@ def get_path(
         ):
             return p
     return None
+
+
+@router.post("/{game_id}/settlements/{q}/{r}/{direction}")
+def build_path(
+    game_id: uuid.UUID,
+    q: int,
+    r: int,
+    direction: int,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+) -> ports.PlayedStonePath:
+    raise NotImplementedError

@@ -1,6 +1,10 @@
 import uuid
 
+import httpx
 from fastapi import testclient
+
+
+type InitialPlacementPayload = dict[str, dict[str, dict[str, int] | int]]
 
 
 def create_active_game(
@@ -20,6 +24,55 @@ def create_active_game(
     payload = response.json()
     game_id = uuid.UUID(payload["game"])
     return game_id
+
+
+def create_active_game_with_tokens(
+    client: testclient.TestClient,
+    nicknames: list[str] | None = None,
+) -> tuple[uuid.UUID, dict[str, str]]:
+    if nicknames is None:
+        nicknames = ["srcolinas-0", "srcolinas-1", "srcolinas-2"]
+
+    proposed_game_id = create_proposed_game(client, len(nicknames))
+    tokens: dict[str, str] = {}
+    game_id: uuid.UUID | None = None
+    for nickname in nicknames:
+        response = client.post(
+            f"/proposed-games/{proposed_game_id}/players",
+            json={"nickname": nickname},
+        )
+        tokens[nickname] = client.cookies["session-token"]
+        payload = response.json()
+        if payload["game"] is not None:
+            game_id = uuid.UUID(payload["game"])
+
+    assert game_id is not None
+    return game_id, tokens
+
+
+def build_initial_placement_payload(
+    terrace: tuple[int, int, int],
+    path: tuple[int, int, int],
+) -> InitialPlacementPayload:
+    tq, tr, td = terrace
+    pq, pr, pd = path
+    return {
+        "terrace": {"hex_coord": {"q": tq, "r": tr}, "direction": td},
+        "path": {"hex_coord": {"q": pq, "r": pr}, "direction": pd},
+    }
+
+
+def post_initial_placements(
+    client: testclient.TestClient,
+    game_id: uuid.UUID,
+    token: str,
+    payload: InitialPlacementPayload,
+) -> httpx.Response:
+    client.cookies.set("session-token", token)
+    return client.post(
+        f"/active-games/{game_id}/initial-placements",
+        json=payload,
+    )
 
 
 def create_proposed_game_and_add_players(
