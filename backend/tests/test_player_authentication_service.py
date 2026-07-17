@@ -22,6 +22,15 @@ def test_added_nickname_is_returned_by_token(
     assert service.retrieve(token) == nickname
 
 
+def test_retries_when_token_collides() -> None:
+    tokens = iter(["same-token", "same-token", "unique-token"])
+    service = player.PlayerAuthenticationService(token_generator=lambda: next(tokens))
+
+    assert service.add("alice") == "same-token"
+    assert service.add("bob") == "unique-token"
+    assert service.retrieve("unique-token") == "bob"
+
+
 @pytest.fixture
 def service() -> player.PlayerAuthenticationService:
     return player.PlayerAuthenticationService()

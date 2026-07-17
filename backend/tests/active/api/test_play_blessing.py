@@ -97,6 +97,29 @@ def test_returns_403_when_player_not_in_turn(
     assert response.status_code == 403, response.text
 
 
+def test_returns_501_when_phase_not_implemented(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, _ = _setup_blessed_phase(app)
+    app.dependency_overrides[active.dependencies.get_actions_registry] = (
+        lambda: actions.ActionsRegistry()
+    )
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/active-games/{game_id}/wisdom-cards/blessing",
+        json={
+            "resources": [
+                entities.ResourceCard.WOOD.value,
+                entities.ResourceCard.STONE.value,
+            ]
+        },
+    )
+
+    assert response.status_code == 501, response.text
+
+
 def test_returns_400_when_supply_is_insufficient(
     app: fastapi.FastAPI,
     client: testclient.TestClient,

@@ -26,6 +26,24 @@ def test_returns_404_when_game_does_not_exist(
     assert response.status_code == 404, response.text
 
 
+def test_returns_conquistator_location(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    game_id = repository.add(game)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+
+    response = client.get(f"/active-games/{game_id}/conquistator")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "q": game.conquistator_location.q,
+        "r": game.conquistator_location.r,
+    }
+
+
 def test_returns_403_when_player_not_in_turn(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
@@ -225,7 +243,7 @@ def _setup_phase(
 
 
 def _create_game() -> entities.ActiveGame:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
+    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=2)
     return entities.ActiveGame(
         map=(mountains,),
         conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),

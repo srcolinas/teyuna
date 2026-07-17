@@ -1,3 +1,5 @@
+from enum import Enum
+
 import pytest
 
 from src.active import actions, entities
@@ -34,6 +36,24 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
                 by=game.turn_order[1],
                 card=entities.WisdomCard.WARRIOR,
             ),
+        )
+
+
+def test_raises_when_card_cannot_be_played_during_dice_roll(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+
+    class _UnplayableCard(str, Enum):
+        UNKNOWN = "unknown card"
+
+    unknown_card = _UnplayableCard.UNKNOWN
+    game.players[player].cards[unknown_card] = 1  # type: ignore[index]
+
+    with pytest.raises(actions.ActionNotAllowedError):
+        actions.handle_play_wisdom_card(
+            game,
+            actions.PlayWisdomCardAction(by=player, card=unknown_card),  # type: ignore[arg-type]
         )
 
 

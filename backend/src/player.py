@@ -1,18 +1,22 @@
 import functools
 import secrets
+from collections.abc import Callable
 
 type Token = str
 type Nickname = str
 
 
 class PlayerAuthenticationService:
-    def __init__(self) -> None:
+    def __init__(
+        self, token_generator: Callable[[], Token] = secrets.token_hex
+    ) -> None:
         self._memory: dict[Token, Nickname] = {}
+        self._token_generator = token_generator
 
     def add(self, nickname: Nickname) -> Token:
-        s = secrets.token_hex()
+        s = self._token_generator()
         while s in self._memory:
-            s = secrets.token_hex()
+            s = self._token_generator()
         self._memory[s] = nickname
         return s
 

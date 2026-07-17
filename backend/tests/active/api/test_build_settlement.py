@@ -111,6 +111,114 @@ def test_returns_400_when_insufficient_resources(
     assert response.status_code == 400, response.text
 
 
+def test_returns_400_when_action_not_allowed(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, _, terrace = _setup_trade_and_build(app)
+    repository.update(
+        game_id,
+        repository.retrieve(game_id)[0],
+        actions.GamePhaseName.DICE_ROLL,
+    )
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/active-games/{game_id}/settlements",
+        json={
+            "item": entities.SettlementType.TERRACE.value,
+            "location": {
+                "hex_coord": {"q": terrace.q, "r": terrace.r},
+                "direction": terrace.d,
+            },
+        },
+    )
+
+    assert response.status_code == 400, response.text
+
+
+def test_returns_501_when_phase_not_implemented(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, _, terrace = _setup_trade_and_build(app)
+    app.dependency_overrides[active.dependencies.get_actions_registry] = (
+        lambda: actions.ActionsRegistry()
+    )
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/active-games/{game_id}/settlements",
+        json={
+            "item": entities.SettlementType.TERRACE.value,
+            "location": {
+                "hex_coord": {"q": terrace.q, "r": terrace.r},
+                "direction": terrace.d,
+            },
+        },
+    )
+
+    assert response.status_code == 501, response.text
+
+
+def test_returns_400_when_invalid_settlement_location(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[game.active_player].resources.update(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+            entities.ResourceCard.COTTON: 1,
+            entities.ResourceCard.MAIZE: 1,
+        }
+    )
+    game_id = repository.add(game)
+    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+    token = player.service().add(game.active_player)
+
+    client.cookies.set("session-token", token)
+    response = client.post(
+        f"/active-games/{game_id}/settlements",
+        json={
+            "item": entities.SettlementType.TERRACE.value,
+            "location": {
+                "hex_coord": {"q": terrace.q, "r": terrace.r},
+                "direction": terrace.d,
+            },
+        },
+    )
+
+    assert response.status_code == 400, response.text
+
+
+def test_returns_settlement_by_coordinate(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[game.active_player].settlements[terrace] = (
+        entities.SettlementType.TERRACE
+    )
+    game_id = repository.add(game)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+
+    response = client.get(
+        f"/active-games/{game_id}/settlements/{terrace.q}/{terrace.r}/{terrace.d}"
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["owner"] == game.active_player
+    assert body["type"] == entities.SettlementType.TERRACE.value
+
+
 def _setup_trade_and_build(
     app: fastapi.FastAPI,
 ) -> tuple[
@@ -149,7 +257,7 @@ def _setup_trade_and_build(
 
 
 def _create_game() -> entities.ActiveGame:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
+    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=2)
     return entities.ActiveGame(
         map=(mountains,),
         conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),

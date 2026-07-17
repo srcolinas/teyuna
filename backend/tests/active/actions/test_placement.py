@@ -103,6 +103,7 @@ def test_free_path_accepts_settlements_collection_locations() -> None:
     settlements = entities.SettlementsCollection()
     settlements[terrace] = entities.SettlementType.TERRACE
 
+    assert list(settlements.values()) == [entities.SettlementType.TERRACE]
     assert (
         _placement.can_add_free_path_at(
             target=path,

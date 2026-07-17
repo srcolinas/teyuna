@@ -25,6 +25,6 @@ def client(
     proposed_repository: repository.InMemoryProposedGameRepository,
 ) -> Generator[testclient.TestClient, Any, None]:
     app.dependency_overrides[dependencies.get_repository] = lambda: proposed_repository
-    client_ = testclient.TestClient(app)
-    yield client_
+    with testclient.TestClient(app) as client_:
+        yield client_
     app.dependency_overrides.clear()

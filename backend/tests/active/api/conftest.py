@@ -15,6 +15,6 @@ def app() -> fastapi.FastAPI:
 
 @pytest.fixture
 def client(app: fastapi.FastAPI) -> Generator[testclient.TestClient, Any, None]:
-    client_ = testclient.TestClient(app)
-    yield client_
+    with testclient.TestClient(app) as client_:
+        yield client_
     app.dependency_overrides.clear()

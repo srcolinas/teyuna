@@ -19,6 +19,40 @@ def test_returns_404_when_game_does_not_exist(
     assert response.status_code == 404, response.text
 
 
+def test_returns_401_when_session_cookie_missing(
+    client: testclient.TestClient,
+) -> None:
+    response = client.post(f"/active-games/{uuid.uuid4()}/turn-order")
+
+    assert response.status_code == 401, response.text
+    assert response.json()["detail"] == "invalid token"
+
+
+def test_returns_401_when_session_token_unknown(
+    client: testclient.TestClient,
+) -> None:
+    client.cookies.set("session-token", "not-a-real-token")
+    response = client.post(f"/active-games/{uuid.uuid4()}/turn-order")
+
+    assert response.status_code == 401, response.text
+    assert response.json()["detail"] == "player not found"
+
+
+def test_returns_turn_order(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    game_id = repository.add(game)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+
+    response = client.get(f"/active-games/{game_id}/turn-order")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == list(game.turn_order)
+
+
 def test_returns_400_when_action_not_allowed(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
@@ -127,7 +161,7 @@ def test_ends_trade_and_build_and_advances_player(
 
 
 def _create_game() -> entities.ActiveGame:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
+    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=2)
     return entities.ActiveGame(
         map=(mountains,),
         conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),

@@ -340,6 +340,98 @@ def test_raises_when_terrace_cap_reached(game: entities.ActiveGame) -> None:
         )
 
 
+def test_raises_when_great_terrace_cap_reached(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.GOLD: 3,
+            entities.ResourceCard.MAIZE: 2,
+        }
+    )
+    for i in range(entities.MAX_GREAT_TERRACES):
+        game.players[player].settlements[
+            entities.Coordinate(q=9, r=i // 6, d=i % 6)
+        ] = entities.SettlementType.GREAT_TERRACE
+
+    with pytest.raises(actions.InsufficientResourcesError):
+        actions.handle_build_terrace(
+            game,
+            actions.BuildSettlementAction(
+                by=player,
+                item=entities.SettlementType.GREAT_TERRACE,
+                coordinate=terrace,
+            ),
+        )
+
+
+def test_raises_when_upgrading_without_terrace(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.GOLD: 3,
+            entities.ResourceCard.MAIZE: 2,
+        }
+    )
+
+    with pytest.raises(actions.InvalidSettlementLocation):
+        actions.handle_build_terrace(
+            game,
+            actions.BuildSettlementAction(
+                by=player,
+                item=entities.SettlementType.GREAT_TERRACE,
+                coordinate=terrace,
+            ),
+        )
+
+
+def test_raises_when_already_great_terrace(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].settlements[terrace] = entities.SettlementType.GREAT_TERRACE
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.GOLD: 3,
+            entities.ResourceCard.MAIZE: 2,
+        }
+    )
+
+    with pytest.raises(actions.InvalidSettlementLocation):
+        actions.handle_build_terrace(
+            game,
+            actions.BuildSettlementAction(
+                by=player,
+                item=entities.SettlementType.GREAT_TERRACE,
+                coordinate=terrace,
+            ),
+        )
+
+
+def test_raises_when_path_cap_reached(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+        }
+    )
+    for i in range(entities.MAX_PATHS):
+        game.players[player].paths.add(entities.Coordinate(q=9, r=i // 6, d=i % 6))
+
+    with pytest.raises(actions.InsufficientResourcesError):
+        actions.handle_build_path(
+            game,
+            actions.BuildPathAction(by=player, coordinate=path),
+        )
+
+
 def test_end_turn_advances_player_and_returns_to_dice_roll(
     game: entities.ActiveGame,
 ) -> None:
