@@ -4,6 +4,7 @@ clean:
 	rm -rf .venv __pycache__ .mypy_cache .ruff_cache
 	rm -rf src/__pycache__ src/**/__pycache__
 	rm -rf tests/__pycache__ tests/**/__pycache__
+	rm -rf .coverage .coverage.* coverage.xml htmlcov
 	
 setup:
 	uv sync --dev
