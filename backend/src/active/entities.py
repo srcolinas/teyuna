@@ -259,6 +259,9 @@ class ActiveGame:
     conquistator_location: HexLocation
     turn_order: tuple[player.Nickname, ...]
     player_idx: int = 0
+    to_discard_resources: dict[player.Nickname, int] = dataclasses.field(
+        default_factory=dict
+    )
     resource_supply: ResourceCount = dataclasses.field(
         default_factory=_default_resource_supply
     )

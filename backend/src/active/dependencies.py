@@ -23,6 +23,9 @@ def get_actions_registry() -> actions.ActionsRegistry:
     )
     reg.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
     reg.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_play_wisdom_card)
+    reg.register(actions.GamePhaseName.DISCARD_RESOURCES)(
+        actions.handle_discard_resources
+    )
     reg.register(actions.GamePhaseName.DICE_PLAY_WARRIOR)(
         actions.handle_dice_play_warrior
     )

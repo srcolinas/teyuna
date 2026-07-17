@@ -6,6 +6,8 @@ from .handlers._errors import (
     PlayerDoesNotHaveCardError,
     InsufficientResourceSupplyError,
     InsufficientResourcesError,
+    PlayerNotRequiredToDiscardError,
+    InvalidDiscardCountError,
 )
 
 from .handlers._first_placement import FreePlacementAction, handle_first_placement
@@ -26,6 +28,10 @@ from .handlers._dice_roll import (
     PlayWisdomCardAction,
     handle_play_wisdom_card,
     handle_dice_roll,
+)
+from .handlers._discard_resources import (
+    DiscardResourcesAction,
+    handle_discard_resources,
 )
 from .handlers._move_conquistator import handle_move_conquistator
 from .handlers._second_placement import handle_second_placement
@@ -48,6 +54,7 @@ from ._registry import (
 __all__ = [
     "BuildSettlementAction",
     "BuildPathAction",
+    "DiscardResourcesAction",
     "FreePlacementAction",
     "MoveConquistatorAction",
     "PlayBlessedAction",
@@ -56,6 +63,7 @@ __all__ = [
     "PlayWisdomCardAction",
     "handle_build_terrace",
     "handle_build_path",
+    "handle_discard_resources",
     "handle_end_trade_and_build",
     "handle_first_placement",
     "handle_play_wisdom_card",
@@ -73,6 +81,8 @@ __all__ = [
     "PlayerAction",
     "PlayerNotInTurnError",
     "PlayerDoesNotHaveCardError",
+    "PlayerNotRequiredToDiscardError",
+    "InvalidDiscardCountError",
     "InsufficientResourceSupplyError",
     "InsufficientResourcesError",
     "InvalidSettlementLocation",

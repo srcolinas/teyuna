@@ -21,6 +21,13 @@ def handle_dice_roll(
     total = dice_1 + dice_2
 
     if total == 7:
+        game.to_discard_resources = {
+            nick: total_resources // 2
+            for nick, p in game.players.items()
+            if (total_resources := sum(p.resources.values())) > 7
+        }
+        if game.to_discard_resources:
+            return _registry.GamePhaseName.DISCARD_RESOURCES
         return _registry.GamePhaseName.MOVE_CONQUISTATOR
     return _registry.GamePhaseName.TRADE_AND_BUILD
 

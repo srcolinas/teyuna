@@ -13,6 +13,7 @@ class GamePhaseName(str, Enum):
     FIRST_PLACEMENT = "first placement"
     SECOND_PLACEMENT = "second placement"
     DICE_ROLL = "dice roll"
+    DISCARD_RESOURCES = "discard resources"
     DICE_PLAY_WARRIOR = "dice play warrior"
     DICE_PLAY_MAMO = "dice play mamo"
     DICE_PLAY_BLESSED = "dice play blessed"

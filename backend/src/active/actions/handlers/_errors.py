@@ -24,3 +24,11 @@ class InsufficientResourceSupplyError(Exception):
 
 class InsufficientResourcesError(Exception):
     pass
+
+
+class PlayerNotRequiredToDiscardError(Exception):
+    pass
+
+
+class InvalidDiscardCountError(Exception):
+    pass
