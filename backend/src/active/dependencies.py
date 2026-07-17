@@ -33,6 +33,9 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(actions.GamePhaseName.DICE_PLAY_PATHFINDER)(
         actions.handle_dice_play_pathfinder
     )
+    reg.register(actions.GamePhaseName.MOVE_CONQUISTATOR)(
+        actions.handle_move_conquistator
+    )
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(actions.handle_build_terrace)
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(actions.handle_build_path)
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(

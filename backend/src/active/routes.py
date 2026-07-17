@@ -133,6 +133,10 @@ def move_conquistator(
         raise fastapi.HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
         )
+    except actions.InvalidConquistatorLocation as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
     repository.update(game_id, game, new_phase)
     return ports.HexCoordinate(
         q=game.conquistator_location.q, r=game.conquistator_location.r

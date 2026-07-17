@@ -1,21 +1,13 @@
 import collections
-import dataclasses
 import random
 
-from .... import player
 from ... import entities
 from .. import _registry
 from . import _errors
+from ._dice_play_warrior import MoveConquistatorAction
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
-class MoveConquistatorAction(_registry.PlayerAction):
-    q: int
-    r: int
-    from_player: player.Nickname | None = None
-
-
-def handle_dice_play_warrior(
+def handle_move_conquistator(
     game: entities.ActiveGame, action: MoveConquistatorAction
 ) -> _registry.GamePhaseName:
     if game.active_player != action.by:
@@ -40,4 +32,4 @@ def handle_dice_play_warrior(
                 collections.Counter({stolen: 1}),
             )
 
-    return _registry.GamePhaseName.DICE_ROLL
+    return _registry.GamePhaseName.TRADE_AND_BUILD

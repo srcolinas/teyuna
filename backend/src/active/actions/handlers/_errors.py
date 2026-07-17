@@ -10,6 +10,10 @@ class InvalidPathLocation(Exception):
     pass
 
 
+class InvalidConquistatorLocation(Exception):
+    pass
+
+
 class PlayerDoesNotHaveCardError(Exception):
     pass
 
