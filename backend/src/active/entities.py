@@ -266,7 +266,6 @@ class ActiveGame:
         default_factory=dict
     )
     wisdom_deck: list[WisdomCard] = dataclasses.field(default_factory=list)
-    last_dice_roll: int = 0
     longest_road: tuple[player.Nickname | None, int] = dataclasses.field(
         default_factory=lambda: (None, 0)
     )
@@ -368,3 +367,8 @@ class ActiveGame:
         """Takes resources from the supply and gives them to a specific player."""
         self.resource_supply.subtract(amount)
         self.players[to].resources.update(amount)
+
+    def discard_resources(self, by: player.Nickname, amount: ResourceCount) -> None:
+        """Discards resources from a player's hand."""
+        self.players[by].resources.subtract(amount)
+        self.resource_supply.update(amount)

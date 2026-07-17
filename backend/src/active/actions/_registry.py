@@ -1,5 +1,6 @@
 import dataclasses
 import inspect
+import random
 from enum import Enum
 from collections.abc import Callable
 from typing import Any
@@ -16,11 +17,14 @@ class GamePhaseName(str, Enum):
     DICE_PLAY_MAMO = "dice play mamo"
     DICE_PLAY_BLESSED = "dice play blessed"
     DICE_PLAY_PATHFINDER = "dice play pathfinder"
+    MOVE_CONQUISTATOR = "move conquistator"
+    TRADE_AND_BUILD = "trade and build"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class PlayerAction:
     by: player.Nickname
+    rng_: random.Random = dataclasses.field(default_factory=random.Random, kw_only=True)
 
 
 class GamePhaseHanlderNotImplementedError(Exception):

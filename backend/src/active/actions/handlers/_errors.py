@@ -16,3 +16,7 @@ class PlayerDoesNotHaveCardError(Exception):
 
 class InsufficientResourceSupplyError(Exception):
     pass
+
+
+class InsufficientResourcesError(Exception):
+    pass

@@ -13,15 +13,16 @@ def test_returns_404_when_game_does_not_exist(
 ) -> None:
     token = player.service().add("srcolinas-0")
     client.cookies.set("session-token", token)
-    path = entities.canonical_edge(0, 0, 0)
+    terrace = entities.canonical_vertex(0, 0, 0)
 
     response = client.post(
-        f"/active-games/{uuid.uuid4()}/paths",
+        f"/active-games/{uuid.uuid4()}/settlements",
         json={
+            "item": entities.SettlementType.TERRACE.value,
             "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
+                "hex_coord": {"q": terrace.q, "r": terrace.r},
+                "direction": terrace.d,
+            },
         },
     )
 
@@ -32,75 +33,51 @@ def test_returns_403_when_player_not_in_turn(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
-    _, game_id, tokens, _, other, path = _setup_trade_and_build(app)
+    repository, game_id, tokens, _, other, terrace = _setup_trade_and_build(app)
 
     client.cookies.set("session-token", tokens[other])
     response = client.post(
-        f"/active-games/{game_id}/paths",
+        f"/active-games/{game_id}/settlements",
         json={
+            "item": entities.SettlementType.TERRACE.value,
             "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
+                "hex_coord": {"q": terrace.q, "r": terrace.r},
+                "direction": terrace.d,
+            },
         },
     )
 
     assert response.status_code == 403, response.text
 
 
-def test_returns_400_when_action_not_allowed(
+def test_builds_terrace_and_returns_settlement(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
-    repository, game_id, tokens, active_player, _, path = _setup_trade_and_build(app)
-    repository.update(
-        game_id,
-        repository.retrieve(game_id)[0],
-        actions.GamePhaseName.DICE_ROLL,
-    )
+    repository, game_id, tokens, active_player, _, terrace = _setup_trade_and_build(app)
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
-        f"/active-games/{game_id}/paths",
+        f"/active-games/{game_id}/settlements",
         json={
+            "item": entities.SettlementType.TERRACE.value,
             "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
-        },
-    )
-
-    assert response.status_code == 400, response.text
-
-
-def test_builds_path_and_returns_it(
-    app: fastapi.FastAPI,
-    client: testclient.TestClient,
-) -> None:
-    repository, game_id, tokens, active_player, _, path = _setup_trade_and_build(app)
-
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/active-games/{game_id}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
+                "hex_coord": {"q": terrace.q, "r": terrace.r},
+                "direction": terrace.d,
+            },
         },
     )
 
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["owner"] == active_player
-    assert body["location"]["hex_coord"] == {"q": path.q, "r": path.r}
-    assert body["location"]["direction"] == path.d
-
+    assert body["type"] == entities.SettlementType.TERRACE.value
     game, phase = repository.retrieve(game_id)
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
-    assert path in game.players[active_player].paths
-    assert game.players[active_player].resources[entities.ResourceCard.STONE] == 0
-    assert game.players[active_player].resources[entities.ResourceCard.WOOD] == 0
+    assert (
+        game.players[active_player].settlements[terrace]
+        is entities.SettlementType.TERRACE
+    )
 
 
 def test_returns_400_when_insufficient_resources(
@@ -113,9 +90,7 @@ def test_returns_400_when_insufficient_resources(
     path = next(
         iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
-    game.players[game.active_player].settlements[terrace] = (
-        entities.SettlementType.TERRACE
-    )
+    game.players[game.active_player].paths.add(path)
     game_id = repository.add(game)
     repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
@@ -123,12 +98,13 @@ def test_returns_400_when_insufficient_resources(
 
     client.cookies.set("session-token", token)
     response = client.post(
-        f"/active-games/{game_id}/paths",
+        f"/active-games/{game_id}/settlements",
         json={
+            "item": entities.SettlementType.TERRACE.value,
             "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
+                "hex_coord": {"q": terrace.q, "r": terrace.r},
+                "direction": terrace.d,
+            },
         },
     )
 
@@ -153,11 +129,13 @@ def _setup_trade_and_build(
     path = next(
         iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
-    game.players[active_player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[active_player].paths.add(path)
     game.players[active_player].resources.update(
         {
             entities.ResourceCard.STONE: 1,
             entities.ResourceCard.WOOD: 1,
+            entities.ResourceCard.COTTON: 1,
+            entities.ResourceCard.MAIZE: 1,
         }
     )
     game_id = repository.add(game)
@@ -167,7 +145,7 @@ def _setup_trade_and_build(
         active_player: player.service().add(active_player),
         other: player.service().add(other),
     }
-    return repository, game_id, tokens, active_player, other, path
+    return repository, game_id, tokens, active_player, other, terrace
 
 
 def _create_game() -> entities.ActiveGame:

@@ -17,12 +17,12 @@ def handle_dice_roll(
     if game.active_player != action.by:
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
-    if game.player_idx < len(game.players) - 1:
-        game.player_idx += 1
-    else:
-        game.player_idx = 0
+    dice_1, dice_2 = action.rng_.randint(1, 6), action.rng_.randint(1, 6)
+    total = dice_1 + dice_2
 
-    return _registry.GamePhaseName.DICE_ROLL
+    if total == 7:
+        return _registry.GamePhaseName.MOVE_CONQUISTATOR
+    return _registry.GamePhaseName.TRADE_AND_BUILD
 
 
 def handle_play_wisdom_card(

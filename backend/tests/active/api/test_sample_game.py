@@ -114,7 +114,7 @@ def test_three_players_complete_initial_placements(
     assert response.json() == actions.GamePhaseName.DICE_PLAY_MAMO.value
 
     response = client.post(
-        f"/active-games/{game_id}/resources",
+        f"/active-games/{game_id}/wisdom-cards/mamo",
         json={"resource": entities.ResourceCard.WOOD.value},
     )
     assert response.status_code == 200, response.text
@@ -137,7 +137,7 @@ def test_three_players_complete_initial_placements(
     assert response.json() == actions.GamePhaseName.DICE_PLAY_BLESSED.value
 
     response = client.post(
-        f"/active-games/{game_id}/resources",
+        f"/active-games/{game_id}/wisdom-cards/blessing",
         json={
             "resources": [
                 entities.ResourceCard.STONE.value,
@@ -168,7 +168,7 @@ def test_three_players_complete_initial_placements(
     assert response.json() == actions.GamePhaseName.DICE_PLAY_PATHFINDER.value
 
     response = client.post(
-        f"/active-games/{game_id}/paths/",
+        f"/active-games/{game_id}/wisdom-cards/pathfinder",
         json={
             "paths": [
                 {

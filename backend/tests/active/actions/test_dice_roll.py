@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 from src.active import actions, entities
@@ -7,11 +9,14 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
     with pytest.raises(actions.PlayerNotInTurnError):
         actions.handle_dice_roll(
             game,
-            actions.PlayerAction(by=game.turn_order[1]),
+            actions.PlayerAction(
+                by=game.turn_order[1],
+                rng_=FixedRandom([1, 1]),
+            ),
         )
 
 
-def test_advances_player_idx_and_stays_in_dice_roll(
+def test_rolls_seven_moves_to_move_conquistator(
     game: entities.ActiveGame,
 ) -> None:
     game.player_idx = 0
@@ -19,23 +24,36 @@ def test_advances_player_idx_and_stays_in_dice_roll(
 
     phase = actions.handle_dice_roll(
         game,
-        actions.PlayerAction(by=player),
+        actions.PlayerAction(by=player, rng_=FixedRandom([3, 4])),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
-    assert game.player_idx == 1
-    assert game.active_player == game.turn_order[1]
+    assert phase is actions.GamePhaseName.MOVE_CONQUISTATOR
+    assert game.player_idx == 0
+    assert game.active_player == player
 
 
-def test_wraps_to_first_player_after_last_player(game: entities.ActiveGame) -> None:
-    game.player_idx = len(game.players) - 1
+def test_rolls_non_seven_moves_to_trade_and_build(
+    game: entities.ActiveGame,
+) -> None:
+    game.player_idx = 0
     player = game.active_player
 
     phase = actions.handle_dice_roll(
         game,
-        actions.PlayerAction(by=player),
+        actions.PlayerAction(by=player, rng_=FixedRandom([2, 3])),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.player_idx == 0
-    assert game.active_player == game.turn_order[0]
+    assert game.active_player == player
+
+
+class FixedRandom(random.Random):
+    def __init__(self, values: list[int]) -> None:
+        super().__init__()
+        self._values = iter(values)
+
+    def randint(self, a: int, b: int) -> int:
+        value = next(self._values)
+        assert a <= value <= b
+        return value

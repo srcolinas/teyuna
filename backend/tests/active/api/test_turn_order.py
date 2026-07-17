@@ -74,6 +74,58 @@ def test_returns_403_when_player_not_in_turn(
     assert response.status_code == 403, response.text
 
 
+def test_rolls_dice_and_advances_phase(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    game_id = repository.add(game)
+    repository.update(game_id, game, actions.GamePhaseName.DICE_ROLL)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+    active_player = game.active_player
+    token = player.service().add(active_player)
+
+    client.cookies.set("session-token", token)
+    response = client.post(f"/active-games/{game_id}/turn-order")
+
+    assert response.status_code == 200, response.text
+    phase, nickname = response.json()
+    assert phase in {
+        actions.GamePhaseName.MOVE_CONQUISTATOR,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+    }
+    assert nickname == active_player
+    _, stored_phase = repository.retrieve(game_id)
+    assert stored_phase == phase
+    assert game.active_player == active_player
+
+
+def test_ends_trade_and_build_and_advances_player(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    game_id = repository.add(game)
+    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+    active_player = game.active_player
+    next_player = game.turn_order[1]
+    token = player.service().add(active_player)
+
+    client.cookies.set("session-token", token)
+    response = client.post(f"/active-games/{game_id}/turn-order")
+
+    assert response.status_code == 200, response.text
+    phase, nickname = response.json()
+    assert phase == actions.GamePhaseName.DICE_ROLL
+    assert nickname == next_player
+    _, stored_phase = repository.retrieve(game_id)
+    assert stored_phase is actions.GamePhaseName.DICE_ROLL
+    assert game.active_player == next_player
+
+
 def _create_game() -> entities.ActiveGame:
     mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
     return entities.ActiveGame(

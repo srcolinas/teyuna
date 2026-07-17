@@ -4,6 +4,7 @@ from .handlers._errors import (
     InvalidPathLocation,
     PlayerDoesNotHaveCardError,
     InsufficientResourceSupplyError,
+    InsufficientResourcesError,
 )
 
 from .handlers._first_placement import FreePlacementAction, handle_first_placement
@@ -26,6 +27,13 @@ from .handlers._dice_roll import (
     handle_dice_roll,
 )
 from .handlers._second_placement import handle_second_placement
+from .handlers._trade_and_build import (
+    BuildSettlementAction,
+    BuildPathAction,
+    handle_build_terrace,
+    handle_build_path,
+    handle_end_trade_and_build,
+)
 
 from ._registry import (
     ActionNotAllowedError,
@@ -36,12 +44,17 @@ from ._registry import (
 )
 
 __all__ = [
+    "BuildSettlementAction",
+    "BuildPathAction",
     "FreePlacementAction",
     "MoveConquistatorAction",
     "PlayBlessedAction",
     "PlayMamoAction",
     "PlayPathfinderAction",
     "PlayWisdomCardAction",
+    "handle_build_terrace",
+    "handle_build_path",
+    "handle_end_trade_and_build",
     "handle_first_placement",
     "handle_play_wisdom_card",
     "handle_dice_play_blessed",
@@ -58,6 +71,7 @@ __all__ = [
     "PlayerNotInTurnError",
     "PlayerDoesNotHaveCardError",
     "InsufficientResourceSupplyError",
+    "InsufficientResourcesError",
     "InvalidSettlementLocation",
     "InvalidPathLocation",
 ]
