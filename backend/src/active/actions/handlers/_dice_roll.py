@@ -1,3 +1,4 @@
+import collections
 import dataclasses
 from typing import Final
 
@@ -29,6 +30,7 @@ def handle_dice_roll(
         if game.to_discard_resources:
             return _registry.GamePhaseName.DISCARD_RESOURCES
         return _registry.GamePhaseName.MOVE_CONQUISTATOR
+    _produce_resources(game, roll=total)
     return _registry.GamePhaseName.TRADE_AND_BUILD
 
 
@@ -59,4 +61,42 @@ _CARD_PHASES: Final[dict[entities.WisdomCard, _registry.GamePhaseName]] = {
     entities.WisdomCard.BLESSING_OF_ALUNA: _registry.GamePhaseName.DICE_PLAY_BLESSED,
     entities.WisdomCard.PATHFINDER: _registry.GamePhaseName.DICE_PLAY_PATHFINDER,
     entities.WisdomCard.LEGACY_OF_THE_ELDERS: _registry.GamePhaseName.DICE_ROLL,
+}
+
+
+def _produce_resources(game: entities.ActiveGame, *, roll: int) -> None:
+    for hex_tile in game.map:
+        if hex_tile.number != roll:
+            continue
+        if hex_tile.type is entities.HexType.DESERT:
+            continue
+        if (hex_tile.q, hex_tile.r) == (
+            game.conquistator_location.q,
+            game.conquistator_location.r,
+        ):
+            continue
+        resource = _HEX_TYPE_TO_RESOURCE[hex_tile.type]
+        for nickname in game.turn_order:
+            settlements = game.players[nickname].settlements
+            for direction in range(6):
+                coord = entities.canonical_vertex(hex_tile.q, hex_tile.r, direction)
+                if coord not in settlements:
+                    continue
+                settlement = settlements[coord]
+                amount = 1 if settlement is entities.SettlementType.TERRACE else 2
+                to_grant = min(amount, game.resource_supply[resource])
+                if to_grant <= 0:
+                    continue
+                game.take_from_supply(
+                    to=nickname,
+                    amount=collections.Counter({resource: to_grant}),
+                )
+
+
+_HEX_TYPE_TO_RESOURCE: Final[dict[entities.HexType, entities.ResourceCard]] = {
+    entities.HexType.MOUNTAINS: entities.ResourceCard.GOLD,
+    entities.HexType.QUARRIES: entities.ResourceCard.STONE,
+    entities.HexType.HIGHLANDS: entities.ResourceCard.COTTON,
+    entities.HexType.VALLEYS: entities.ResourceCard.MAIZE,
+    entities.HexType.JUNGLE: entities.ResourceCard.WOOD,
 }
