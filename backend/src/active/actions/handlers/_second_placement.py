@@ -21,12 +21,13 @@ def handle_second_placement(
 
     can = validations.can_add_free_path_at(
         target=action.path,
-        neighbor_terrace=action.terrace,
         free_edges=game.free_edges,
         existing_settlements={
             *game.players[action.by].settlements.locations(),
             action.terrace,
         },
+        existing_paths=game.players[action.by].paths,
+        free_vertices=game.free_verticies,
     )
     if not can:
         raise _errors.InvalidPathLocation(f"Cannot add free path at {action.path}")
@@ -37,4 +38,4 @@ def handle_second_placement(
     if game.player_idx > 0:
         game.player_idx -= 1
         return _registry.GamePhaseName.SECOND_PLACEMENT
-    return _registry.GamePhaseName.END
+    return _registry.GamePhaseName.DICE_ROLL

@@ -11,7 +11,11 @@ from .. import entities
 class GamePhaseName(str, Enum):
     FIRST_PLACEMENT = "first placement"
     SECOND_PLACEMENT = "second placement"
-    END = "end"
+    DICE_ROLL = "dice roll"
+    DICE_PLAY_WARRIOR = "dice play warrior"
+    DICE_PLAY_MAMO = "dice play mamo"
+    DICE_PLAY_BLESSED = "dice play blessed"
+    DICE_PLAY_PATHFINDER = "dice play pathfinder"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

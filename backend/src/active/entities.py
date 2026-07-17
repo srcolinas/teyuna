@@ -259,15 +259,12 @@ class ActiveGame:
     conquistator_location: HexLocation
     turn_order: tuple[player.Nickname, ...]
     player_idx: int = 0
-    _free_verticies: set[Coordinate] = dataclasses.field(init=False)
-    _free_edges: set[Coordinate] = dataclasses.field(init=False)
     resource_supply: ResourceCount = dataclasses.field(
         default_factory=_default_resource_supply
     )
     trade_proposals: dict[uuid.UUID, TradeProposal] = dataclasses.field(
         default_factory=dict
     )
-    _restricted_verticies: set[Coordinate] = dataclasses.field(init=False)
     wisdom_deck: list[WisdomCard] = dataclasses.field(default_factory=list)
     last_dice_roll: int = 0
     longest_road: tuple[player.Nickname | None, int] = dataclasses.field(
@@ -276,12 +273,9 @@ class ActiveGame:
     biggest_army: tuple[player.Nickname | None, int] = dataclasses.field(
         default_factory=lambda: (None, 0)
     )
-    winner: player.Nickname | None = None
-    warrior_return_phase: str | None = None
-    blessing_return_phase: str | None = None
-    mamo_return_phase: str | None = None
-    pathfinder_return_phase: str | None = None
-    legacy_return_phase: str | None = None
+    _free_verticies: set[Coordinate] = dataclasses.field(init=False)
+    _free_edges: set[Coordinate] = dataclasses.field(init=False)
+    _restricted_verticies: set[Coordinate] = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
         free_verticies: set[Coordinate] = set()
@@ -341,3 +335,36 @@ class ActiveGame:
     def use_edge(self, by: player.Nickname, target: Coordinate) -> None:
         self._free_edges.remove(target)
         self.players[by].paths.add(target)
+
+    def use_card(self, by: player.Nickname, card: WisdomCard) -> None:
+        """
+        Removes a card from the player's hand and adds it to the player's
+        played cards.
+        """
+        self.players[by].cards[card] -= 1
+        self.players[by].played_cards[card] += 1
+
+    def take_resources(
+        self,
+        from_: player.Nickname,
+        to: player.Nickname,
+        amount: ResourceCount,
+    ) -> None:
+        """Exchanges resources between two players."""
+        self.players[from_].resources.subtract(amount)
+        self.players[to].resources.update(amount)
+
+    def monopoly_of_resource(self, type: ResourceCard) -> None:
+        """Takes all of a resource from a player and gives it the active player."""
+        for nickname, player_ in self.players.items():
+            if player_.resources[type] > 0:
+                self.take_resources(
+                    from_=nickname,
+                    to=self.active_player,
+                    amount=collections.Counter({type: player_.resources[type]}),
+                )
+
+    def take_from_supply(self, to: player.Nickname, amount: ResourceCount) -> None:
+        """Takes resources from the supply and gives them to a specific player."""
+        self.resource_supply.subtract(amount)
+        self.players[to].resources.update(amount)

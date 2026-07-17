@@ -71,7 +71,7 @@ def test_decrements_player_idx_and_stays_in_second_placement(
     assert path in game.players[player].paths
 
 
-def test_returns_end_and_resets_player_idx_after_first_player(
+def test_returns_dice_roll_and_keeps_player_idx_after_first_player(
     game: entities.ActiveGame,
 ) -> None:
     game.player_idx = 0
@@ -83,5 +83,5 @@ def test_returns_end_and_resets_player_idx_after_first_player(
         actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
     )
 
-    assert phase is actions.GamePhaseName.END
+    assert phase is actions.GamePhaseName.DICE_ROLL
     assert game.player_idx == 0

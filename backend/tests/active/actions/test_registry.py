@@ -13,13 +13,13 @@ def test_registered_handler_can_be_executed(game: entities.ActiveGame) -> None:
     def handle_dummy(
         game: entities.ActiveGame, action: DummyAction
     ) -> actions.GamePhaseName:
-        return actions.GamePhaseName.END
+        return actions.GamePhaseName.DICE_ROLL
 
     registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
 
     result = registry.execute(actions.GamePhaseName.FIRST_PLACEMENT, game, action)
 
-    assert result is actions.GamePhaseName.END
+    assert result is actions.GamePhaseName.DICE_ROLL
 
 
 def test_unregistered_phase_raises(game: entities.ActiveGame) -> None:
@@ -39,7 +39,7 @@ def test_unregistered_action_type_raises(game: entities.ActiveGame) -> None:
     def handle_dummy(
         game: entities.ActiveGame, action: DummyAction
     ) -> actions.GamePhaseName:
-        return actions.GamePhaseName.END
+        return actions.GamePhaseName.DICE_ROLL
 
     registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
 
@@ -56,7 +56,7 @@ def test_register_requires_at_least_two_parameters() -> None:
     registry = actions.ActionsRegistry()
 
     def handle_invalid(game: entities.ActiveGame) -> actions.GamePhaseName:
-        return actions.GamePhaseName.END
+        return actions.GamePhaseName.DICE_ROLL
 
     with pytest.raises(ValueError, match="must accept at least two parameters"):
         registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(
@@ -68,7 +68,7 @@ def test_register_requires_player_action_annotation() -> None:
     registry = actions.ActionsRegistry()
 
     def handle_invalid(game: entities.ActiveGame, action: str) -> actions.GamePhaseName:
-        return actions.GamePhaseName.END
+        return actions.GamePhaseName.DICE_ROLL
 
     with pytest.raises(TypeError, match="must be annotated with a subclass"):
         registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(

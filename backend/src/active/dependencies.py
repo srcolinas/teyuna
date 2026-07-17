@@ -21,6 +21,18 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(actions.GamePhaseName.SECOND_PLACEMENT)(
         actions.handle_second_placement
     )
+    reg.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
+    reg.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_play_wisdom_card)
+    reg.register(actions.GamePhaseName.DICE_PLAY_WARRIOR)(
+        actions.handle_dice_play_warrior
+    )
+    reg.register(actions.GamePhaseName.DICE_PLAY_MAMO)(actions.handle_dice_play_mamo)
+    reg.register(actions.GamePhaseName.DICE_PLAY_BLESSED)(
+        actions.handle_dice_play_blessed
+    )
+    reg.register(actions.GamePhaseName.DICE_PLAY_PATHFINDER)(
+        actions.handle_dice_play_pathfinder
+    )
     return reg
 
 

@@ -179,8 +179,10 @@ def test_returns_501_when_phase_not_implemented(
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
     game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.END)
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+    app.dependency_overrides[active.dependencies.get_actions_registry] = (
+        lambda: actions.ActionsRegistry()
+    )
     token = player.service().add(game.active_player)
 
     response = utils.post_initial_placements(
@@ -204,7 +206,7 @@ def _registry_with_wrong_action() -> actions.ActionsRegistry:
     def handle_dummy(
         game: entities.ActiveGame, action: _DummyAction
     ) -> actions.GamePhaseName:
-        return actions.GamePhaseName.END
+        return actions.GamePhaseName.DICE_ROLL
 
     registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
     return registry

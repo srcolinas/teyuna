@@ -8,3 +8,11 @@ class InvalidSettlementLocation(Exception):
 
 class InvalidPathLocation(Exception):
     pass
+
+
+class PlayerDoesNotHaveCardError(Exception):
+    pass
+
+
+class InsufficientResourceSupplyError(Exception):
+    pass

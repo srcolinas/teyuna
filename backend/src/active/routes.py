@@ -28,6 +28,241 @@ def get_game_map(
     return game.map
 
 
+# --- Turn order ---
+
+
+@router.get("/{game_id}/turn-order")
+def get_turn_order(
+    game: Annotated[ports.ActiveGame, fastapi.Depends(dependencies.get_game)],
+) -> tuple[player.Nickname, ...]:
+    return game.turn_order
+
+
+@router.post("/{game_id}/turn-order")
+def advance_or_phase(
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> tuple[actions.GamePhaseName, player.Nickname]:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.PlayerAction(by=nickname),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.PlayerNotInTurnError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+    return new_phase, game.active_player
+
+
+# --- Conquistator ---
+
+
+@router.get("/{game_id}/conquistator")
+def get_conquistator_location(
+    game: Annotated[ports.ActiveGame, fastapi.Depends(dependencies.get_game)],
+) -> ports.HexCoordinate:
+    return game.conquistator_location
+
+
+class MoveConquistatorPayload(pydantic.BaseModel):
+    location: ports.HexCoordinate
+    take_from: player.Nickname | None = None
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/conquistator")
+def move_conquistator(
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    payload: MoveConquistatorPayload,
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> ports.HexCoordinate:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.MoveConquistatorAction(
+                by=nickname,
+                q=payload.location.q,
+                r=payload.location.r,
+                from_player=payload.take_from,
+            ),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.PlayerNotInTurnError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+    return ports.HexCoordinate(
+        q=game.conquistator_location.q, r=game.conquistator_location.r
+    )
+
+
+# --- Wisdom cards ---
+
+
+class PlayWisdomCardPayload(pydantic.BaseModel):
+    card: entities.WisdomCard
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/wisdom-cards")
+def play_wisdom_card(
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    payload: PlayWisdomCardPayload,
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> actions.GamePhaseName:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.PlayWisdomCardAction(by=nickname, card=payload.card),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.PlayerNotInTurnError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
+        )
+    except actions.PlayerDoesNotHaveCardError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+    return new_phase
+
+
+# --- Resources ---
+
+
+class AddResourcesPayload(pydantic.BaseModel):
+    resource: entities.ResourceCard | None = None
+    resources: tuple[entities.ResourceCard, entities.ResourceCard] | None = None
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/resources")
+def add_resources(
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    payload: AddResourcesPayload,
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> dict[entities.ResourceCard, int]:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if phase is actions.GamePhaseName.DICE_PLAY_MAMO:
+        if payload.resource is None:
+            raise fastapi.HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="resource is required during the dice play mamo phase.",
+            )
+        action: actions.PlayerAction = actions.PlayMamoAction(
+            by=nickname, resource=payload.resource
+        )
+    elif phase is actions.GamePhaseName.DICE_PLAY_BLESSED:
+        if payload.resources is None:
+            raise fastapi.HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="resources is required during the dice play blessed phase.",
+            )
+        action = actions.PlayBlessedAction(by=nickname, resources=payload.resources)
+    else:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Action 'add resources' is not allowed during the '{phase.value}' phase.",
+        )
+
+    try:
+        new_phase = registry.execute(phase, game, action)
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.PlayerNotInTurnError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
+        )
+    except actions.InsufficientResourceSupplyError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+    return dict(game.players[nickname].resources)
+
+
 # --- Players ---
 
 
@@ -152,7 +387,7 @@ def get_settlement(
     return None
 
 
-@router.post("/{game_id}/settlements/{q}/{r}/{direction}")
+@router.post("/{game_id}/settlements")
 async def build_settlement(
     game_id: uuid.UUID,
     q: int,
@@ -196,16 +431,76 @@ def get_path(
     return None
 
 
-@router.post("/{game_id}/settlements/{q}/{r}/{direction}")
-def build_path(
+class AddPathsPayload(pydantic.BaseModel):
+    paths: Annotated[
+        list[ports.EdgeCoordinate],
+        pydantic.Field(min_length=1, max_length=2),
+    ]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/paths/")
+def add_paths(
     game_id: uuid.UUID,
-    q: int,
-    r: int,
-    direction: int,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    payload: AddPathsPayload,
     repository: Annotated[
         repostory_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
-) -> ports.PlayedStonePath:
-    raise NotImplementedError
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> list[ports.PlayedStonePath]:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    paths_before = set(game.players[nickname].paths)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.PlayPathfinderAction(
+                by=nickname,
+                paths=tuple(
+                    entities.Coordinate(
+                        q=path.hex_coord.q,
+                        r=path.hex_coord.r,
+                        d=path.direction,
+                    )
+                    for path in payload.paths
+                ),
+            ),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.PlayerNotInTurnError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
+        )
+    except actions.InvalidPathLocation as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+
+    placed = game.players[nickname].paths - paths_before
+    return [
+        ports.PlayedStonePath(
+            owner=nickname,
+            location=ports.EdgeCoordinate(
+                hex_coord=ports.HexCoordinate(q=coord.q, r=coord.r),
+                direction=coord.d,
+            ),
+        )
+        for coord in placed
+    ]
