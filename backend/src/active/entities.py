@@ -1,7 +1,8 @@
 import collections
 import dataclasses
+import itertools
 import uuid
-from collections.abc import ItemsView, ValuesView
+from collections.abc import ItemsView, KeysView, Set, ValuesView
 from enum import Enum
 from typing import Final, NamedTuple
 
@@ -185,6 +186,9 @@ class SettlementsCollection:
         self._locations[coord] = type
         self._counts[type] += 1
 
+    def locations(self) -> KeysView[Coordinate]:
+        return self._locations.keys()
+
     def items(self) -> ItemsView[Coordinate, SettlementType]:
         return self._locations.items()
 
@@ -255,15 +259,15 @@ class ActiveGame:
     conquistator_location: HexLocation
     turn_order: tuple[player.Nickname, ...]
     player_idx: int = 0
-    free_verticies: set[Coordinate] = dataclasses.field(default_factory=set)
-    free_edges: set[Coordinate] = dataclasses.field(default_factory=set)
+    _free_verticies: set[Coordinate] = dataclasses.field(init=False)
+    _free_edges: set[Coordinate] = dataclasses.field(init=False)
     resource_supply: ResourceCount = dataclasses.field(
         default_factory=_default_resource_supply
     )
     trade_proposals: dict[uuid.UUID, TradeProposal] = dataclasses.field(
         default_factory=dict
     )
-    restricted_verticies: set[Coordinate] = dataclasses.field(default_factory=set)
+    _restricted_verticies: set[Coordinate] = dataclasses.field(init=False)
     wisdom_deck: list[WisdomCard] = dataclasses.field(default_factory=list)
     last_dice_roll: int = 0
     longest_road: tuple[player.Nickname | None, int] = dataclasses.field(
@@ -279,6 +283,61 @@ class ActiveGame:
     pathfinder_return_phase: str | None = None
     legacy_return_phase: str | None = None
 
+    def __post_init__(self) -> None:
+        free_verticies: set[Coordinate] = set()
+        free_edges: set[Coordinate] = set()
+        for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
+            if (q, r) not in INVALID_HEX_COORDINATES:
+                free_verticies.add(canonical_vertex(q, r, d))
+                free_edges.add(canonical_edge(q, r, d))
+        self._free_verticies = free_verticies
+        self._free_edges = free_edges
+        self._restricted_verticies = set()
+
     @property
     def active_player(self) -> player.Nickname:
         return self.turn_order[self.player_idx]
+
+    @property
+    def free_verticies(self) -> Set[Coordinate]:
+        """
+        Returns all vertices that don't have a settlement on them,
+        even if they are adjacent to a settlement and can't be used
+        to place a settlement.
+        """
+        return frozenset(self._free_verticies)
+
+    @property
+    def free_edges(self) -> Set[Coordinate]:
+        """Returns all edges that don't have a path on them"""
+        return frozenset(self._free_edges)
+
+    @property
+    def restricted_verticies(self) -> Set[Coordinate]:
+        """
+        Returns all free vertices that can't be used to place a settlement,
+        but are adjacent to a settlement and therore can't be used to place
+        a settlement. Any path should be able to go through these verticies
+        though.
+        """
+        return frozenset(self._restricted_verticies)
+
+    def use_vertex(
+        self, by: player.Nickname, target: Coordinate, settlement: SettlementType
+    ) -> None:
+        dq5, dr5 = delta_to_neighbor((target.d + 5) % 6)
+        blocked_vertices = {
+            canonical_vertex(vq, vr, vd)
+            for vq, vr, vd in [
+                (target.q, target.r, (target.d + 1) % 6),
+                (target.q, target.r, (target.d + 5) % 6),
+                (target.q + dq5, target.r + dr5, (target.d + 1) % 6),
+            ]
+        }
+        self._free_verticies.remove(target)
+        self._restricted_verticies.update(blocked_vertices)
+        self.players[by].settlements[target] = settlement
+
+    def use_edge(self, by: player.Nickname, target: Coordinate) -> None:
+        self._free_edges.remove(target)
+        self.players[by].paths.add(target)

@@ -10,6 +10,7 @@ from .. import entities
 
 class GamePhaseName(str, Enum):
     FIRST_PLACEMENT = "first placement"
+    SECOND_PLACEMENT = "second placement"
     END = "end"
 
 

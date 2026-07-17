@@ -80,7 +80,7 @@ def add_initial_placements(
         new_phase = registry.execute(
             phase,
             game,
-            actions.FirstPlacementAction(
+            actions.FreePlacementAction(
                 by=nickname,
                 terrace=entities.Coordinate(
                     q=payload.terrace.hex_coord.q,

@@ -18,6 +18,9 @@ def get_repository() -> repository_module.InMemoryActiveGameRepository:
 def get_actions_registry() -> actions.ActionsRegistry:
     reg = actions.ActionsRegistry()
     reg.register(actions.GamePhaseName.FIRST_PLACEMENT)(actions.handle_first_placement)
+    reg.register(actions.GamePhaseName.SECOND_PLACEMENT)(
+        actions.handle_second_placement
+    )
     return reg
 
 

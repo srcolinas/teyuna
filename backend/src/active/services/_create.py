@@ -1,5 +1,4 @@
 import collections
-import itertools
 import random
 import uuid
 
@@ -22,7 +21,6 @@ def create_game(
     deserts = [hex for hex in map if hex.type == entities.HexType.DESERT]
     players = list(players)
     random.shuffle(players)
-    free_verticies, free_edges = _initial_buildable_locations()
     desert = random.choice(deserts)
     game = entities.ActiveGame(
         map=map,
@@ -38,8 +36,6 @@ def create_game(
             )
             for nickname in players
         },
-        free_verticies=free_verticies,
-        free_edges=free_edges,
         wisdom_deck=_create_wisdom_deck(),
     )
     return repository.add(game)
@@ -85,18 +81,6 @@ def _create_wisdom_deck() -> list[entities.WisdomCard]:
     )
     random.shuffle(deck)
     return deck
-
-
-def _initial_buildable_locations() -> tuple[
-    set[entities.Coordinate], set[entities.Coordinate]
-]:
-    free_verticies: set[entities.Coordinate] = set()
-    free_edges: set[entities.Coordinate] = set()
-    for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
-        if (q, r) not in entities.INVALID_HEX_COORDINATES:
-            free_verticies.add(entities.canonical_vertex(q, r, d))
-            free_edges.add(entities.canonical_edge(q, r, d))
-    return free_verticies, free_edges
 
 
 _TYPES = (

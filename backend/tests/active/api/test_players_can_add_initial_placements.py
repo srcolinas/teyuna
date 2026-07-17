@@ -1,6 +1,5 @@
 import collections
 import dataclasses
-import itertools
 import uuid
 
 import fastapi
@@ -118,7 +117,11 @@ def test_returns_400_for_invalid_terrace(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game.restricted_verticies.add(entities.canonical_vertex(0, 0, 0))
+    target = entities.canonical_vertex(0, -1, 2)
+    adjacent_terrace = entities.canonical_vertex(target.q, target.r, (target.d + 1) % 6)
+    game.use_vertex(
+        game.active_player, adjacent_terrace, entities.SettlementType.TERRACE
+    )
     game_id = repository.add(game)
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
@@ -208,7 +211,6 @@ def _registry_with_wrong_action() -> actions.ActionsRegistry:
 
 
 def _create_game() -> entities.ActiveGame:
-    free_verticies, free_edges = _initial_buildable_locations()
     mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
     return entities.ActiveGame(
         map=(mountains,),
@@ -224,18 +226,4 @@ def _create_game() -> entities.ActiveGame:
             )
             for nickname in ("srcolinas-0", "srcolinas-1", "srcolinas-2")
         },
-        free_verticies=free_verticies,
-        free_edges=free_edges,
     )
-
-
-def _initial_buildable_locations() -> tuple[
-    set[entities.Coordinate], set[entities.Coordinate]
-]:
-    free_verticies: set[entities.Coordinate] = set()
-    free_edges: set[entities.Coordinate] = set()
-    for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
-        if (q, r) not in entities.INVALID_HEX_COORDINATES:
-            free_verticies.add(entities.canonical_vertex(q, r, d))
-            free_edges.add(entities.canonical_edge(q, r, d))
-    return free_verticies, free_edges

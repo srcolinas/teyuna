@@ -4,7 +4,8 @@ from .handlers._errors import (
     InvalidPathLocation,
 )
 
-from .handlers._first_placement import FirstPlacementAction, handle_first_placement
+from .handlers._first_placement import FreePlacementAction, handle_first_placement
+from .handlers._second_placement import handle_second_placement
 
 from ._registry import (
     ActionNotAllowedError,
@@ -15,8 +16,9 @@ from ._registry import (
 )
 
 __all__ = [
-    "FirstPlacementAction",
+    "FreePlacementAction",
     "handle_first_placement",
+    "handle_second_placement",
     "ActionNotAllowedError",
     "ActionsRegistry",
     "GamePhaseHanlderNotImplementedError",

@@ -1,30 +1,10 @@
-import dataclasses
-
 from ... import entities, validations
 from .. import _registry
-from . import _errors
+from . import _errors, _first_placement
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
-class FreePlacementAction(_registry.PlayerAction):
-    terrace: entities.Coordinate
-    path: entities.Coordinate
-
-    def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "terrace",
-            entities.canonical_vertex(self.terrace.q, self.terrace.r, self.terrace.d),
-        )
-        object.__setattr__(
-            self,
-            "path",
-            entities.canonical_edge(self.path.q, self.path.r, self.path.d),
-        )
-
-
-def handle_first_placement(
-    game: entities.ActiveGame, action: FreePlacementAction
+def handle_second_placement(
+    game: entities.ActiveGame, action: _first_placement.FreePlacementAction
 ) -> _registry.GamePhaseName:
     if game.active_player != action.by:
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
@@ -54,7 +34,7 @@ def handle_first_placement(
     game.use_vertex(action.by, action.terrace, entities.SettlementType.TERRACE)
     game.use_edge(action.by, action.path)
 
-    if game.player_idx < len(game.players) - 1:
-        game.player_idx += 1
-        return _registry.GamePhaseName.FIRST_PLACEMENT
-    return _registry.GamePhaseName.SECOND_PLACEMENT
+    if game.player_idx > 0:
+        game.player_idx -= 1
+        return _registry.GamePhaseName.SECOND_PLACEMENT
+    return _registry.GamePhaseName.END

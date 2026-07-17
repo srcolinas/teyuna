@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Any, cast
 
 import pytest
 
@@ -48,6 +49,30 @@ def test_unregistered_action_type_raises(game: entities.ActiveGame) -> None:
     ):
         registry.execute(
             actions.GamePhaseName.FIRST_PLACEMENT, game, OtherAction(by="player")
+        )
+
+
+def test_register_requires_at_least_two_parameters() -> None:
+    registry = actions.ActionsRegistry()
+
+    def handle_invalid(game: entities.ActiveGame) -> actions.GamePhaseName:
+        return actions.GamePhaseName.END
+
+    with pytest.raises(ValueError, match="must accept at least two parameters"):
+        registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(
+            cast(Any, handle_invalid)
+        )
+
+
+def test_register_requires_player_action_annotation() -> None:
+    registry = actions.ActionsRegistry()
+
+    def handle_invalid(game: entities.ActiveGame, action: str) -> actions.GamePhaseName:
+        return actions.GamePhaseName.END
+
+    with pytest.raises(TypeError, match="must be annotated with a subclass"):
+        registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(
+            cast(Any, handle_invalid)
         )
 
 
