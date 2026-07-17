@@ -1,6 +1,6 @@
-from ... import entities, validations
+from ... import entities
 from .. import _registry
-from . import _errors, _first_placement
+from . import _errors, _first_placement, _placement
 
 
 def handle_second_placement(
@@ -9,7 +9,7 @@ def handle_second_placement(
     if game.active_player != action.by:
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
-    can = validations.can_add_free_terrace_at(
+    can = _placement.can_add_free_terrace_at(
         free_verticies=game.free_verticies,
         restricted_verticies=game.restricted_verticies,
         target=action.terrace,
@@ -19,7 +19,7 @@ def handle_second_placement(
             f"Cannot add free terrace at {action.terrace}"
         )
 
-    can = validations.can_add_free_path_at(
+    can = _placement.can_add_free_path_at(
         target=action.path,
         free_edges=game.free_edges,
         existing_settlements={

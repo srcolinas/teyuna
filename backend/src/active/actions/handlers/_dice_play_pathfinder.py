@@ -1,8 +1,8 @@
 import dataclasses
 
-from ... import entities, validations
+from ... import entities
 from .. import _registry
-from . import _errors
+from . import _errors, _placement
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -30,7 +30,7 @@ def handle_dice_play_pathfinder(
     to_place = action.paths[:remaining]
 
     for path in to_place:
-        can = validations.can_add_free_path_at(
+        can = _placement.can_add_free_path_at(
             target=path,
             free_edges=game.free_edges,
             existing_settlements=player_state.settlements.locations(),

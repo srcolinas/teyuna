@@ -87,3 +87,19 @@ def test_raises_when_path_is_invalid(game: entities.ActiveGame) -> None:
             game,
             actions.PlayPathfinderAction(by=player, paths=(disconnected,)),
         )
+
+
+def test_raises_when_path_already_taken(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+    game.use_edge(game.turn_order[1], path)
+
+    with pytest.raises(actions.InvalidPathLocation):
+        actions.handle_dice_play_pathfinder(
+            game,
+            actions.PlayPathfinderAction(by=player, paths=(path,)),
+        )

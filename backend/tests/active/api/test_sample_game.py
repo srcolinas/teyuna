@@ -2,7 +2,8 @@ import fastapi
 import fastapi.testclient as testclient
 
 from src import active
-from src.active import actions, entities, validations, repository as repository_module
+from src.active import actions, entities, repository as repository_module
+from src.active.actions.handlers import _placement
 
 from . import utils
 
@@ -219,7 +220,7 @@ def _two_connected_free_paths(
     for owned in player_state.paths:
         for vertex in entities.vertices_of_edge(owned):
             for edge in entities.edges_adjacent_to_vertex(vertex.q, vertex.r, vertex.d):
-                if validations.can_add_free_path_at(
+                if _placement.can_add_free_path_at(
                     target=edge,
                     free_edges=game.free_edges,
                     existing_settlements=player_state.settlements.locations(),
@@ -240,7 +241,7 @@ def _two_connected_free_paths(
         for edge in entities.edges_adjacent_to_vertex(vertex.q, vertex.r, vertex.d):
             if edge == first:
                 continue
-            if validations.can_add_free_path_at(
+            if _placement.can_add_free_path_at(
                 target=edge,
                 free_edges=game.free_edges - {first},
                 existing_settlements=player_state.settlements.locations(),

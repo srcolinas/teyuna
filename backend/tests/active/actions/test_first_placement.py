@@ -33,9 +33,37 @@ def test_raises_when_terrace_invalid(game: entities.ActiveGame) -> None:
         )
 
 
+def test_raises_when_terrace_already_occupied(game: entities.ActiveGame) -> None:
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    game.use_vertex(game.turn_order[1], terrace, entities.SettlementType.TERRACE)
+
+    with pytest.raises(actions.InvalidSettlementLocation):
+        actions.handle_first_placement(
+            game,
+            actions.FreePlacementAction(
+                by=game.active_player, terrace=terrace, path=path
+            ),
+        )
+
+
 def test_raises_when_path_invalid(game: entities.ActiveGame) -> None:
     terrace = entities.canonical_vertex(0, 0, 0)
     path = entities.canonical_edge(1, 1, 1)
+
+    with pytest.raises(actions.InvalidPathLocation):
+        actions.handle_first_placement(
+            game,
+            actions.FreePlacementAction(
+                by=game.active_player, terrace=terrace, path=path
+            ),
+        )
+
+
+def test_raises_when_path_already_taken(game: entities.ActiveGame) -> None:
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    game.use_edge(game.turn_order[1], path)
 
     with pytest.raises(actions.InvalidPathLocation):
         actions.handle_first_placement(

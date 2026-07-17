@@ -35,11 +35,41 @@ def test_raises_when_terrace_invalid(game: entities.ActiveGame) -> None:
         )
 
 
+def test_raises_when_terrace_already_occupied(game: entities.ActiveGame) -> None:
+    game.player_idx = len(game.players) - 1
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    game.use_vertex(game.turn_order[0], terrace, entities.SettlementType.TERRACE)
+
+    with pytest.raises(actions.InvalidSettlementLocation):
+        actions.handle_second_placement(
+            game,
+            actions.FreePlacementAction(
+                by=game.active_player, terrace=terrace, path=path
+            ),
+        )
+
+
 def test_raises_when_path_invalid(game: entities.ActiveGame) -> None:
     game.player_idx = len(game.players) - 1
     terrace = entities.canonical_vertex(0, 0, 0)
     path = entities.canonical_edge(1, 1, 1)
     assert terrace not in entities.vertices_of_edge(path)
+
+    with pytest.raises(actions.InvalidPathLocation):
+        actions.handle_second_placement(
+            game,
+            actions.FreePlacementAction(
+                by=game.active_player, terrace=terrace, path=path
+            ),
+        )
+
+
+def test_raises_when_path_already_taken(game: entities.ActiveGame) -> None:
+    game.player_idx = len(game.players) - 1
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    game.use_edge(game.turn_order[0], path)
 
     with pytest.raises(actions.InvalidPathLocation):
         actions.handle_second_placement(

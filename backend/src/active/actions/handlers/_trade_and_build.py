@@ -3,9 +3,9 @@ import dataclasses
 from typing import Final
 
 from .... import player
-from ... import entities, validations
+from ... import entities
 from .. import _registry
-from . import _errors
+from . import _errors, _placement
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -87,7 +87,7 @@ def _build_terrace(
     ):
         raise _errors.InsufficientResourcesError("No terraces remaining")
 
-    can = validations.can_build_terrace_at(
+    can = _placement.can_build_terrace_at(
         free_verticies=game.free_verticies,
         restricted_verticies=game.restricted_verticies,
         existing_paths=player_state.paths,
@@ -133,7 +133,7 @@ def _build_path(
         raise _errors.InsufficientResourcesError("No paths remaining")
     _ensure_resources(player_state.resources, _PATH_COST)
 
-    can = validations.can_add_free_path_at(
+    can = _placement.can_add_free_path_at(
         target=coordinate,
         free_edges=game.free_edges,
         existing_settlements=player_state.settlements.locations(),
