@@ -118,8 +118,34 @@ def test_takes_all_of_resource_from_other_players(
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 0
 
 
+def test_takes_all_of_resource_during_trade_and_build_play_mamo(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, other = _setup_mamo_phase(
+        app, phase=actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO
+    )
+    game, _ = repository.retrieve(game_id)
+    game.players[other].resources[entities.ResourceCard.WOOD] = 3
+    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/active-games/{game_id}/wisdom-cards/mamo",
+        json={"resource": entities.ResourceCard.WOOD.value},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()[entities.ResourceCard.WOOD.value] == 3
+
+    game, phase = repository.retrieve(game_id)
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert game.players[other].resources[entities.ResourceCard.WOOD] == 0
+
+
 def _setup_mamo_phase(
     app: fastapi.FastAPI,
+    phase: actions.GamePhaseName = actions.GamePhaseName.DICE_PLAY_MAMO,
 ) -> tuple[
     repository_module.InMemoryActiveGameRepository,
     uuid.UUID,
@@ -133,7 +159,7 @@ def _setup_mamo_phase(
     other = game.turn_order[1]
     game.players[active_player].cards[entities.WisdomCard.WINDOM_OF_MAMO] = 1
     game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_MAMO)
+    repository.update(game_id, game, phase)
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),

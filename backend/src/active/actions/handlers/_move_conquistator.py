@@ -1,15 +1,37 @@
 import collections
+import dataclasses
 import random
 
+from .... import player
 from ... import entities
 from .. import _registry
 from . import _errors
-from ._dice_play_warrior import MoveConquistatorAction
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class MoveConquistatorAction(_registry.PlayerAction):
+    q: int
+    r: int
+    from_player: player.Nickname | None = None
+
+
+def handle_dice_play_warrior(
+    game: entities.ActiveGame, action: MoveConquistatorAction
+) -> _registry.GamePhaseName:
+    _apply_move_conquistator(game, action)
+    return _registry.GamePhaseName.DICE_ROLL
 
 
 def handle_move_conquistator(
     game: entities.ActiveGame, action: MoveConquistatorAction
 ) -> _registry.GamePhaseName:
+    _apply_move_conquistator(game, action)
+    return _registry.GamePhaseName.TRADE_AND_BUILD
+
+
+def _apply_move_conquistator(
+    game: entities.ActiveGame, action: MoveConquistatorAction
+) -> None:
     if game.active_player != action.by:
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
@@ -31,5 +53,3 @@ def handle_move_conquistator(
                 action.by,
                 collections.Counter({stolen: 1}),
             )
-
-    return _registry.GamePhaseName.TRADE_AND_BUILD

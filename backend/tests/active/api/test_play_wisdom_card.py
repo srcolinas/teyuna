@@ -3,6 +3,7 @@ import uuid
 
 import fastapi
 import fastapi.testclient as testclient
+import pytest
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
@@ -106,6 +107,59 @@ def test_returns_400_when_player_does_not_have_card(
     )
 
     assert response.status_code == 400, response.text
+
+
+@pytest.mark.parametrize(
+    ("card", "expected_phase"),
+    [
+        (
+            entities.WisdomCard.WARRIOR,
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+        ),
+        (
+            entities.WisdomCard.WINDOM_OF_MAMO,
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+        ),
+        (
+            entities.WisdomCard.BLESSING_OF_ALUNA,
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
+        ),
+        (
+            entities.WisdomCard.PATHFINDER,
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
+        ),
+        (
+            entities.WisdomCard.LEGACY_OF_THE_ELDERS,
+            actions.GamePhaseName.TRADE_AND_BUILD,
+        ),
+    ],
+)
+def test_plays_card_during_trade_and_build(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+    card: entities.WisdomCard,
+    expected_phase: actions.GamePhaseName,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    game.players[game.active_player].cards[card] = 1
+    game_id = repository.add(game)
+    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+    token = player.service().add(game.active_player)
+
+    client.cookies.set("session-token", token)
+    response = client.post(
+        f"/active-games/{game_id}/wisdom-cards",
+        json={"card": card.value},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == expected_phase.value
+    game, phase = repository.retrieve(game_id)
+    assert phase is expected_phase
+    assert game.players[game.active_player].cards[card] == 0
+    assert game.players[game.active_player].played_cards[card] == 1
 
 
 def _create_game() -> entities.ActiveGame:

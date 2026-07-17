@@ -11,29 +11,35 @@ from .handlers._errors import (
 )
 
 from .handlers._first_placement import FreePlacementAction, handle_first_placement
-from .handlers._dice_play_blessed import (
+from .handlers._play_blessed import (
     PlayBlessedAction,
     handle_dice_play_blessed,
+    handle_trade_and_build_play_blessed,
 )
-from .handlers._dice_play_mamo import PlayMamoAction, handle_dice_play_mamo
-from .handlers._dice_play_pathfinder import (
+from .handlers._play_mamo import (
+    PlayMamoAction,
+    handle_dice_play_mamo,
+    handle_trade_and_build_play_mamo,
+)
+from .handlers._play_pathfinder import (
     PlayPathfinderAction,
     handle_dice_play_pathfinder,
-)
-from .handlers._dice_play_warrior import (
-    MoveConquistatorAction,
-    handle_dice_play_warrior,
+    handle_trade_and_build_play_pathfinder,
 )
 from .handlers._dice_roll import (
-    PlayWisdomCardAction,
     handle_play_wisdom_card,
     handle_dice_roll,
 )
+from .handlers._play_card import PlayWisdomCardAction
 from .handlers._discard_resources import (
     DiscardResourcesAction,
     handle_discard_resources,
 )
-from .handlers._move_conquistator import handle_move_conquistator
+from .handlers._move_conquistator import (
+    MoveConquistatorAction,
+    handle_dice_play_warrior,
+    handle_move_conquistator,
+)
 from .handlers._second_placement import handle_second_placement
 from .handlers._trade_and_build import (
     BuildSettlementAction,
@@ -41,6 +47,7 @@ from .handlers._trade_and_build import (
     handle_build_terrace,
     handle_build_path,
     handle_end_trade_and_build,
+    handle_trade_and_build_play_wisdom_card,
 )
 
 from ._registry import (
@@ -67,10 +74,14 @@ __all__ = [
     "handle_end_trade_and_build",
     "handle_first_placement",
     "handle_play_wisdom_card",
+    "handle_trade_and_build_play_wisdom_card",
     "handle_dice_play_blessed",
     "handle_dice_play_mamo",
     "handle_dice_play_pathfinder",
     "handle_dice_play_warrior",
+    "handle_trade_and_build_play_blessed",
+    "handle_trade_and_build_play_mamo",
+    "handle_trade_and_build_play_pathfinder",
     "handle_dice_roll",
     "handle_move_conquistator",
     "handle_second_placement",

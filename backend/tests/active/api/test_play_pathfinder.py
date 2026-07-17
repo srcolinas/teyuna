@@ -166,8 +166,46 @@ def test_places_paths_and_returns_them(
     assert second in game.players[active_player].paths
 
 
+def test_places_paths_during_trade_and_build_play_pathfinder(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, _, first, second = (
+        _setup_pathfinder_phase(
+            app, phase=actions.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER
+        )
+    )
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/active-games/{game_id}/wisdom-cards/pathfinder",
+        json={
+            "paths": [
+                {
+                    "hex_coord": {"q": first.q, "r": first.r},
+                    "direction": first.d,
+                },
+                {
+                    "hex_coord": {"q": second.q, "r": second.r},
+                    "direction": second.d,
+                },
+            ]
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert len(body) == 2
+
+    game, phase = repository.retrieve(game_id)
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert first in game.players[active_player].paths
+    assert second in game.players[active_player].paths
+
+
 def _setup_pathfinder_phase(
     app: fastapi.FastAPI,
+    phase: actions.GamePhaseName = actions.GamePhaseName.DICE_PLAY_PATHFINDER,
 ) -> tuple[
     repository_module.InMemoryActiveGameRepository,
     uuid.UUID,
@@ -197,7 +235,7 @@ def _setup_pathfinder_phase(
     )
 
     game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_PATHFINDER)
+    repository.update(game_id, game, phase)
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),

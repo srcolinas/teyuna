@@ -46,6 +46,33 @@ def test_places_two_paths_and_returns_to_dice_roll(
     assert second in game.players[player].paths
 
 
+def test_places_two_paths_and_returns_to_trade_and_build(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    first = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+    v0, v1 = entities.vertices_of_edge(first)
+    shared = v1 if v1 != terrace else v0
+    second = next(
+        e
+        for e in entities.edges_adjacent_to_vertex(shared.q, shared.r, shared.d)
+        if e != first
+    )
+
+    phase = actions.handle_trade_and_build_play_pathfinder(
+        game,
+        actions.PlayPathfinderAction(by=player, paths=(first, second)),
+    )
+
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert first in game.players[player].paths
+    assert second in game.players[player].paths
+
+
 def test_ignores_second_path_when_only_one_slot_remaining(
     game: entities.ActiveGame,
 ) -> None:

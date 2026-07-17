@@ -6,6 +6,7 @@ from .... import player
 from ... import entities
 from .. import _registry
 from . import _errors, _placement
+from ._play_card import PlayWisdomCardAction, play_wisdom_card
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -74,6 +75,17 @@ def handle_end_trade_and_build(
         game.player_idx = 0
 
     return _registry.GamePhaseName.DICE_ROLL
+
+
+def handle_trade_and_build_play_wisdom_card(
+    game: entities.ActiveGame, action: PlayWisdomCardAction
+) -> _registry.GamePhaseName:
+    return play_wisdom_card(
+        game,
+        action,
+        card_phases=_TRADE_AND_BUILD_CARD_PHASES,
+        phase_label="trade and build",
+    )
 
 
 def _build_terrace(
@@ -155,6 +167,21 @@ def _ensure_resources(
             raise _errors.InsufficientResourcesError(
                 f"Insufficient {resource.value} to build"
             )
+
+
+_TRADE_AND_BUILD_CARD_PHASES: Final[
+    dict[entities.WisdomCard, _registry.GamePhaseName]
+] = {
+    entities.WisdomCard.WARRIOR: _registry.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+    entities.WisdomCard.WINDOM_OF_MAMO: _registry.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+    entities.WisdomCard.BLESSING_OF_ALUNA: (
+        _registry.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
+    ),
+    entities.WisdomCard.PATHFINDER: (
+        _registry.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER
+    ),
+    entities.WisdomCard.LEGACY_OF_THE_ELDERS: _registry.GamePhaseName.TRADE_AND_BUILD,
+}
 
 
 _TERRACE_COST: Final[entities.ResourceCount] = collections.Counter(

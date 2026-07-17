@@ -22,6 +22,18 @@ class PlayPathfinderAction(_registry.PlayerAction):
 def handle_dice_play_pathfinder(
     game: entities.ActiveGame, action: PlayPathfinderAction
 ) -> _registry.GamePhaseName:
+    _apply_pathfinder(game, action)
+    return _registry.GamePhaseName.DICE_ROLL
+
+
+def handle_trade_and_build_play_pathfinder(
+    game: entities.ActiveGame, action: PlayPathfinderAction
+) -> _registry.GamePhaseName:
+    _apply_pathfinder(game, action)
+    return _registry.GamePhaseName.TRADE_AND_BUILD
+
+
+def _apply_pathfinder(game: entities.ActiveGame, action: PlayPathfinderAction) -> None:
     if game.active_player != action.by:
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
@@ -40,5 +52,3 @@ def handle_dice_play_pathfinder(
         if not can:
             raise _errors.InvalidPathLocation(f"Cannot add free path at {path}")
         game.use_edge(action.by, path)
-
-    return _registry.GamePhaseName.DICE_ROLL

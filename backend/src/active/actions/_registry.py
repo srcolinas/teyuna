@@ -20,6 +20,10 @@ class GamePhaseName(str, Enum):
     DICE_PLAY_PATHFINDER = "dice play pathfinder"
     MOVE_CONQUISTATOR = "move conquistator"
     TRADE_AND_BUILD = "trade and build"
+    TRADE_AND_BUILD_PLAY_WARRIOR = "trade and build play warrior"
+    TRADE_AND_BUILD_PLAY_MAMO = "trade and build play mamo"
+    TRADE_AND_BUILD_PLAY_BLESSED = "trade and build play blessed"
+    TRADE_AND_BUILD_PLAY_PATHFINDER = "trade and build play pathfinder"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

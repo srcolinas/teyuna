@@ -193,6 +193,33 @@ def test_moves_conquistator_during_move_conquistator_phase(
     assert game.players[active_player].resources[entities.ResourceCard.WOOD] == 1
 
 
+def test_moves_conquistator_during_trade_and_build_play_warrior(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, other = _setup_phase(
+        app, actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
+    )
+    game, _ = repository.retrieve(game_id)
+    game.players[other].resources[entities.ResourceCard.WOOD] = 2
+    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/active-games/{game_id}/conquistator",
+        json={"location": {"q": 1, "r": -1}, "take_from": other},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"q": 1, "r": -1}
+
+    game, phase = repository.retrieve(game_id)
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
+    assert game.players[other].resources[entities.ResourceCard.WOOD] == 1
+    assert game.players[active_player].resources[entities.ResourceCard.WOOD] == 1
+
+
 def _setup_warrior_phase(
     app: fastapi.FastAPI,
 ) -> tuple[

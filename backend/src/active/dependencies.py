@@ -44,6 +44,21 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_end_trade_and_build
     )
+    reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(
+        actions.handle_trade_and_build_play_wisdom_card
+    )
+    reg.register(actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)(
+        actions.handle_move_conquistator
+    )
+    reg.register(actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)(
+        actions.handle_trade_and_build_play_mamo
+    )
+    reg.register(actions.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED)(
+        actions.handle_trade_and_build_play_blessed
+    )
+    reg.register(actions.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
+        actions.handle_trade_and_build_play_pathfinder
+    )
     return reg
 
 

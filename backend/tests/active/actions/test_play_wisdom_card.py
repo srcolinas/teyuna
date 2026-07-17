@@ -39,7 +39,7 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         )
 
 
-def test_raises_when_card_cannot_be_played_during_dice_roll(
+def test_raises_when_card_cannot_be_played(
     game: entities.ActiveGame,
 ) -> None:
     player = game.active_player
@@ -73,7 +73,7 @@ def test_raises_when_card_cannot_be_played_during_dice_roll(
         (entities.WisdomCard.LEGACY_OF_THE_ELDERS, actions.GamePhaseName.DICE_ROLL),
     ],
 )
-def test_uses_card_and_transitions_to_expected_phase(
+def test_uses_card_and_transitions_to_expected_dice_phase(
     game: entities.ActiveGame,
     card: entities.WisdomCard,
     expected_phase: actions.GamePhaseName,

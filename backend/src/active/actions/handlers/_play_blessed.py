@@ -14,6 +14,18 @@ class PlayBlessedAction(_registry.PlayerAction):
 def handle_dice_play_blessed(
     game: entities.ActiveGame, action: PlayBlessedAction
 ) -> _registry.GamePhaseName:
+    _apply_blessed(game, action)
+    return _registry.GamePhaseName.DICE_ROLL
+
+
+def handle_trade_and_build_play_blessed(
+    game: entities.ActiveGame, action: PlayBlessedAction
+) -> _registry.GamePhaseName:
+    _apply_blessed(game, action)
+    return _registry.GamePhaseName.TRADE_AND_BUILD
+
+
+def _apply_blessed(game: entities.ActiveGame, action: PlayBlessedAction) -> None:
     if game.active_player != action.by:
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
@@ -25,5 +37,3 @@ def handle_dice_play_blessed(
             )
 
     game.take_from_supply(to=action.by, amount=amount)
-
-    return _registry.GamePhaseName.DICE_ROLL

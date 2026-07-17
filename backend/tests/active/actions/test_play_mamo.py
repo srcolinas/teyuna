@@ -29,3 +29,20 @@ def test_monopolizes_resource_and_returns_to_dice_roll(
     assert phase is actions.GamePhaseName.DICE_ROLL
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 3
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 0
+
+
+def test_monopolizes_resource_and_returns_to_trade_and_build(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    other = game.turn_order[1]
+    game.players[other].resources[entities.ResourceCard.WOOD] = 3
+
+    phase = actions.handle_trade_and_build_play_mamo(
+        game,
+        actions.PlayMamoAction(by=player, resource=entities.ResourceCard.WOOD),
+    )
+
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert game.players[player].resources[entities.ResourceCard.WOOD] == 3
+    assert game.players[other].resources[entities.ResourceCard.WOOD] == 0

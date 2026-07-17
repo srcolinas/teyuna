@@ -169,8 +169,37 @@ def test_takes_two_resources_from_supply(
     assert phase is actions.GamePhaseName.DICE_ROLL
 
 
+def test_takes_two_resources_during_trade_and_build_play_blessed(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, _ = _setup_blessed_phase(
+        app, phase=actions.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
+    )
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/active-games/{game_id}/wisdom-cards/blessing",
+        json={
+            "resources": [
+                entities.ResourceCard.WOOD.value,
+                entities.ResourceCard.STONE.value,
+            ]
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body[entities.ResourceCard.WOOD.value] == 1
+    assert body[entities.ResourceCard.STONE.value] == 1
+
+    game, phase = repository.retrieve(game_id)
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+
+
 def _setup_blessed_phase(
     app: fastapi.FastAPI,
+    phase: actions.GamePhaseName = actions.GamePhaseName.DICE_PLAY_BLESSED,
 ) -> tuple[
     repository_module.InMemoryActiveGameRepository,
     uuid.UUID,
@@ -184,7 +213,7 @@ def _setup_blessed_phase(
     other = game.turn_order[1]
     game.players[active_player].cards[entities.WisdomCard.BLESSING_OF_ALUNA] = 1
     game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_BLESSED)
+    repository.update(game_id, game, phase)
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),
