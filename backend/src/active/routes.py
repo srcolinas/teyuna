@@ -1,3 +1,4 @@
+import collections
 import uuid
 from typing import Annotated
 
@@ -234,6 +235,122 @@ def buy_wisdom_card(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
     except actions.EmptyWisdomDeckError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+    return new_phase
+
+
+# --- Trades ---
+
+
+class ProposeTradePayload(pydantic.BaseModel):
+    offer: dict[entities.ResourceCard, int]
+    request: dict[entities.ResourceCard, int]
+    to: set[player.Nickname]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+class ProposeTradeResponse(pydantic.BaseModel):
+    id: uuid.UUID
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/trades")
+def propose_trade(
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    payload: ProposeTradePayload,
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> ProposeTradeResponse:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    existing_ids = set(game.trade_proposals)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.ProposeTradeAction(
+                by=nickname,
+                offer=collections.Counter(payload.offer),
+                request=collections.Counter(payload.request),
+                to=set(payload.to),
+            ),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.InsufficientResourcesError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.InvalidTradeTargets as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+
+    proposal_id = next(iter(set(game.trade_proposals) - existing_ids))
+    repository.update(game_id, game, new_phase)
+    return ProposeTradeResponse(id=proposal_id)
+
+
+@router.post("/{game_id}/trades/{proposal_id}/accept")
+def accept_trade(
+    game_id: uuid.UUID,
+    proposal_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> actions.GamePhaseName:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.AcceptTradeAction(by=nickname, id=proposal_id),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.TradeProposalNotFound as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.TradeNotAddressedToPlayerError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.InsufficientResourcesError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )

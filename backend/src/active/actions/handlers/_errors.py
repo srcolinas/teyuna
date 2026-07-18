@@ -36,3 +36,15 @@ class PlayerNotRequiredToDiscardError(Exception):
 
 class InvalidDiscardCountError(Exception):
     pass
+
+
+class TradeProposalNotFound(Exception):
+    pass
+
+
+class InvalidTradeTargets(Exception):
+    pass
+
+
+class TradeNotAddressedToPlayerError(Exception):
+    pass

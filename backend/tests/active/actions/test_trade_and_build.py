@@ -1,5 +1,8 @@
-import pytest
+import collections
+import uuid
 from enum import Enum
+
+import pytest
 
 from src.active import actions, entities
 
@@ -478,6 +481,26 @@ def test_end_turn_wraps_to_first_player(game: entities.ActiveGame) -> None:
     assert phase is actions.GamePhaseName.DICE_ROLL
     assert game.player_idx == 0
     assert game.active_player == game.turn_order[0]
+
+
+def test_end_turn_clears_trade_proposals(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    game.trade_proposals = {
+        uuid.uuid4(): entities.TradeProposal(
+            by=player,
+            offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to={game.turn_order[1]},
+        )
+    }
+
+    phase = actions.handle_end_trade_and_build(
+        game,
+        actions.PlayerAction(by=player),
+    )
+
+    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert game.trade_proposals == {}
 
 
 def test_end_turn_raises_when_player_not_in_turn(

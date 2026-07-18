@@ -9,6 +9,9 @@ from .handlers._errors import (
     EmptyWisdomDeckError,
     PlayerNotRequiredToDiscardError,
     InvalidDiscardCountError,
+    TradeProposalNotFound,
+    InvalidTradeTargets,
+    TradeNotAddressedToPlayerError,
 )
 
 from .handlers._first_placement import FreePlacementAction, handle_first_placement
@@ -42,6 +45,12 @@ from .handlers._move_conquistator import (
     handle_move_conquistator,
 )
 from .handlers._second_placement import handle_second_placement
+from .handlers._trade import (
+    AcceptTradeAction,
+    ProposeTradeAction,
+    handle_accept_trade,
+    handle_propose_trade,
+)
 from .handlers._trade_and_build import (
     BuildSettlementAction,
     BuildPathAction,
@@ -62,6 +71,7 @@ from ._registry import (
 )
 
 __all__ = [
+    "AcceptTradeAction",
     "BuildSettlementAction",
     "BuildPathAction",
     "BuyWisdomCardAction",
@@ -72,6 +82,8 @@ __all__ = [
     "PlayMamoAction",
     "PlayPathfinderAction",
     "PlayWisdomCardAction",
+    "ProposeTradeAction",
+    "handle_accept_trade",
     "handle_build_terrace",
     "handle_build_path",
     "handle_buy_wisdom_card",
@@ -79,6 +91,7 @@ __all__ = [
     "handle_end_trade_and_build",
     "handle_first_placement",
     "handle_play_wisdom_card",
+    "handle_propose_trade",
     "handle_trade_and_build_play_wisdom_card",
     "handle_dice_play_blessed",
     "handle_dice_play_mamo",
@@ -105,4 +118,7 @@ __all__ = [
     "InvalidSettlementLocation",
     "InvalidPathLocation",
     "InvalidConquistatorLocation",
+    "InvalidTradeTargets",
+    "TradeNotAddressedToPlayerError",
+    "TradeProposalNotFound",
 ]

@@ -75,6 +75,7 @@ def handle_end_trade_and_build(
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
     game.preserve_cards(action.by)
+    game.trade_proposals.clear()
 
     if game.player_idx < len(game.players) - 1:
         game.player_idx += 1
