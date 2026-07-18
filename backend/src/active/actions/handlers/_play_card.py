@@ -4,6 +4,7 @@ from .... import player
 from ... import entities
 from .. import _registry
 from . import _errors
+from ._victory import phase_after_victory_check
 
 _MIN_BIGGEST_ARMY: int = 3
 
@@ -37,6 +38,8 @@ def play_wisdom_card(
     game.use_card(action.by, action.card)
     if action.card is entities.WisdomCard.WARRIOR:
         _update_biggest_army(game, action.by)
+    if action.card is entities.WisdomCard.LEGACY_OF_THE_ELDERS:
+        return phase_after_victory_check(game, action.by, next_phase)
     return next_phase
 
 

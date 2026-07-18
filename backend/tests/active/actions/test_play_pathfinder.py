@@ -130,3 +130,39 @@ def test_raises_when_path_already_taken(game: entities.ActiveGame) -> None:
             game,
             actions.PlayPathfinderAction(by=player, paths=(path,)),
         )
+
+
+def test_placing_paths_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+
+    phase = actions.handle_dice_play_pathfinder(
+        game,
+        actions.PlayPathfinderAction(by=player, paths=(path,)),
+    )
+
+    assert phase is actions.GamePhaseName.END_GAME
+
+
+def test_placing_paths_at_ten_vp_ends_game_from_trade_and_build(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+
+    phase = actions.handle_trade_and_build_play_pathfinder(
+        game,
+        actions.PlayPathfinderAction(by=player, paths=(path,)),
+    )
+
+    assert phase is actions.GamePhaseName.END_GAME

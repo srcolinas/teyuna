@@ -3,6 +3,7 @@ import dataclasses
 from ... import entities
 from .. import _registry
 from . import _errors, _placement
+from ._victory import phase_after_victory_check
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -23,14 +24,16 @@ def handle_dice_play_pathfinder(
     game: entities.ActiveGame, action: PlayPathfinderAction
 ) -> _registry.GamePhaseName:
     _apply_pathfinder(game, action)
-    return _registry.GamePhaseName.DICE_ROLL
+    return phase_after_victory_check(game, action.by, _registry.GamePhaseName.DICE_ROLL)
 
 
 def handle_trade_and_build_play_pathfinder(
     game: entities.ActiveGame, action: PlayPathfinderAction
 ) -> _registry.GamePhaseName:
     _apply_pathfinder(game, action)
-    return _registry.GamePhaseName.TRADE_AND_BUILD
+    return phase_after_victory_check(
+        game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+    )
 
 
 def _apply_pathfinder(game: entities.ActiveGame, action: PlayPathfinderAction) -> None:

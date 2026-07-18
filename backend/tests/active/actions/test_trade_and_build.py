@@ -203,6 +203,110 @@ def test_builds_great_terrace_upgrades_and_stays_in_phase(
     assert game.players[player].resources[entities.ResourceCard.MAIZE] == 0
 
 
+def test_building_terrace_to_ten_vp_ends_game(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+    game.players[player].paths.add(path)
+    game._free_edges.discard(path)
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+            entities.ResourceCard.COTTON: 1,
+            entities.ResourceCard.MAIZE: 1,
+        }
+    )
+
+    phase = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.TERRACE,
+            coordinate=terrace,
+        ),
+    )
+
+    assert phase is actions.GamePhaseName.END_GAME
+
+
+def test_building_great_terrace_to_ten_vp_ends_game(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.GOLD: 3,
+            entities.ResourceCard.MAIZE: 2,
+        }
+    )
+
+    phase = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.GREAT_TERRACE,
+            coordinate=terrace,
+        ),
+    )
+
+    assert phase is actions.GamePhaseName.END_GAME
+
+
+def test_building_path_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+        }
+    )
+
+    phase = actions.handle_build_path(
+        game,
+        actions.BuildPathAction(by=player, coordinate=path),
+    )
+
+    assert phase is actions.GamePhaseName.END_GAME
+
+
+def test_building_path_below_ten_vp_stays_in_phase(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+    game.players[player].settlements[terrace] = entities.SettlementType.TERRACE
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.STONE: 1,
+            entities.ResourceCard.WOOD: 1,
+        }
+    )
+
+    phase = actions.handle_build_path(
+        game,
+        actions.BuildPathAction(by=player, coordinate=path),
+    )
+
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+
+
 def test_raises_insufficient_resources_for_terrace(
     game: entities.ActiveGame,
 ) -> None:
@@ -608,6 +712,25 @@ def test_play_wisdom_card_transitions_to_expected_phase(
     assert phase is expected_phase
     assert game.players[player].cards[card] == 0
     assert game.players[player].played_cards[card] == 1
+
+
+def test_playing_legacy_to_ten_vp_ends_game(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    game.players[player].cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+
+    phase = actions.handle_trade_and_build_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(
+            by=player, card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+        ),
+    )
+
+    assert phase is actions.GamePhaseName.END_GAME
+    assert (
+        game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS]
+        == 10
+    )
 
 
 def test_playing_third_warrior_claims_biggest_army(

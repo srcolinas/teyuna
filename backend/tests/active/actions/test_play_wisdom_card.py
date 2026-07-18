@@ -169,3 +169,39 @@ def test_holder_playing_another_warrior_bumps_stored_count(
     )
 
     assert game.biggest_army == (player, 4)
+
+
+def test_playing_legacy_to_ten_vp_ends_game(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    game.players[player].cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+
+    phase = actions.handle_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(
+            by=player, card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+        ),
+    )
+
+    assert phase is actions.GamePhaseName.END_GAME
+    assert (
+        game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS]
+        == 10
+    )
+
+
+def test_playing_legacy_below_ten_vp_stays_in_dice_roll(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    game.players[player].cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
+
+    phase = actions.handle_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(
+            by=player, card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
+        ),
+    )
+
+    assert phase is actions.GamePhaseName.DICE_ROLL

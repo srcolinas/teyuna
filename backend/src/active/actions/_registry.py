@@ -24,6 +24,7 @@ class GamePhaseName(str, Enum):
     TRADE_AND_BUILD_PLAY_MAMO = "trade and build play mamo"
     TRADE_AND_BUILD_PLAY_BLESSED = "trade and build play blessed"
     TRADE_AND_BUILD_PLAY_PATHFINDER = "trade and build play pathfinder"
+    END_GAME = "end game"
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -92,6 +93,9 @@ class ActionsRegistry:
     def execute(
         self, phase: GamePhaseName, game: entities.ActiveGame, action: PlayerAction
     ) -> GamePhaseName:
+        if phase is GamePhaseName.END_GAME:
+            raise ActionNotAllowedError("Game has ended; no actions are allowed")
+
         phase_handlers = self._registry.get(phase)
         if not phase_handlers:
             raise GamePhaseHanlderNotImplementedError(

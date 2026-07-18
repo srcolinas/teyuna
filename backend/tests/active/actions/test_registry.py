@@ -52,6 +52,20 @@ def test_unregistered_action_type_raises(game: entities.ActiveGame) -> None:
         )
 
 
+def test_end_game_rejects_all_actions(game: entities.ActiveGame) -> None:
+    registry = actions.ActionsRegistry()
+
+    with pytest.raises(
+        actions.ActionNotAllowedError,
+        match="Game has ended; no actions are allowed",
+    ):
+        registry.execute(
+            actions.GamePhaseName.END_GAME,
+            game,
+            DummyAction(by="player"),
+        )
+
+
 def test_register_requires_at_least_two_parameters() -> None:
     registry = actions.ActionsRegistry()
 

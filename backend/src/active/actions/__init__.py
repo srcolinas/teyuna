@@ -63,6 +63,7 @@ from .handlers._trade_and_build import (
     handle_end_trade_and_build,
     handle_trade_and_build_play_wisdom_card,
 )
+from .handlers._victory import phase_after_victory_check, victory_points
 
 from ._registry import (
     ActionNotAllowedError,
@@ -107,6 +108,8 @@ __all__ = [
     "handle_dice_roll",
     "handle_move_conquistator",
     "handle_second_placement",
+    "phase_after_victory_check",
+    "victory_points",
     "ActionNotAllowedError",
     "ActionsRegistry",
     "GamePhaseHanlderNotImplementedError",

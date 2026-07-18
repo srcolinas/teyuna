@@ -7,6 +7,7 @@ from ... import entities
 from .. import _registry
 from . import _errors, _placement
 from ._play_card import PlayWisdomCardAction, play_wisdom_card
+from ._victory import phase_after_victory_check
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -55,7 +56,9 @@ def handle_build_terrace(
         case entities.SettlementType.GREAT_TERRACE:
             _build_great_terrace(game, action.by, action.coordinate)
 
-    return _registry.GamePhaseName.TRADE_AND_BUILD
+    return phase_after_victory_check(
+        game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+    )
 
 
 def handle_build_path(
@@ -65,7 +68,9 @@ def handle_build_path(
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
     _build_path(game, action.by, action.coordinate)
-    return _registry.GamePhaseName.TRADE_AND_BUILD
+    return phase_after_victory_check(
+        game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+    )
 
 
 def handle_end_trade_and_build(
