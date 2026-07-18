@@ -587,6 +587,21 @@ def test_play_wisdom_card_transitions_to_expected_phase(
     assert game.players[player].played_cards[card] == 1
 
 
+def test_playing_third_warrior_claims_biggest_army(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    game.players[player].cards[entities.WisdomCard.WARRIOR] = 1
+    game.players[player].played_cards[entities.WisdomCard.WARRIOR] = 2
+
+    actions.handle_trade_and_build_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(by=player, card=entities.WisdomCard.WARRIOR),
+    )
+
+    assert game.biggest_army == (player, 3)
+
+
 _WISDOM_CARD_COST = {
     entities.ResourceCard.GOLD: 1,
     entities.ResourceCard.COTTON: 1,

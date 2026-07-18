@@ -1,8 +1,11 @@
 import dataclasses
 
+from .... import player
 from ... import entities
 from .. import _registry
 from . import _errors
+
+_MIN_BIGGEST_ARMY: int = 3
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -32,4 +35,22 @@ def play_wisdom_card(
         )
 
     game.use_card(action.by, action.card)
+    if action.card is entities.WisdomCard.WARRIOR:
+        _update_biggest_army(game, action.by)
     return next_phase
+
+
+def _update_biggest_army(
+    game: entities.ActiveGame,
+    by: player.Nickname,
+    /,
+) -> None:
+    """Update biggest army after ``by`` plays a warrior."""
+    count = game.players[by].played_cards[entities.WisdomCard.WARRIOR]
+    if count < _MIN_BIGGEST_ARMY:
+        return
+
+    holder, stored = game.biggest_army
+    # Strictly more than the stored record — including an unassigned tie count.
+    if count > stored:
+        game.biggest_army = (by, count)
