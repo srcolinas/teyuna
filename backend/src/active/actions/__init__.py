@@ -48,8 +48,10 @@ from .handlers._second_placement import handle_second_placement
 from .handlers._trade import (
     AcceptTradeAction,
     ProposeTradeAction,
+    TradeWithSupplyAction,
     handle_accept_trade,
     handle_propose_trade,
+    handle_trade_with_supply,
 )
 from .handlers._trade_and_build import (
     BuildSettlementAction,
@@ -83,6 +85,7 @@ __all__ = [
     "PlayPathfinderAction",
     "PlayWisdomCardAction",
     "ProposeTradeAction",
+    "TradeWithSupplyAction",
     "handle_accept_trade",
     "handle_build_terrace",
     "handle_build_path",
@@ -93,6 +96,7 @@ __all__ = [
     "handle_play_wisdom_card",
     "handle_propose_trade",
     "handle_trade_and_build_play_wisdom_card",
+    "handle_trade_with_supply",
     "handle_dice_play_blessed",
     "handle_dice_play_mamo",
     "handle_dice_play_pathfinder",

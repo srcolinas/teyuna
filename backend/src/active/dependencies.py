@@ -45,6 +45,9 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(actions.handle_propose_trade)
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(actions.handle_accept_trade)
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(
+        actions.handle_trade_with_supply
+    )
+    reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_end_trade_and_build
     )
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD)(

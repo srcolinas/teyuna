@@ -1,0 +1,165 @@
+import collections
+
+import pytest
+
+from src.active import actions, entities
+
+
+def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
+    game.players[game.turn_order[1]].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 4}
+    )
+
+    with pytest.raises(actions.PlayerNotInTurnError):
+        actions.handle_trade_with_supply(
+            game,
+            actions.TradeWithSupplyAction(
+                by=game.turn_order[1],
+                offers=entities.ResourceCard.GOLD,
+                requests=entities.ResourceCard.STONE,
+            ),
+        )
+
+
+def test_cannot_trade_if_not_enough_resources_from_player(
+    game: entities.ActiveGame,
+) -> None:
+    with pytest.raises(
+        actions.InsufficientResourcesError,
+        match="You do not have enough gold to offer.",
+    ):
+        actions.handle_trade_with_supply(
+            game,
+            actions.TradeWithSupplyAction(
+                by=game.active_player,
+                offers=entities.ResourceCard.GOLD,
+                requests=entities.ResourceCard.STONE,
+            ),
+        )
+
+
+def test_cannot_trade_if_not_enough_resources_from_supply(
+    game: entities.ActiveGame,
+) -> None:
+    game.players[game.active_player].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 4}
+    )
+    game.resource_supply[entities.ResourceCard.STONE] = 0
+    with pytest.raises(
+        actions.InsufficientResourceSupplyError,
+        match="The supply does not have enough stone to request.",
+    ):
+        actions.handle_trade_with_supply(
+            game,
+            actions.TradeWithSupplyAction(
+                by=game.active_player,
+                offers=entities.ResourceCard.GOLD,
+                requests=entities.ResourceCard.STONE,
+            ),
+        )
+
+
+def test_default_rate_is_four_for_one(game: entities.ActiveGame) -> None:
+    player = game.active_player
+    game.players[player].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 4}
+    )
+    supply_gold_before = game.resource_supply[entities.ResourceCard.GOLD]
+    supply_stone_before = game.resource_supply[entities.ResourceCard.STONE]
+
+    phase = actions.handle_trade_with_supply(
+        game,
+        actions.TradeWithSupplyAction(
+            by=player,
+            offers=entities.ResourceCard.GOLD,
+            requests=entities.ResourceCard.STONE,
+        ),
+    )
+
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert game.players[player].resources == collections.Counter(
+        {entities.ResourceCard.GOLD: 0, entities.ResourceCard.STONE: 1}
+    )
+    assert game.resource_supply[entities.ResourceCard.GOLD] == supply_gold_before + 4
+    assert game.resource_supply[entities.ResourceCard.STONE] == supply_stone_before - 1
+
+
+@pytest.mark.parametrize(
+    "location", [k for k, v in entities.HARBOUR_LOCATIONS.items() if v is None]
+)
+def test_discounted_rate_if_player_has_generic_harbour(
+    location: entities.Coordinate, game: entities.ActiveGame
+) -> None:
+    game.players[game.active_player].settlements[location] = (
+        entities.SettlementType.TERRACE
+    )
+    game.players[game.active_player].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 3}
+    )
+    actions.handle_trade_with_supply(
+        game,
+        actions.TradeWithSupplyAction(
+            by=game.active_player,
+            offers=entities.ResourceCard.GOLD,
+            requests=entities.ResourceCard.STONE,
+        ),
+    )
+    assert game.players[game.active_player].resources == collections.Counter(
+        {entities.ResourceCard.GOLD: 0, entities.ResourceCard.STONE: 1}
+    )
+
+
+@pytest.mark.parametrize(
+    "location,resource",
+    [(k, v) for k, v in entities.HARBOUR_LOCATIONS.items() if v is not None],
+)
+def test_discounted_rate_if_player_has_specific_harbour(
+    location: entities.Coordinate,
+    resource: entities.ResourceCard,
+    game: entities.ActiveGame,
+) -> None:
+    game.players[game.active_player].settlements[location] = (
+        entities.SettlementType.TERRACE
+    )
+    requests = (
+        entities.ResourceCard.GOLD
+        if resource is entities.ResourceCard.STONE
+        else entities.ResourceCard.STONE
+    )
+    game.players[game.active_player].resources = collections.Counter({resource: 2})
+    actions.handle_trade_with_supply(
+        game,
+        actions.TradeWithSupplyAction(
+            by=game.active_player,
+            offers=resource,
+            requests=requests,
+        ),
+    )
+    assert game.players[game.active_player].resources == collections.Counter(
+        {resource: 0, requests: 1}
+    )
+
+
+def test_specific_harbour_does_not_apply_to_other_resources(
+    game: entities.ActiveGame,
+) -> None:
+    wood_harbour = next(
+        location
+        for location, resource in entities.HARBOUR_LOCATIONS.items()
+        if resource is entities.ResourceCard.WOOD
+    )
+    player = game.active_player
+    game.players[player].settlements[wood_harbour] = entities.SettlementType.TERRACE
+    game.players[player].resources = collections.Counter(
+        {entities.ResourceCard.GOLD: 3}
+    )
+
+    with pytest.raises(actions.InsufficientResourcesError):
+        actions.handle_trade_with_supply(
+            game,
+            actions.TradeWithSupplyAction(
+                by=player,
+                offers=entities.ResourceCard.GOLD,
+                requests=entities.ResourceCard.STONE,
+            ),
+        )
