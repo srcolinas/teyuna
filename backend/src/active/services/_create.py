@@ -36,7 +36,6 @@ def create_game(
             )
             for nickname in players
         },
-        wisdom_deck=_create_wisdom_deck(),
     )
     return repository.add(game)
 
@@ -69,18 +68,6 @@ def generate_map() -> tuple[entities.Hex, ...]:
             )
 
     return tuple(tiles)
-
-
-def _create_wisdom_deck() -> list[entities.WisdomCard]:
-    deck = (
-        [entities.WisdomCard.WARRIOR] * 14
-        + [entities.WisdomCard.LEGACY_OF_THE_ELDERS] * 5
-        + [entities.WisdomCard.PATHFINDER] * 2
-        + [entities.WisdomCard.BLESSING_OF_ALUNA] * 2
-        + [entities.WisdomCard.WINDOM_OF_MAMO] * 2
-    )
-    random.shuffle(deck)
-    return deck
 
 
 _TYPES = (

@@ -79,6 +79,11 @@ def test_three_players_complete_initial_placements(
     # First player plays warrior and moves the conquistator.
     game.players[player_0].cards[entities.WisdomCard.WARRIOR] = 1
     repository.update(game_id, game, phase)
+    target = next(
+        hex
+        for hex in game.map
+        if entities.HexLocation(q=hex.q, r=hex.r) != game.conquistator_location
+    )
 
     client.cookies.set("session-token", tokens[player_0])
     response = client.post(
@@ -90,14 +95,14 @@ def test_three_players_complete_initial_placements(
 
     response = client.post(
         f"/active-games/{game_id}/conquistator",
-        json={"location": {"q": 1, "r": 0}},
+        json={"location": {"q": target.q, "r": target.r}},
     )
     assert response.status_code == 200, response.text
-    assert response.json() == {"q": 1, "r": 0}
+    assert response.json() == {"q": target.q, "r": target.r}
 
     game, phase = repository.retrieve(game_id)
     assert phase is actions.GamePhaseName.DICE_ROLL
-    assert game.conquistator_location == entities.HexLocation(q=1, r=0)
+    assert game.conquistator_location == entities.HexLocation(q=target.q, r=target.r)
     assert game.players[player_0].cards[entities.WisdomCard.WARRIOR] == 0
     assert game.players[player_0].played_cards[entities.WisdomCard.WARRIOR] == 1
     assert game.active_player == player_0

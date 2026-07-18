@@ -195,6 +195,52 @@ def play_wisdom_card(
     return new_phase
 
 
+@router.post("/{game_id}/wisdom-cards/buy")
+def buy_wisdom_card(
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    repository: Annotated[
+        repostory_module.InMemoryActiveGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+) -> actions.GamePhaseName:
+    try:
+        game, phase = repository.retrieve(game_id)
+    except repostory_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    try:
+        new_phase = registry.execute(
+            phase,
+            game,
+            actions.BuyWisdomCardAction(by=nickname),
+        )
+    except actions.ActionNotAllowedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.GamePhaseHanlderNotImplementedError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
+        )
+    except actions.PlayerNotInTurnError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
+        )
+    except actions.InsufficientResourcesError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    except actions.EmptyWisdomDeckError as e:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    repository.update(game_id, game, new_phase)
+    return new_phase
+
+
 # --- Wisdom card resolutions ---
 
 

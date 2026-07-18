@@ -38,6 +38,11 @@ class BuildPathAction(_registry.PlayerAction):
         )
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class BuyWisdomCardAction(_registry.PlayerAction):
+    pass
+
+
 def handle_build_terrace(
     game: entities.ActiveGame, action: BuildSettlementAction
 ) -> _registry.GamePhaseName:
@@ -69,12 +74,29 @@ def handle_end_trade_and_build(
     if game.active_player != action.by:
         raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
+    game.preserve_cards(action.by)
+
     if game.player_idx < len(game.players) - 1:
         game.player_idx += 1
     else:
         game.player_idx = 0
 
     return _registry.GamePhaseName.DICE_ROLL
+
+
+def handle_buy_wisdom_card(
+    game: entities.ActiveGame, action: BuyWisdomCardAction
+) -> _registry.GamePhaseName:
+    if game.active_player != action.by:
+        raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+
+    if not game.wisdom_deck:
+        raise _errors.EmptyWisdomDeckError("Cannot buy more wisdom cards")
+
+    _ensure_resources(game.players[action.by].resources, _WISDOM_CARD_COST)
+    game.discard_resources(action.by, _WISDOM_CARD_COST)
+    game.take_wisdom_card(action.by)
+    return _registry.GamePhaseName.TRADE_AND_BUILD
 
 
 def handle_trade_and_build_play_wisdom_card(
@@ -202,5 +224,12 @@ _PATH_COST: Final[entities.ResourceCount] = collections.Counter(
     {
         entities.ResourceCard.STONE: 1,
         entities.ResourceCard.WOOD: 1,
+    }
+)
+_WISDOM_CARD_COST: Final[entities.ResourceCount] = collections.Counter(
+    {
+        entities.ResourceCard.GOLD: 1,
+        entities.ResourceCard.COTTON: 1,
+        entities.ResourceCard.MAIZE: 1,
     }
 )

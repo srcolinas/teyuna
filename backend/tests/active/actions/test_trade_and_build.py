@@ -449,6 +449,23 @@ def test_end_turn_advances_player_and_returns_to_dice_roll(
     assert game.active_player == game.turn_order[1]
 
 
+def test_end_turn_promotes_cards_bought_this_turn(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    card = entities.WisdomCard.WARRIOR
+    game.players[player].cards_bought_this_turn[card] = 1
+
+    phase = actions.handle_end_trade_and_build(
+        game,
+        actions.PlayerAction(by=player),
+    )
+
+    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert game.players[player].cards[card] == 1
+    assert game.players[player].cards_bought_this_turn[card] == 0
+
+
 def test_end_turn_wraps_to_first_player(game: entities.ActiveGame) -> None:
     game.player_idx = len(game.players) - 1
     player = game.active_player
@@ -568,3 +585,84 @@ def test_play_wisdom_card_transitions_to_expected_phase(
     assert phase is expected_phase
     assert game.players[player].cards[card] == 0
     assert game.players[player].played_cards[card] == 1
+
+
+_WISDOM_CARD_COST = {
+    entities.ResourceCard.GOLD: 1,
+    entities.ResourceCard.COTTON: 1,
+    entities.ResourceCard.MAIZE: 1,
+}
+
+
+def test_buy_wisdom_card_spends_resources_and_draws_top(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    card = entities.WisdomCard.WARRIOR
+    game.wisdom_deck = [entities.WisdomCard.PATHFINDER, card]
+    game.players[player].resources.update(_WISDOM_CARD_COST)
+    supply_before = {
+        resource: game.resource_supply[resource] for resource in _WISDOM_CARD_COST
+    }
+
+    phase = actions.handle_buy_wisdom_card(
+        game,
+        actions.BuyWisdomCardAction(by=player),
+    )
+
+    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert game.wisdom_deck == [entities.WisdomCard.PATHFINDER]
+    assert game.players[player].cards_bought_this_turn[card] == 1
+    assert game.players[player].cards[card] == 0
+    for resource in _WISDOM_CARD_COST:
+        assert game.players[player].resources[resource] == 0
+        assert game.resource_supply[resource] == supply_before[resource] + 1
+
+
+def test_buy_wisdom_card_raises_when_insufficient_resources(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    game.wisdom_deck = [entities.WisdomCard.WARRIOR]
+    game.players[player].resources.update(
+        {
+            entities.ResourceCard.GOLD: 1,
+            entities.ResourceCard.COTTON: 0,
+            entities.ResourceCard.MAIZE: 1,
+        }
+    )
+
+    with pytest.raises(actions.InsufficientResourcesError):
+        actions.handle_buy_wisdom_card(
+            game,
+            actions.BuyWisdomCardAction(by=player),
+        )
+
+
+def test_buy_wisdom_card_raises_when_deck_is_empty(
+    game: entities.ActiveGame,
+) -> None:
+    player = game.active_player
+    game.wisdom_deck = []
+    game.players[player].resources.update(_WISDOM_CARD_COST)
+
+    with pytest.raises(
+        actions.EmptyWisdomDeckError, match="Cannot buy more wisdom cards"
+    ):
+        actions.handle_buy_wisdom_card(
+            game,
+            actions.BuyWisdomCardAction(by=player),
+        )
+
+
+def test_buy_wisdom_card_raises_when_player_not_in_turn(
+    game: entities.ActiveGame,
+) -> None:
+    game.wisdom_deck = [entities.WisdomCard.WARRIOR]
+    game.players[game.turn_order[1]].resources.update(_WISDOM_CARD_COST)
+
+    with pytest.raises(actions.PlayerNotInTurnError):
+        actions.handle_buy_wisdom_card(
+            game,
+            actions.BuyWisdomCardAction(by=game.turn_order[1]),
+        )

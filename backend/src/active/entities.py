@@ -1,6 +1,7 @@
 import collections
 import dataclasses
 import itertools
+import random
 import uuid
 from collections.abc import ItemsView, KeysView, Set, ValuesView
 from enum import Enum
@@ -222,6 +223,9 @@ def _default_resources() -> ResourceCount:
 @dataclasses.dataclass(kw_only=True)
 class Player:
     cards: CardCount = dataclasses.field(default_factory=collections.Counter)
+    cards_bought_this_turn: CardCount = dataclasses.field(
+        default_factory=collections.Counter
+    )
     played_cards: CardCount = dataclasses.field(default_factory=collections.Counter)
     resources: ResourceCount = dataclasses.field(default_factory=_default_resources)
     settlements: SettlementsCollection = dataclasses.field(
@@ -249,6 +253,18 @@ def _default_resource_supply() -> ResourceCount:
     )
 
 
+def _default_wisdom_deck() -> list[WisdomCard]:
+    deck = (
+        [WisdomCard.WARRIOR] * 14
+        + [WisdomCard.LEGACY_OF_THE_ELDERS] * 5
+        + [WisdomCard.PATHFINDER] * 2
+        + [WisdomCard.BLESSING_OF_ALUNA] * 2
+        + [WisdomCard.WINDOM_OF_MAMO] * 2
+    )
+    random.shuffle(deck)
+    return deck
+
+
 @dataclasses.dataclass(kw_only=True)
 class ActiveGame:
     map: tuple[Hex, ...]
@@ -262,10 +278,12 @@ class ActiveGame:
     resource_supply: ResourceCount = dataclasses.field(
         default_factory=_default_resource_supply
     )
+    wisdom_deck: list[WisdomCard] = dataclasses.field(
+        default_factory=_default_wisdom_deck
+    )
     trade_proposals: dict[uuid.UUID, TradeProposal] = dataclasses.field(
         default_factory=dict
     )
-    wisdom_deck: list[WisdomCard] = dataclasses.field(default_factory=list)
     longest_road: tuple[player.Nickname | None, int] = dataclasses.field(
         default_factory=lambda: (None, 0)
     )
@@ -372,3 +390,11 @@ class ActiveGame:
         """Discards resources from a player's hand."""
         self.players[by].resources.subtract(amount)
         self.resource_supply.update(amount)
+
+    def take_wisdom_card(self, by: player.Nickname) -> None:
+        card = self.wisdom_deck.pop()
+        self.players[by].cards_bought_this_turn[card] += 1
+
+    def preserve_cards(self, by: player.Nickname) -> None:
+        self.players[by].cards.update(self.players[by].cards_bought_this_turn)
+        self.players[by].cards_bought_this_turn = collections.Counter()

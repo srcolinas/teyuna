@@ -71,7 +71,8 @@ def _to_port_player(
             for card, count in entity_player.played_cards.items()
             for _ in range(count)
         ],
-        num_hidden_wisdom_cards=sum(entity_player.cards.values()),
+        num_hidden_wisdom_cards=sum(entity_player.cards.values())
+        + sum(entity_player.cards_bought_this_turn.values()),
         num_resources=sum(entity_player.resources.values()),
         available_terraces=entities.MAX_TERRACES
         - counts[entities.SettlementType.TERRACE],

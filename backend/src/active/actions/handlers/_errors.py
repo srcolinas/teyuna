@@ -26,6 +26,10 @@ class InsufficientResourcesError(Exception):
     pass
 
 
+class EmptyWisdomDeckError(Exception):
+    pass
+
+
 class PlayerNotRequiredToDiscardError(Exception):
     pass
 
