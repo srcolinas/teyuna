@@ -4,7 +4,7 @@ from typing import Annotated
 import pydantic
 
 from .. import player
-from . import entities
+from . import entities, actions
 
 
 class HexCoordinate(pydantic.BaseModel):
@@ -86,8 +86,8 @@ class Player(pydantic.BaseModel):
     played_wisdom_cards: list[entities.WisdomCard] = []
     num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0
     num_resources: Annotated[int, pydantic.Field(ge=0)] = 0
-    available_terraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
-    available_great_terraces: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
+    available_terraces: Annotated[int, pydantic.Field(ge=0, le=5)] = 0
+    available_great_terraces: Annotated[int, pydantic.Field(ge=0, le=4)] = 0
     available_paths: Annotated[int, pydantic.Field(ge=0, le=15)] = 0
 
 
@@ -99,3 +99,4 @@ class ActiveGame(pydantic.BaseModel):
     settlements: list[PlayedSettlement]
     paths: list[PlayedStonePath]
     turn_order: tuple[player.Nickname, ...]
+    phase: actions.GamePhaseName

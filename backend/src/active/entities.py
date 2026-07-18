@@ -66,7 +66,7 @@ class Hex(NamedTuple):
 def canonical_vertex(q: int, r: int, d: int) -> Coordinate:
     aliases = vertex_aliases(q, r, d)
     aliases.add(Coordinate(q=q, r=r, d=d))
-    return min(aliases)
+    return _canonical_among(aliases)
 
 
 def vertex_aliases(q: int, r: int, d: int) -> set[Coordinate]:
@@ -79,8 +79,7 @@ def vertex_aliases(q: int, r: int, d: int) -> set[Coordinate]:
 
 
 def canonical_edge(q: int, r: int, d: int) -> Coordinate:
-    alias = edge_alias(q, r, d)
-    return min(alias, Coordinate(q=q, r=r, d=d))
+    return _canonical_among({edge_alias(q, r, d), Coordinate(q=q, r=r, d=d)})
 
 
 def edge_alias(q: int, r: int, d: int) -> Coordinate:
@@ -103,11 +102,18 @@ def vertices_of_edge(edge: Coordinate) -> tuple[Coordinate, Coordinate]:
 
 def edges_adjacent_to_vertex(q: int, r: int, d: int) -> set[Coordinate]:
     dq5, dr5 = delta_to_neighbor((d + 5) % 6)
-    return {
-        canonical_edge(q, r, (d + 5) % 6),
-        canonical_edge(q, r, d),
-        canonical_edge(q + dq5, r + dr5, (d + 1) % 6),
-    }
+    adjacent: set[Coordinate] = set()
+    for edge_q, edge_r, edge_d in (
+        (q, r, (d + 5) % 6),
+        (q, r, d),
+        (q + dq5, r + dr5, (d + 1) % 6),
+    ):
+        try:
+            adjacent.add(canonical_edge(edge_q, edge_r, edge_d))
+        except ValueError:
+            # Edge lies only between off-board / invalid hexes.
+            continue
+    return adjacent
 
 
 _NEIGHBOR: Final[list[tuple[int, int]]] = [
@@ -118,6 +124,17 @@ _NEIGHBOR: Final[list[tuple[int, int]]] = [
     (-1, 0),
     (0, -1),
 ]
+
+
+def _is_valid_hex(q: int, r: int) -> bool:
+    return -2 <= q <= 2 and -2 <= r <= 2 and (q, r) not in INVALID_HEX_COORDINATES
+
+
+def _canonical_among(candidates: set[Coordinate]) -> Coordinate:
+    valid = {c for c in candidates if _is_valid_hex(c.q, c.r)}
+    if not valid:
+        raise ValueError("no valid board hex among coordinate aliases")
+    return min(valid)
 
 
 class ResourceCard(str, Enum):
@@ -337,14 +354,17 @@ class ActiveGame:
         self, by: player.Nickname, target: Coordinate, settlement: SettlementType
     ) -> None:
         dq5, dr5 = delta_to_neighbor((target.d + 5) % 6)
-        blocked_vertices = {
-            canonical_vertex(vq, vr, vd)
-            for vq, vr, vd in [
-                (target.q, target.r, (target.d + 1) % 6),
-                (target.q, target.r, (target.d + 5) % 6),
-                (target.q + dq5, target.r + dr5, (target.d + 1) % 6),
-            ]
-        }
+        blocked_vertices: set[Coordinate] = set()
+        for vq, vr, vd in (
+            (target.q, target.r, (target.d + 1) % 6),
+            (target.q, target.r, (target.d + 5) % 6),
+            (target.q + dq5, target.r + dr5, (target.d + 1) % 6),
+        ):
+            try:
+                blocked_vertices.add(canonical_vertex(vq, vr, vd))
+            except ValueError:
+                # Adjacent corner lies only on off-board / invalid hexes.
+                continue
         self._free_verticies.remove(target)
         self._restricted_verticies.update(blocked_vertices)
         self.players[by].settlements[target] = settlement

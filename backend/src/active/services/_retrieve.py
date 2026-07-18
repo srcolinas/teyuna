@@ -57,6 +57,7 @@ def retrieve_game(
         settlements=settlements,
         paths=paths,
         turn_order=game.turn_order,
+        phase=phase,
     )
 
 

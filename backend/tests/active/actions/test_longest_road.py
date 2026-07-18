@@ -413,8 +413,9 @@ def _place_paths(
         entities.SettlementType.TERRACE,
     )
 
-    last = entities.canonical_edge(*edges[-1])
-    for q, r, d in edges:
+    last = entities.canonical_edge(*edges[0])
+    game.use_edge(nickname, last)
+    for q, r, d in edges[1:]:
         last = entities.canonical_edge(q, r, d)
         game.use_edge(nickname, last)
     return last
