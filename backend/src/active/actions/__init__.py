@@ -64,6 +64,11 @@ from .handlers._trade_and_build import (
     handle_trade_and_build_play_wisdom_card,
 )
 from .handlers._victory import phase_after_victory_check, victory_points
+from .handlers._longest_road import (
+    player_longest_path_length,
+    recompute_longest_road,
+    update_longest_road,
+)
 
 from ._registry import (
     ActionNotAllowedError,
@@ -109,6 +114,9 @@ __all__ = [
     "handle_move_conquistator",
     "handle_second_placement",
     "phase_after_victory_check",
+    "player_longest_path_length",
+    "recompute_longest_road",
+    "update_longest_road",
     "victory_points",
     "ActionNotAllowedError",
     "ActionsRegistry",

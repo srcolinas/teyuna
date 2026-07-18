@@ -6,6 +6,7 @@ from .... import player
 from ... import entities
 from .. import _registry
 from . import _errors, _placement
+from ._longest_road import recompute_longest_road, update_longest_road
 from ._play_card import PlayWisdomCardAction, play_wisdom_card
 from ._victory import phase_after_victory_check
 
@@ -138,6 +139,7 @@ def _build_terrace(
 
     game.use_vertex(by, coordinate, entities.SettlementType.TERRACE)
     game.discard_resources(by, _TERRACE_COST)
+    recompute_longest_road(game, by, vertex=coordinate)
 
 
 def _build_great_terrace(
@@ -185,6 +187,7 @@ def _build_path(
 
     game.use_edge(by, coordinate)
     game.discard_resources(by, _PATH_COST)
+    update_longest_road(game, by, edge=coordinate)
 
 
 def _ensure_resources(

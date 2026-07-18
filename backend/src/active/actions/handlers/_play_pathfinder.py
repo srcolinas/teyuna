@@ -3,6 +3,7 @@ import dataclasses
 from ... import entities
 from .. import _registry
 from . import _errors, _placement
+from ._longest_road import update_longest_road
 from ._victory import phase_after_victory_check
 
 
@@ -55,3 +56,4 @@ def _apply_pathfinder(game: entities.ActiveGame, action: PlayPathfinderAction) -
         if not can:
             raise _errors.InvalidPathLocation(f"Cannot add free path at {path}")
         game.use_edge(action.by, path)
+        update_longest_road(game, action.by, edge=path)
