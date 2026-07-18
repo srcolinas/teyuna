@@ -98,5 +98,14 @@ class ActiveGame(pydantic.BaseModel):
     players: list[Player]
     settlements: list[PlayedSettlement]
     paths: list[PlayedStonePath]
-    turn_order: tuple[player.Nickname, ...]
+    turn_order: Annotated[
+        tuple[player.Nickname, ...],
+        pydantic.Field(
+            min_length=3,
+            max_length=4,
+            description="""The order in which players will take turns, starting
+            form the current turn's player and then continuing with the
+            rest of the players in the order they will play their turn.""",
+        ),
+    ]
     phase: actions.GamePhaseName

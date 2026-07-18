@@ -26,3 +26,12 @@ def add_placement_round(
             token,
             utils.build_initial_placement_payload(terrace, edge),
         )
+
+
+def advance_phase(
+    client: testclient.TestClient,
+    game_id: uuid.UUID,
+    token: Token,
+) -> None:
+    client.cookies["session-token"] = token
+    client.post(f"/active-games/{game_id}/turn-order")

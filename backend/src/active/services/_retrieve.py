@@ -56,9 +56,23 @@ def retrieve_game(
         players=players,
         settlements=settlements,
         paths=paths,
-        turn_order=game.turn_order,
+        turn_order=_turn_order_from_active(game.turn_order, game.player_idx, phase),
         phase=phase,
     )
+
+
+def _turn_order_from_active(
+    turn_order: tuple[player.Nickname, ...],
+    player_idx: int,
+    phase: actions.GamePhaseName,
+) -> tuple[player.Nickname, ...]:
+    """Return seating order starting at the active player.
+
+    Clockwise for all phases except second placement, which is counter-clockwise.
+    """
+    if phase is actions.GamePhaseName.SECOND_PLACEMENT:
+        return turn_order[player_idx::-1] + turn_order[:player_idx:-1]
+    return turn_order[player_idx:] + turn_order[:player_idx]
 
 
 def _to_port_player(

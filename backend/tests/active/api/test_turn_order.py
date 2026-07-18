@@ -53,6 +53,40 @@ def test_returns_turn_order(
     assert response.json() == list(game.turn_order)
 
 
+def test_returns_turn_order_clockwise_from_active_player(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    game.player_idx = 1
+    game_id = repository.add(game)
+    repository.update(game_id, game, actions.GamePhaseName.DICE_ROLL)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+
+    response = client.get(f"/active-games/{game_id}/turn-order")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == ["srcolinas-1", "srcolinas-2", "srcolinas-0"]
+
+
+def test_returns_turn_order_counter_clockwise_during_second_placement(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository = repository_module.InMemoryActiveGameRepository()
+    game = _create_game()
+    game.player_idx = 2
+    game_id = repository.add(game)
+    repository.update(game_id, game, actions.GamePhaseName.SECOND_PLACEMENT)
+    app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
+
+    response = client.get(f"/active-games/{game_id}/turn-order")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == ["srcolinas-2", "srcolinas-1", "srcolinas-0"]
+
+
 def test_returns_400_when_action_not_allowed(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
