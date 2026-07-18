@@ -63,3 +63,11 @@ def test_three_players_complete_first_placements(
             "available_paths": 14,
         },
     )
+    asserts.assert_num_resources(
+        game["players"],
+        [
+            (first, 0),
+            (second, 0),
+            (third, 0),
+        ],
+    )

@@ -92,3 +92,15 @@ def test_three_players_complete_first_placements(
             "available_paths": 13,
         },
     )
+    second_terraces = {
+        first: entities.canonical_vertex(1, 0, 0),
+        second: entities.canonical_vertex(1, 0, 2),
+        third: entities.canonical_vertex(1, 0, 4),
+    }
+    asserts.assert_num_resources(
+        game["players"],
+        [
+            (nick, asserts.count_adjacent_producing_hexes(game["map"], terrace))
+            for nick, terrace in second_terraces.items()
+        ],
+    )

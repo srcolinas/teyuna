@@ -1,15 +1,19 @@
-import pytest
+import fastapi
 import fastapi.testclient as testclient
 
-
+from src.active import dependencies
 from .. import utils
 from . import rounds
 
 
-@pytest.mark.flaky(reruns=3)
 def test_advances_next_phase_same_turn(
+    app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
+    app.dependency_overrides[dependencies.random_generator] = (
+        lambda: FakeRandomGenerator(3)
+    )
+
     game_id, tokens = utils.create_active_game_with_tokens(
         client, nicknames=["player-0", "player-1", "player-2"]
     )
@@ -40,10 +44,13 @@ def test_advances_next_phase_same_turn(
     assert game["turn_order"] == [first, second, third]
 
 
-@pytest.mark.flaky(reruns=3)
 def test_advances_next_phase_next_turn(
+    app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
+    app.dependency_overrides[dependencies.random_generator] = (
+        lambda: FakeRandomGenerator(3)
+    )
     game_id, tokens = utils.create_active_game_with_tokens(
         client, nicknames=["player-0", "player-1", "player-2"]
     )
@@ -73,3 +80,11 @@ def test_advances_next_phase_next_turn(
     game = client.get(f"/active-games/{game_id}").json()
     assert game["phase"] == "dice roll"
     assert game["turn_order"] == [second, third, first]
+
+
+class FakeRandomGenerator:
+    def __init__(self, value: int):
+        self.value = value
+
+    def randint(self, a: int, b: int) -> int:
+        return self.value

@@ -116,6 +116,14 @@ def edges_adjacent_to_vertex(q: int, r: int, d: int) -> set[Coordinate]:
     return adjacent
 
 
+def hex_locations_at_vertex(q: int, r: int, d: int) -> set[HexLocation]:
+    """Return the valid board hexes that meet at the given vertex."""
+    locs = {HexLocation(q=q, r=r)}
+    for alias in vertex_aliases(q, r, d):
+        locs.add(HexLocation(q=alias.q, r=alias.r))
+    return {loc for loc in locs if _is_valid_hex(loc.q, loc.r)}
+
+
 _NEIGHBOR: Final[list[tuple[int, int]]] = [
     (1, -1),
     (1, 0),
@@ -143,6 +151,15 @@ class ResourceCard(str, Enum):
     COTTON = "cotton"
     MAIZE = "maize"
     WOOD = "wood"
+
+
+HEX_TYPE_TO_RESOURCE: Final[dict[HexType, ResourceCard]] = {
+    HexType.MOUNTAINS: ResourceCard.GOLD,
+    HexType.QUARRIES: ResourceCard.STONE,
+    HexType.HIGHLANDS: ResourceCard.COTTON,
+    HexType.VALLEYS: ResourceCard.MAIZE,
+    HexType.JUNGLE: ResourceCard.WOOD,
+}
 
 
 class WisdomCard(str, Enum):

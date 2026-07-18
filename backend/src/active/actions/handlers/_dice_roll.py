@@ -60,7 +60,7 @@ def _produce_resources(game: entities.ActiveGame, *, roll: int) -> None:
             game.conquistator_location.r,
         ):
             continue
-        resource = _HEX_TYPE_TO_RESOURCE[hex_tile.type]
+        resource = entities.HEX_TYPE_TO_RESOURCE[hex_tile.type]
         for nickname in game.turn_order:
             settlements = game.players[nickname].settlements
             for direction in range(6):
@@ -76,12 +76,3 @@ def _produce_resources(game: entities.ActiveGame, *, roll: int) -> None:
                     to=nickname,
                     amount=collections.Counter({resource: to_grant}),
                 )
-
-
-_HEX_TYPE_TO_RESOURCE: Final[dict[entities.HexType, entities.ResourceCard]] = {
-    entities.HexType.MOUNTAINS: entities.ResourceCard.GOLD,
-    entities.HexType.QUARRIES: entities.ResourceCard.STONE,
-    entities.HexType.HIGHLANDS: entities.ResourceCard.COTTON,
-    entities.HexType.VALLEYS: entities.ResourceCard.MAIZE,
-    entities.HexType.JUNGLE: entities.ResourceCard.WOOD,
-}

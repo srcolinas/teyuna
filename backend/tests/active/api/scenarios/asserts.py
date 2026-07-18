@@ -67,3 +67,26 @@ def assert_paths(
         )
 
     assert sorted(buildings, key=key) == sorted(expected_buildings, key=key)
+
+
+def assert_num_resources(
+    players: list[dict[str, Any]],
+    expected: list[tuple[player.Nickname, int]],
+) -> None:
+    real = ((player["nickname"], player["num_resources"]) for player in players)
+    assert sorted(real) == sorted(expected)
+
+
+def count_adjacent_producing_hexes(
+    game_map: list[dict[str, Any]], terrace: entities.Coordinate
+) -> int:
+    """Count non-desert hexes adjacent to a terrace (second-placement grants)."""
+    types_by_hex = {
+        (tile["coordinate"]["q"], tile["coordinate"]["r"]): tile["type"]
+        for tile in game_map
+    }
+    return sum(
+        1
+        for loc in entities.hex_locations_at_vertex(terrace.q, terrace.r, terrace.d)
+        if types_by_hex.get((loc.q, loc.r)) not in (None, entities.HexType.DESERT)
+    )

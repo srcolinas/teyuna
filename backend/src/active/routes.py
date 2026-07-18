@@ -1,4 +1,5 @@
 import collections
+import random
 import uuid
 from typing import Annotated
 
@@ -50,6 +51,7 @@ def advance_or_phase(
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> tuple[actions.GamePhaseName, player.Nickname]:
     try:
         game, phase = repository.retrieve(game_id)
@@ -59,7 +61,7 @@ def advance_or_phase(
         new_phase = registry.execute(
             phase,
             game,
-            actions.PlayerAction(by=nickname),
+            actions.PlayerAction(by=nickname, rng_=rng),
         )
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(

@@ -1,4 +1,5 @@
 import functools
+import random
 import uuid
 from typing import Annotated
 
@@ -100,3 +101,8 @@ def get_player(
         )
 
     return nickname
+
+
+@functools.cache
+def random_generator() -> random.Random:
+    return random.Random()
