@@ -1,4 +1,3 @@
-import pytest
 import fastapi.testclient as testclient
 
 from src.active import entities
@@ -7,7 +6,6 @@ from .. import utils
 from . import rounds, asserts
 
 
-@pytest.mark.skipif(False, reason="WIP: scenario placements still under construction")
 def test_three_players_complete_first_placements(
     client: testclient.TestClient,
 ) -> None:

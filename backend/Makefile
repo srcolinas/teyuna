@@ -22,8 +22,11 @@ lint:
 	uv run ruff check src tests
 	uv run mypy .
 
+slow-test:
+	uv run pytest -m "slow" tests -vv
+
 test:
-	uv run pytest -n auto tests -vv
+	uv run pytest -n auto -m "not slow" tests -vv
 
 check: lint test
 	@echo "All checks passed!"

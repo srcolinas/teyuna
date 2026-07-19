@@ -19,30 +19,38 @@ def handle_second_placement(
     )
     if not can:
         raise _errors.InvalidSettlementLocation(
-            f"Cannot add free terrace at {action.terrace}"
+            target=action.terrace,
+            player=action.by,
+            free_vertices=game.free_verticies,
+            restricted_vertices=game.restricted_verticies,
         )
 
+    player_state = game.players[action.by]
     can = _placement.can_add_free_path_at(
         target=action.path,
         free_edges=game.free_edges,
-        existing_settlements={
-            *game.players[action.by].settlements.locations(),
-            action.terrace,
-        },
-        existing_paths=game.players[action.by].paths,
+        existing_settlements=player_state.settlements.locations(),
+        existing_paths=player_state.paths,
         free_vertices=game.free_verticies,
+        new_settlement=action.terrace,
     )
     if not can:
-        raise _errors.InvalidPathLocation(f"Cannot add free path at {action.path}")
+        raise _errors.InvalidPathLocation(
+            target=action.path,
+            player=action.by,
+            existing_settlements=player_state.settlements.locations(),
+            existing_paths=player_state.paths,
+            free_edges=game.free_edges,
+        )
 
     game.use_vertex(action.by, action.terrace, entities.SettlementType.TERRACE)
     game.use_edge(action.by, action.path)
     _grant_resources_for_terrace(game, by=action.by, terrace=action.terrace)
 
-    if game.player_idx > 0:
-        game.player_idx -= 1
-        return _registry.GamePhaseName.SECOND_PLACEMENT
-    return _registry.GamePhaseName.DICE_ROLL
+    if game.player_idx == 0:
+        return _registry.GamePhaseName.DICE_ROLL
+    game.player_idx -= 1
+    return _registry.GamePhaseName.SECOND_PLACEMENT
 
 
 def _grant_resources_for_terrace(

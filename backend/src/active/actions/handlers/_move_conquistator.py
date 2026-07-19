@@ -38,7 +38,9 @@ def _apply_move_conquistator(
     location = entities.HexLocation(q=action.q, r=action.r)
     if location == game.conquistator_location:
         raise _errors.InvalidConquistatorLocation(
-            f"Conquistator is already at {location}"
+            target=location,
+            player=action.by,
+            current_location=game.conquistator_location,
         )
 
     game.conquistator_location = location

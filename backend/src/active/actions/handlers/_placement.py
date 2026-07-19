@@ -10,13 +10,17 @@ def can_add_free_path_at(
     existing_settlements: Container[entities.Coordinate],
     existing_paths: Container[entities.Coordinate],
     free_vertices: Container[entities.Coordinate],
+    new_settlement: entities.Coordinate | None = None,
 ) -> bool:
-    """Coordinates are expected in canonical form."""
+    """Coordinates are expected in canonical form.
+
+    ``new_settlement`` is treated as owned for adjacency (e.g. same-action terrace).
+    """
     if target not in free_edges:
         return False
 
     for v in entities.vertices_of_edge(target):
-        if v in existing_settlements:
+        if v in existing_settlements or v == new_settlement:
             return True
         if v in free_vertices:
             for e in entities.edges_adjacent_to_vertex(v.q, v.r, v.d):

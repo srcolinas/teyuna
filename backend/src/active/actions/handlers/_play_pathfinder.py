@@ -54,6 +54,12 @@ def _apply_pathfinder(game: entities.ActiveGame, action: PlayPathfinderAction) -
             free_vertices=game.free_verticies,
         )
         if not can:
-            raise _errors.InvalidPathLocation(f"Cannot add free path at {path}")
+            raise _errors.InvalidPathLocation(
+                target=path,
+                player=action.by,
+                existing_settlements=player_state.settlements.locations(),
+                existing_paths=player_state.paths,
+                free_edges=game.free_edges,
+            )
         game.use_edge(action.by, path)
         update_longest_road(game, action.by, edge=path)

@@ -135,7 +135,13 @@ def _build_terrace(
         target=coordinate,
     )
     if not can:
-        raise _errors.InvalidSettlementLocation(f"Cannot build terrace at {coordinate}")
+        raise _errors.InvalidSettlementLocation(
+            target=coordinate,
+            player=by,
+            free_vertices=game.free_verticies,
+            restricted_vertices=game.restricted_verticies,
+            existing_paths=player_state.paths,
+        )
 
     game.use_vertex(by, coordinate, entities.SettlementType.TERRACE)
     game.discard_resources(by, _TERRACE_COST)
@@ -156,11 +162,23 @@ def _build_great_terrace(
     settlements = player_state.settlements
     if coordinate not in settlements:
         raise _errors.InvalidSettlementLocation(
-            "You must first build a terrace at specified location."
+            target=coordinate,
+            player=by,
+            free_vertices=game.free_verticies,
+            restricted_vertices=game.restricted_verticies,
+            existing_paths=player_state.paths,
+            existing_settlements=dict(settlements.items()),
+            reason="You must first build a terrace at specified location.",
         )
     if settlements[coordinate] is entities.SettlementType.GREAT_TERRACE:
         raise _errors.InvalidSettlementLocation(
-            "You have already built a great terrace at specified location."
+            target=coordinate,
+            player=by,
+            free_vertices=game.free_verticies,
+            restricted_vertices=game.restricted_verticies,
+            existing_paths=player_state.paths,
+            existing_settlements=dict(settlements.items()),
+            reason="You have already built a great terrace at specified location.",
         )
 
     settlements[coordinate] = entities.SettlementType.GREAT_TERRACE
@@ -183,7 +201,13 @@ def _build_path(
         free_vertices=game.free_verticies,
     )
     if not can:
-        raise _errors.InvalidPathLocation(f"Cannot build path at {coordinate}")
+        raise _errors.InvalidPathLocation(
+            target=coordinate,
+            player=by,
+            existing_settlements=player_state.settlements.locations(),
+            existing_paths=player_state.paths,
+            free_edges=game.free_edges,
+        )
 
     game.use_edge(by, coordinate)
     game.discard_resources(by, _PATH_COST)

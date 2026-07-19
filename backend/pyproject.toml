@@ -12,7 +12,10 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["slow: marks tests that are slow"]
+
 
 [dependency-groups]
 dev = [

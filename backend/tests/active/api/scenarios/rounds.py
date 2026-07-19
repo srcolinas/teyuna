@@ -1,8 +1,10 @@
+import pprint
 import uuid
 
 import fastapi.testclient as testclient
 
-from src.active import entities
+from src import player
+from src.active import actions
 
 from .. import utils
 
@@ -18,20 +20,22 @@ def add_placement_round(
     placements: list[tuple[Token, VertrexCoordinate, EdgeCoordinate]],
 ) -> None:
     for token, terrace, edge in placements:
-        terrace = entities.canonical_vertex(*terrace)
-        edge = entities.canonical_edge(*edge)
-        utils.post_initial_placements(
+        response = utils.post_initial_placements(
             client,
             game_id,
             token,
             utils.build_initial_placement_payload(terrace, edge),
         )
+        assert response.status_code == 200, pprint.pformat(response.text)
 
 
 def advance_phase(
     client: testclient.TestClient,
     game_id: uuid.UUID,
     token: Token,
-) -> None:
+) -> tuple[actions.GamePhaseName, player.Nickname]:
     client.cookies["session-token"] = token
-    client.post(f"/active-games/{game_id}/turn-order")
+    response = client.post(f"/active-games/{game_id}/turn-order")
+    assert response.status_code == 200, pprint.pformat(response.text)
+    state, active_player = response.json()
+    return state, active_player

@@ -95,6 +95,25 @@ def test_free_path_returns_false_when_neighbor_settlement_not_owned() -> None:
     )
 
 
+def test_free_path_returns_true_when_adjacent_to_new_settlement() -> None:
+    terrace = entities.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+    )
+
+    assert (
+        _placement.can_add_free_path_at(
+            target=path,
+            free_edges={path},
+            existing_settlements=set(),
+            existing_paths=set(),
+            free_vertices=set(),
+            new_settlement=terrace,
+        )
+        is True
+    )
+
+
 def test_free_path_accepts_settlements_collection_locations() -> None:
     terrace = entities.canonical_vertex(0, 0, 0)
     path = next(

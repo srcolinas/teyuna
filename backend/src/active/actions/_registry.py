@@ -107,7 +107,7 @@ class ActionsRegistry:
 
         if not handler:
             raise ActionNotAllowedError(
-                f"Action '{action_type.__name__}' is not allowed during the '{phase.value}' phase."
+                f"Action '{action_type.__name__}' by '{action.by}' is not allowed during the '{phase.value}' phase."
             )
 
         return handler(game, action)

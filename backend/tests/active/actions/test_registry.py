@@ -45,7 +45,7 @@ def test_unregistered_action_type_raises(game: entities.ActiveGame) -> None:
 
     with pytest.raises(
         actions.ActionNotAllowedError,
-        match="Action 'OtherAction' is not allowed during the 'first placement' phase.",
+        match="Action 'OtherAction' by 'player' is not allowed during the 'first placement' phase.",
     ):
         registry.execute(
             actions.GamePhaseName.FIRST_PLACEMENT, game, OtherAction(by="player")
