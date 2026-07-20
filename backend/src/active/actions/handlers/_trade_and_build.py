@@ -4,10 +4,10 @@ from typing import Final
 
 from .... import player
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
 from . import _errors, _placement
 from ._longest_road import recompute_longest_road, update_longest_road
-from ._play_card import PlayWisdomCardAction, play_wisdom_card
+from ._play_card import PlayWisdomCardAction, PlayedWisdomCardResult, play_wisdom_card
 from ._victory import phase_after_victory_check
 
 
@@ -26,6 +26,12 @@ class BuildSettlementAction(_registry.PlayerAction):
         )
 
 
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class BuiltSettlementResult(_registry.ActionExecutionResult):
+    item: entities.SettlementType | None = None
+    coordinate: entities.Coordinate | None = None
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class BuildPathAction(_registry.PlayerAction):
     coordinate: entities.Coordinate
@@ -40,17 +46,34 @@ class BuildPathAction(_registry.PlayerAction):
         )
 
 
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class BuiltPathResult(_registry.ActionExecutionResult):
+    coordinate: entities.Coordinate | None = None
+
+
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class EndedTradeAndBuildResult(_registry.ActionExecutionResult):
+    next_player: player.Nickname = ""
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class BuyWisdomCardAction(_registry.PlayerAction):
     pass
 
 
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class BoughtWisdomCardResult(_registry.ActionExecutionResult):
+    card: entities.WisdomCard | None = None
+
+
 def handle_build_terrace(
     game: entities.ActiveGame, action: BuildSettlementAction
-) -> _registry.ActionExecutionResult:
+) -> BuiltSettlementResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return BuiltSettlementResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     if action.item is entities.SettlementType.TERRACE:
@@ -58,39 +81,56 @@ def handle_build_terrace(
     else:
         error = _build_great_terrace(game, action.by, action.coordinate)
     if error is not None:
-        return _results.fail(error)
-
-    return _results.ok(
-        phase_after_victory_check(
-            game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+        return BuiltSettlementResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
         )
+
+    return BuiltSettlementResult(
+        succeeded=True,
+        phase=phase_after_victory_check(
+            game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+        ),
+        item=action.item,
+        coordinate=action.coordinate,
     )
 
 
 def handle_build_path(
     game: entities.ActiveGame, action: BuildPathAction
-) -> _registry.ActionExecutionResult:
+) -> BuiltPathResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return BuiltPathResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     error = _build_path(game, action.by, action.coordinate)
     if error is not None:
-        return _results.fail(error)
-    return _results.ok(
-        phase_after_victory_check(
-            game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+        return BuiltPathResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
         )
+    return BuiltPathResult(
+        succeeded=True,
+        phase=phase_after_victory_check(
+            game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+        ),
+        coordinate=action.coordinate,
     )
 
 
 def handle_end_trade_and_build(
     game: entities.ActiveGame, action: _registry.PlayerAction
-) -> _registry.ActionExecutionResult:
+) -> EndedTradeAndBuildResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return EndedTradeAndBuildResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     game.preserve_cards(action.by)
@@ -101,33 +141,49 @@ def handle_end_trade_and_build(
     else:
         game.player_idx = 0
 
-    return _results.ok(_registry.GamePhaseName.DICE_ROLL)
+    return EndedTradeAndBuildResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.DICE_ROLL,
+        next_player=game.active_player,
+    )
 
 
 def handle_buy_wisdom_card(
     game: entities.ActiveGame, action: BuyWisdomCardAction
-) -> _registry.ActionExecutionResult:
+) -> BoughtWisdomCardResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return BoughtWisdomCardResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     if not game.wisdom_deck:
-        return _results.fail(
-            _errors.EmptyWisdomDeckError("Cannot buy more wisdom cards")
+        return BoughtWisdomCardResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.EmptyWisdomDeckError("Cannot buy more wisdom cards"),
         )
 
     error = _ensure_resources(game.players[action.by].resources, _WISDOM_CARD_COST)
     if error is not None:
-        return _results.fail(error)
+        return BoughtWisdomCardResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
     game.discard_resources(action.by, _WISDOM_CARD_COST)
-    game.take_wisdom_card(action.by)
-    return _results.ok(_registry.GamePhaseName.TRADE_AND_BUILD)
+    card = game.take_wisdom_card(action.by)
+    return BoughtWisdomCardResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.TRADE_AND_BUILD,
+        card=card,
+    )
 
 
 def handle_trade_and_build_play_wisdom_card(
     game: entities.ActiveGame, action: PlayWisdomCardAction
-) -> _registry.ActionExecutionResult:
+) -> PlayedWisdomCardResult:
     return play_wisdom_card(
         game,
         action,

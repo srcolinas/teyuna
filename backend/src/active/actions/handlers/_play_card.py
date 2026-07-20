@@ -2,7 +2,7 @@ import dataclasses
 
 from .... import player
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
 from . import _errors
 from ._victory import phase_after_victory_check
 
@@ -14,39 +14,58 @@ class PlayWisdomCardAction(_registry.PlayerAction):
     card: entities.WisdomCard
 
 
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class PlayedWisdomCardResult(_registry.ActionExecutionResult):
+    card: entities.WisdomCard | None = None
+
+
 def play_wisdom_card(
     game: entities.ActiveGame,
     action: PlayWisdomCardAction,
     *,
     card_phases: dict[entities.WisdomCard, _registry.GamePhaseName],
     phase_label: str,
-) -> _registry.ActionExecutionResult:
+) -> PlayedWisdomCardResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return PlayedWisdomCardResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     if game.players[action.by].cards[action.card] <= 0:
-        return _results.fail(
-            _errors.PlayerDoesNotHaveCardError(
+        return PlayedWisdomCardResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerDoesNotHaveCardError(
                 f"Player {action.by} does not have card {action.card.value}"
-            )
+            ),
         )
 
     next_phase = card_phases.get(action.card)
     if next_phase is None:
-        return _results.fail(
-            _registry.ActionNotAllowedError(
+        return PlayedWisdomCardResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_registry.ActionNotAllowedError(
                 f"Card '{action.card.value}' cannot be played during the {phase_label} phase."
-            )
+            ),
         )
 
     game.use_card(action.by, action.card)
     if action.card is entities.WisdomCard.WARRIOR:
         _update_biggest_army(game, action.by)
     if action.card is entities.WisdomCard.LEGACY_OF_THE_ELDERS:
-        return _results.ok(phase_after_victory_check(game, action.by, next_phase))
-    return _results.ok(next_phase)
+        return PlayedWisdomCardResult(
+            succeeded=True,
+            phase=phase_after_victory_check(game, action.by, next_phase),
+            card=action.card,
+        )
+    return PlayedWisdomCardResult(
+        succeeded=True,
+        phase=next_phase,
+        card=action.card,
+    )
 
 
 def _update_biggest_army(

@@ -1,8 +1,17 @@
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
+import dataclasses
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class EndGameResult(_registry.ActionExecutionResult):
+    pass
 
 
 def handle_end_game(
     game: entities.ActiveGame, action: _registry.PlayerAction
-) -> _registry.ActionExecutionResult:
-    return _results.ok(_registry.GamePhaseName.END_GAME)
+) -> EndGameResult:
+    return EndGameResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.END_GAME,
+    )

@@ -2,16 +2,18 @@ import collections
 
 from .... import player
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
 from . import _errors, _first_placement, _placement
 
 
 def handle_second_placement(
     game: entities.ActiveGame, action: _first_placement.FreePlacementAction
-) -> _registry.ActionExecutionResult:
+) -> _first_placement.PlacedBuildingsResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return _first_placement.PlacedBuildingsResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     can = _placement.can_add_free_terrace_at(
@@ -20,13 +22,15 @@ def handle_second_placement(
         target=action.terrace,
     )
     if not can:
-        return _results.fail(
-            _errors.InvalidSettlementLocation(
+        return _first_placement.PlacedBuildingsResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.InvalidSettlementLocation(
                 target=action.terrace,
                 player=action.by,
                 free_vertices=game.free_verticies,
                 restricted_vertices=game.restricted_verticies,
-            )
+            ),
         )
 
     player_state = game.players[action.by]
@@ -39,14 +43,16 @@ def handle_second_placement(
         new_settlement=action.terrace,
     )
     if not can:
-        return _results.fail(
-            _errors.InvalidPathLocation(
+        return _first_placement.PlacedBuildingsResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.InvalidPathLocation(
                 target=action.path,
                 player=action.by,
                 existing_settlements=player_state.settlements.locations(),
                 existing_paths=player_state.paths,
                 free_edges=game.free_edges,
-            )
+            ),
         )
 
     game.use_vertex(action.by, action.terrace, entities.SettlementType.TERRACE)
@@ -54,9 +60,19 @@ def handle_second_placement(
     _grant_resources_for_terrace(game, by=action.by, terrace=action.terrace)
 
     if game.player_idx == 0:
-        return _results.ok(_registry.GamePhaseName.DICE_ROLL)
+        return _first_placement.PlacedBuildingsResult(
+            succeeded=True,
+            phase=_registry.GamePhaseName.DICE_ROLL,
+            settlement=action.terrace,
+            path=action.path,
+        )
     game.player_idx -= 1
-    return _results.ok(_registry.GamePhaseName.SECOND_PLACEMENT)
+    return _first_placement.PlacedBuildingsResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.SECOND_PLACEMENT,
+        settlement=action.terrace,
+        path=action.path,
+    )
 
 
 def _grant_resources_for_terrace(

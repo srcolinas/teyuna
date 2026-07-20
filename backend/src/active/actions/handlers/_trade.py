@@ -5,7 +5,7 @@ from typing import Final
 
 from .... import player
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
 from . import _errors
 
 
@@ -21,9 +21,22 @@ class AcceptTradeAction(_registry.PlayerAction):
     id: uuid.UUID
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class ProposeTradeResult(_registry.ActionExecutionResult):
-    proposal_id: uuid.UUID = dataclasses.field(default_factory=uuid.uuid4)
+    proposal_id: uuid.UUID | None = None
+
+
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class AcceptedTradeResult(_registry.ActionExecutionResult):
+    proposal_id: uuid.UUID | None = None
+    proposer: player.Nickname = ""
+    acceptor: player.Nickname = ""
+    offer: entities.ResourceCount = dataclasses.field(
+        default_factory=collections.Counter
+    )
+    request: entities.ResourceCount = dataclasses.field(
+        default_factory=collections.Counter
+    )
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -32,19 +45,34 @@ class TradeWithSupplyAction(_registry.PlayerAction):
     requests: entities.ResourceCard
 
 
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class TradedWithSupplyResult(_registry.ActionExecutionResult):
+    offers: entities.ResourceCard | None = None
+    requests: entities.ResourceCard | None = None
+    rate: int = -1
+
+
 def handle_propose_trade(
     game: entities.ActiveGame, action: ProposeTradeAction
-) -> _registry.ActionExecutionResult:
+) -> ProposeTradeResult:
     error = _validate_trade_targets(game, by=action.by, to=action.to)
     if error is not None:
-        return _results.fail(error)
+        return ProposeTradeResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
     error = _ensure_resources(
         game.players[action.by].resources,
         action.offer,
         reason="to offer",
     )
     if error is not None:
-        return _results.fail(error)
+        return ProposeTradeResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
 
     proposal_id = uuid.uuid4()
     game.trade_proposals[proposal_id] = entities.TradeProposal(
@@ -62,18 +90,24 @@ def handle_propose_trade(
 
 def handle_accept_trade(
     game: entities.ActiveGame, action: AcceptTradeAction
-) -> _registry.ActionExecutionResult:
+) -> AcceptedTradeResult:
     proposal = game.trade_proposals.get(action.id)
     if proposal is None:
-        return _results.fail(
-            _errors.TradeProposalNotFound(f"Trade proposal {action.id} not found.")
+        return AcceptedTradeResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.TradeProposalNotFound(
+                f"Trade proposal {action.id} not found."
+            ),
         )
 
     if action.by not in proposal.to:
-        return _results.fail(
-            _errors.TradeNotAddressedToPlayerError(
+        return AcceptedTradeResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.TradeNotAddressedToPlayerError(
                 f"Player {action.by} cannot accept this trade proposal"
-            )
+            ),
         )
 
     error = _ensure_resources(
@@ -82,27 +116,48 @@ def handle_accept_trade(
         reason="to accept the trade",
     )
     if error is not None:
-        return _results.fail(error)
+        return AcceptedTradeResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
     error = _ensure_resources(
         game.players[proposal.by].resources,
         proposal.offer,
         reason="to complete the trade",
     )
     if error is not None:
-        return _results.fail(error)
+        return AcceptedTradeResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
 
+    offer = collections.Counter(proposal.offer)
+    request = collections.Counter(proposal.request)
+    proposer = proposal.by
     game.take_resources(from_=proposal.by, to=action.by, amount=proposal.offer)
     game.take_resources(from_=action.by, to=proposal.by, amount=proposal.request)
     del game.trade_proposals[action.id]
-    return _results.ok(_registry.GamePhaseName.TRADE_AND_BUILD)
+    return AcceptedTradeResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.TRADE_AND_BUILD,
+        proposal_id=action.id,
+        proposer=proposer,
+        acceptor=action.by,
+        offer=offer,
+        request=request,
+    )
 
 
 def handle_trade_with_supply(
     game: entities.ActiveGame, action: TradeWithSupplyAction
-) -> _registry.ActionExecutionResult:
+) -> TradedWithSupplyResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return TradedWithSupplyResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     rate = _trade_rate(game, action.by, action.offers)
@@ -115,17 +170,29 @@ def handle_trade_with_supply(
         reason="to offer",
     )
     if error is not None:
-        return _results.fail(error)
+        return TradedWithSupplyResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
     if game.resource_supply[action.requests] < 1:
-        return _results.fail(
-            _errors.InsufficientResourceSupplyError(
+        return TradedWithSupplyResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.InsufficientResourceSupplyError(
                 f"The supply does not have enough {action.requests.value} to request."
-            )
+            ),
         )
 
     game.discard_resources(action.by, offered)
     game.take_from_supply(to=action.by, amount=requested)
-    return _results.ok(_registry.GamePhaseName.TRADE_AND_BUILD)
+    return TradedWithSupplyResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.TRADE_AND_BUILD,
+        offers=action.offers,
+        requests=action.requests,
+        rate=rate,
+    )
 
 
 def _trade_rate(

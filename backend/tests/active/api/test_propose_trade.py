@@ -140,13 +140,18 @@ def test_non_active_player_can_propose(
     )
 
     assert response.status_code == 200, response.text
-    body = response.json()
-    proposal_id = uuid.UUID(body["id"])
     stored = repository.retrieve(game_id)
     game, phase = stored.game, stored.phase
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
-    assert proposal_id in game.trade_proposals
-    assert game.trade_proposals[proposal_id].by == other
+    assert phase == actions.GamePhaseName.TRADE_AND_BUILD
+    assert (
+        entities.TradeProposal(
+            by=other,
+            to={active_player},
+            offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+        )
+        in game.trade_proposals.values()
+    )
 
 
 def test_proposes_trade(
@@ -166,11 +171,15 @@ def test_proposes_trade(
     )
 
     assert response.status_code == 200, response.text
-    body = response.json()
-    proposal_id = uuid.UUID(body["id"])
-    game = repository.retrieve(game_id).game
-    assert game.trade_proposals[proposal_id].to == {other}
-    assert game.players[active_player].resources[entities.ResourceCard.GOLD] == 1
+    assert (
+        entities.TradeProposal(
+            by=active_player,
+            to={other},
+            offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+        )
+        in repository.retrieve(game_id).game.trade_proposals.values()
+    )
 
 
 def _setup_trade_and_build(

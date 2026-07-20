@@ -19,6 +19,9 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         ),
     )
     assert result.succeeded is False
+    assert result.offers is None
+    assert result.requests is None
+    assert result.rate == -1
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError
 
@@ -35,6 +38,9 @@ def test_cannot_trade_if_not_enough_resources_from_player(
         ),
     )
     assert result.succeeded is False
+    assert result.offers is None
+    assert result.requests is None
+    assert result.rate == -1
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourcesError
 
@@ -55,6 +61,9 @@ def test_cannot_trade_if_not_enough_resources_from_supply(
         ),
     )
     assert result.succeeded is False
+    assert result.offers is None
+    assert result.requests is None
+    assert result.rate == -1
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourceSupplyError
 
@@ -79,6 +88,9 @@ def test_default_rate_is_four_for_one(game: entities.ActiveGame) -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.offers is entities.ResourceCard.GOLD
+    assert result.requests is entities.ResourceCard.STONE
+    assert result.rate == 4
     assert game.players[player].resources == collections.Counter(
         {entities.ResourceCard.GOLD: 0, entities.ResourceCard.STONE: 1}
     )
@@ -98,7 +110,7 @@ def test_discounted_rate_if_player_has_generic_harbour(
     game.players[game.active_player].resources = collections.Counter(
         {entities.ResourceCard.GOLD: 3}
     )
-    actions.handle_trade_with_supply(
+    result = actions.handle_trade_with_supply(
         game,
         actions.TradeWithSupplyAction(
             by=game.active_player,
@@ -106,6 +118,11 @@ def test_discounted_rate_if_player_has_generic_harbour(
             requests=entities.ResourceCard.STONE,
         ),
     )
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.offers is entities.ResourceCard.GOLD
+    assert result.requests is entities.ResourceCard.STONE
+    assert result.rate == 3
     assert game.players[game.active_player].resources == collections.Counter(
         {entities.ResourceCard.GOLD: 0, entities.ResourceCard.STONE: 1}
     )
@@ -129,7 +146,7 @@ def test_discounted_rate_if_player_has_specific_harbour(
         else entities.ResourceCard.STONE
     )
     game.players[game.active_player].resources = collections.Counter({resource: 2})
-    actions.handle_trade_with_supply(
+    result = actions.handle_trade_with_supply(
         game,
         actions.TradeWithSupplyAction(
             by=game.active_player,
@@ -137,6 +154,11 @@ def test_discounted_rate_if_player_has_specific_harbour(
             requests=requests,
         ),
     )
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.offers is resource
+    assert result.requests is requests
+    assert result.rate == 2
     assert game.players[game.active_player].resources == collections.Counter(
         {resource: 0, requests: 1}
     )
@@ -165,5 +187,8 @@ def test_specific_harbour_does_not_apply_to_other_resources(
         ),
     )
     assert result.succeeded is False
+    assert result.offers is None
+    assert result.requests is None
+    assert result.rate == -1
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourcesError

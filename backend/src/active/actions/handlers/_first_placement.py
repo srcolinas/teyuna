@@ -1,7 +1,7 @@
 import dataclasses
 
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
 from . import _errors, _placement
 
 
@@ -23,12 +23,20 @@ class FreePlacementAction(_registry.PlayerAction):
         )
 
 
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class PlacedBuildingsResult(_registry.ActionExecutionResult):
+    settlement: entities.Coordinate | None = None
+    path: entities.Coordinate | None = None
+
+
 def handle_first_placement(
     game: entities.ActiveGame, action: FreePlacementAction
-) -> _registry.ActionExecutionResult:
+) -> PlacedBuildingsResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return PlacedBuildingsResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     can = _placement.can_add_free_terrace_at(
@@ -37,13 +45,15 @@ def handle_first_placement(
         target=action.terrace,
     )
     if not can:
-        return _results.fail(
-            _errors.InvalidSettlementLocation(
+        return PlacedBuildingsResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.InvalidSettlementLocation(
                 target=action.terrace,
                 player=action.by,
                 free_vertices=game.free_verticies,
                 restricted_vertices=game.restricted_verticies,
-            )
+            ),
         )
 
     player_state = game.players[action.by]
@@ -56,14 +66,16 @@ def handle_first_placement(
         new_settlement=action.terrace,
     )
     if not can:
-        return _results.fail(
-            _errors.InvalidPathLocation(
+        return PlacedBuildingsResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.InvalidPathLocation(
                 target=action.path,
                 player=action.by,
                 existing_settlements=player_state.settlements.locations(),
                 existing_paths=player_state.paths,
                 free_edges=game.free_edges,
-            )
+            ),
         )
 
     game.use_vertex(action.by, action.terrace, entities.SettlementType.TERRACE)
@@ -71,5 +83,15 @@ def handle_first_placement(
 
     if game.player_idx < len(game.players) - 1:
         game.player_idx += 1
-        return _results.ok(_registry.GamePhaseName.FIRST_PLACEMENT)
-    return _results.ok(_registry.GamePhaseName.SECOND_PLACEMENT)
+        return PlacedBuildingsResult(
+            succeeded=True,
+            phase=_registry.GamePhaseName.FIRST_PLACEMENT,
+            settlement=action.terrace,
+            path=action.path,
+        )
+    return PlacedBuildingsResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.SECOND_PLACEMENT,
+        settlement=action.terrace,
+        path=action.path,
+    )

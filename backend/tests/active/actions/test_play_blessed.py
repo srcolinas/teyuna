@@ -10,6 +10,7 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         ),
     )
     assert result.succeeded is False
+    assert result.resources is None
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError
 
@@ -28,6 +29,7 @@ def test_raises_when_supply_lacks_requested_resource(
         ),
     )
     assert result.succeeded is False
+    assert result.resources is None
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourceSupplyError
 
@@ -46,6 +48,7 @@ def test_raises_when_supply_lacks_duplicate_resource(
         ),
     )
     assert result.succeeded is False
+    assert result.resources is None
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourceSupplyError
 
@@ -57,17 +60,19 @@ def test_takes_from_supply_and_returns_to_dice_roll(
     before_wood = game.resource_supply[entities.ResourceCard.WOOD]
     before_stone = game.resource_supply[entities.ResourceCard.STONE]
 
+    resources = (entities.ResourceCard.WOOD, entities.ResourceCard.STONE)
     result = actions.handle_dice_play_blessed(
         game,
         actions.PlayBlessedAction(
             by=player,
-            resources=(entities.ResourceCard.WOOD, entities.ResourceCard.STONE),
+            resources=resources,
         ),
     )
 
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.DICE_ROLL
+    assert result.resources == resources
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 1
     assert game.players[player].resources[entities.ResourceCard.STONE] == 1
     assert game.resource_supply[entities.ResourceCard.WOOD] == before_wood - 1
@@ -81,17 +86,19 @@ def test_takes_from_supply_and_returns_to_trade_and_build(
     before_wood = game.resource_supply[entities.ResourceCard.WOOD]
     before_stone = game.resource_supply[entities.ResourceCard.STONE]
 
+    resources = (entities.ResourceCard.WOOD, entities.ResourceCard.STONE)
     result = actions.handle_trade_and_build_play_blessed(
         game,
         actions.PlayBlessedAction(
             by=player,
-            resources=(entities.ResourceCard.WOOD, entities.ResourceCard.STONE),
+            resources=resources,
         ),
     )
 
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.resources == resources
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 1
     assert game.players[player].resources[entities.ResourceCard.STONE] == 1
     assert game.resource_supply[entities.ResourceCard.WOOD] == before_wood - 1

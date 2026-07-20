@@ -32,6 +32,8 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError
 
@@ -67,6 +69,8 @@ def test_builds_terrace_spends_resources_and_stays_in_phase(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.item is entities.SettlementType.TERRACE
+    assert result.coordinate == terrace
     assert game.players[player].settlements[terrace] is entities.SettlementType.TERRACE
     assert game.players[player].resources[entities.ResourceCard.STONE] == 0
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 0
@@ -101,6 +105,7 @@ def test_builds_path_spends_resources_and_stays_in_phase(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.coordinate == path
     assert path in game.players[player].paths
     assert game.players[player].resources[entities.ResourceCard.STONE] == 0
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 0
@@ -132,6 +137,7 @@ def test_builds_path_chained_from_owned_path(game: entities.ActiveGame) -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.coordinate == adjacent
     assert adjacent in game.players[player].paths
     assert game.players[player].resources[entities.ResourceCard.STONE] == 0
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 0
@@ -154,6 +160,7 @@ def test_raises_invalid_path_location_when_disconnected(
         actions.BuildPathAction(by=player, coordinate=disconnected),
     )
     assert result.succeeded is False
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidPathLocation
 
@@ -180,6 +187,7 @@ def test_raises_invalid_path_location_when_already_taken(
         actions.BuildPathAction(by=player, coordinate=path),
     )
     assert result.succeeded is False
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidPathLocation
 
@@ -209,6 +217,8 @@ def test_builds_great_terrace_upgrades_and_stays_in_phase(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.item is entities.SettlementType.GREAT_TERRACE
+    assert result.coordinate == terrace
     assert (
         game.players[player].settlements[terrace]
         is entities.SettlementType.GREAT_TERRACE
@@ -247,6 +257,8 @@ def test_building_terrace_to_ten_vp_ends_game(game: entities.ActiveGame) -> None
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.END_GAME
+    assert result.item is entities.SettlementType.TERRACE
+    assert result.coordinate == terrace
 
 
 def test_building_great_terrace_to_ten_vp_ends_game(
@@ -275,6 +287,8 @@ def test_building_great_terrace_to_ten_vp_ends_game(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.END_GAME
+    assert result.item is entities.SettlementType.GREAT_TERRACE
+    assert result.coordinate == terrace
 
 
 def test_building_path_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
@@ -300,6 +314,7 @@ def test_building_path_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.END_GAME
+    assert result.coordinate == path
 
 
 def test_building_path_below_ten_vp_stays_in_phase(
@@ -327,6 +342,7 @@ def test_building_path_below_ten_vp_stays_in_phase(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.coordinate == path
 
 
 def test_raises_insufficient_resources_for_terrace(
@@ -348,6 +364,8 @@ def test_raises_insufficient_resources_for_terrace(
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourcesError
 
@@ -375,6 +393,8 @@ def test_raises_invalid_settlement_location_without_path(
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidSettlementLocation
 
@@ -411,6 +431,8 @@ def test_raises_invalid_settlement_location_when_restricted(
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidSettlementLocation
 
@@ -443,6 +465,8 @@ def test_raises_invalid_settlement_location_when_occupied(
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidSettlementLocation
 
@@ -476,6 +500,8 @@ def test_raises_when_terrace_cap_reached(game: entities.ActiveGame) -> None:
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourcesError
 
@@ -504,6 +530,8 @@ def test_raises_when_great_terrace_cap_reached(game: entities.ActiveGame) -> Non
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourcesError
 
@@ -527,6 +555,8 @@ def test_raises_when_upgrading_without_terrace(game: entities.ActiveGame) -> Non
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidSettlementLocation
 
@@ -551,6 +581,8 @@ def test_raises_when_already_great_terrace(game: entities.ActiveGame) -> None:
         ),
     )
     assert result.succeeded is False
+    assert result.item is None
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidSettlementLocation
 
@@ -576,6 +608,7 @@ def test_raises_when_path_cap_reached(game: entities.ActiveGame) -> None:
         actions.BuildPathAction(by=player, coordinate=path),
     )
     assert result.succeeded is False
+    assert result.coordinate is None
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourcesError
 
@@ -594,6 +627,7 @@ def test_end_turn_advances_player_and_returns_to_dice_roll(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.DICE_ROLL
+    assert result.next_player == game.turn_order[1]
     assert game.player_idx == 1
     assert game.active_player == game.turn_order[1]
 
@@ -613,6 +647,7 @@ def test_end_turn_promotes_cards_bought_this_turn(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.DICE_ROLL
+    assert result.next_player == game.turn_order[1]
     assert game.players[player].cards[card] == 1
     assert game.players[player].cards_bought_this_turn[card] == 0
 
@@ -629,6 +664,7 @@ def test_end_turn_wraps_to_first_player(game: entities.ActiveGame) -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.DICE_ROLL
+    assert result.next_player == game.turn_order[0]
     assert game.player_idx == 0
     assert game.active_player == game.turn_order[0]
 
@@ -652,6 +688,7 @@ def test_end_turn_clears_trade_proposals(game: entities.ActiveGame) -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.DICE_ROLL
+    assert result.next_player == game.turn_order[1]
     assert game.trade_proposals == {}
 
 
@@ -663,6 +700,7 @@ def test_end_turn_raises_when_player_not_in_turn(
         actions.PlayerAction(by=game.turn_order[1]),
     )
     assert result.succeeded is False
+    assert result.next_player == ""
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError
 
@@ -686,6 +724,7 @@ def test_play_wisdom_card_raises_when_player_does_not_have_card(
         actions.PlayWisdomCardAction(by=game.active_player, card=card),
     )
     assert result.succeeded is False
+    assert result.card is None
     assert result.error is not None
     assert type(result.error) is actions.PlayerDoesNotHaveCardError
 
@@ -703,6 +742,7 @@ def test_play_wisdom_card_raises_when_player_not_in_turn(
         ),
     )
     assert result.succeeded is False
+    assert result.card is None
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError
 
@@ -723,6 +763,7 @@ def test_play_wisdom_card_raises_when_card_cannot_be_played(
         actions.PlayWisdomCardAction(by=player, card=unknown_card),  # type: ignore[arg-type]
     )
     assert result.succeeded is False
+    assert result.card is None
     assert result.error is not None
     assert type(result.error) is actions.ActionNotAllowedError
 
@@ -768,6 +809,7 @@ def test_play_wisdom_card_transitions_to_expected_phase(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is expected_phase
+    assert result.card is card
     assert game.players[player].cards[card] == 0
     assert game.players[player].played_cards[card] == 1
 
@@ -787,6 +829,7 @@ def test_playing_legacy_to_ten_vp_ends_game(game: entities.ActiveGame) -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.END_GAME
+    assert result.card is entities.WisdomCard.LEGACY_OF_THE_ELDERS
     assert (
         game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS]
         == 10
@@ -800,11 +843,15 @@ def test_playing_third_warrior_claims_biggest_army(
     game.players[player].cards[entities.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[entities.WisdomCard.WARRIOR] = 2
 
-    actions.handle_trade_and_build_play_wisdom_card(
+    result = actions.handle_trade_and_build_play_wisdom_card(
         game,
         actions.PlayWisdomCardAction(by=player, card=entities.WisdomCard.WARRIOR),
     )
 
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
+    assert result.card is entities.WisdomCard.WARRIOR
     assert game.biggest_army == (player, 3)
 
 
@@ -834,6 +881,7 @@ def test_buy_wisdom_card_spends_resources_and_draws_top(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.card is card
     assert game.wisdom_deck == [entities.WisdomCard.PATHFINDER]
     assert game.players[player].cards_bought_this_turn[card] == 1
     assert game.players[player].cards[card] == 0
@@ -860,6 +908,7 @@ def test_buy_wisdom_card_raises_when_insufficient_resources(
         actions.BuyWisdomCardAction(by=player),
     )
     assert result.succeeded is False
+    assert result.card is None
     assert result.error is not None
     assert type(result.error) is actions.InsufficientResourcesError
 
@@ -876,6 +925,7 @@ def test_buy_wisdom_card_raises_when_deck_is_empty(
         actions.BuyWisdomCardAction(by=player),
     )
     assert result.succeeded is False
+    assert result.card is None
     assert result.error is not None
     assert type(result.error) is actions.EmptyWisdomDeckError
 
@@ -891,5 +941,6 @@ def test_buy_wisdom_card_raises_when_player_not_in_turn(
         actions.BuyWisdomCardAction(by=game.turn_order[1]),
     )
     assert result.succeeded is False
+    assert result.card is None
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError

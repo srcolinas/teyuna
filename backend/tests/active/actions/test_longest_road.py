@@ -276,6 +276,7 @@ def test_handle_build_path_awards_longest_road(game: entities.ActiveGame) -> Non
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.coordinate == fifth
     assert game.longest_road == (player, 5)
     assert fifth in game.players[player].paths
 
@@ -298,6 +299,7 @@ def test_handle_build_path_can_end_game_via_longest_road(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.END_GAME
+    assert result.coordinate == fifth
     assert game.longest_road == (player, 5)
     assert actions.victory_points(game, player) == 10
 
@@ -332,6 +334,8 @@ def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.item is entities.SettlementType.TERRACE
+    assert result.coordinate == vertex
     assert game.longest_road == (None, 0)
     assert game.players[breaker].settlements[vertex] is entities.SettlementType.TERRACE
 
@@ -352,6 +356,7 @@ def test_pathfinder_awards_longest_road_on_fifth_path(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.DICE_ROLL
+    assert result.paths == (fourth, fifth)
     assert game.longest_road == (player, 5)
     assert fourth in game.players[player].paths
     assert fifth in game.players[player].paths

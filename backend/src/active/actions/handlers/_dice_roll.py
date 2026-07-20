@@ -2,24 +2,28 @@ import collections
 import dataclasses
 from typing import Final
 
+from .... import player
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
 from . import _errors
-from ._play_card import PlayWisdomCardAction, play_wisdom_card
+from ._play_card import PlayWisdomCardAction, PlayedWisdomCardResult, play_wisdom_card
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class DiceRollResult(_registry.ActionExecutionResult):
-    die_1: int = 0
-    die_2: int = 0
+    die_1: int = -1
+    die_2: int = -1
+    to_discard: dict[player.Nickname, int] = dataclasses.field(default_factory=dict)
 
 
 def handle_dice_roll(
     game: entities.ActiveGame, action: _registry.PlayerAction
-) -> _registry.ActionExecutionResult:
+) -> DiceRollResult:
     if game.active_player != action.by:
-        return _results.fail(
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return DiceRollResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
         )
 
     dice_1, dice_2 = action.rng_.randint(1, 6), action.rng_.randint(1, 6)
@@ -44,12 +48,13 @@ def handle_dice_roll(
         phase=phase,
         die_1=dice_1,
         die_2=dice_2,
+        to_discard=dict(game.to_discard_resources),
     )
 
 
 def handle_play_wisdom_card(
     game: entities.ActiveGame, action: PlayWisdomCardAction
-) -> _registry.ActionExecutionResult:
+) -> PlayedWisdomCardResult:
     return play_wisdom_card(
         game,
         action,

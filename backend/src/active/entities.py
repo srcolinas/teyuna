@@ -428,9 +428,10 @@ class ActiveGame:
         self.players[by].resources.subtract(amount)
         self.resource_supply.update(amount)
 
-    def take_wisdom_card(self, by: player.Nickname) -> None:
+    def take_wisdom_card(self, by: player.Nickname) -> WisdomCard:
         card = self.wisdom_deck.pop()
         self.players[by].cards_bought_this_turn[card] += 1
+        return card
 
     def preserve_cards(self, by: player.Nickname) -> None:
         self.players[by].cards.update(self.players[by].cards_bought_this_turn)

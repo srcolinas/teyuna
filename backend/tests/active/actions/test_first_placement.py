@@ -10,6 +10,8 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         actions.FreePlacementAction(by=game.turn_order[1], terrace=terrace, path=path),
     )
     assert result.succeeded is False
+    assert result.settlement is None
+    assert result.path is None
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError
 
@@ -27,6 +29,8 @@ def test_raises_when_terrace_invalid(game: entities.ActiveGame) -> None:
         actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
     )
     assert result.succeeded is False
+    assert result.settlement is None
+    assert result.path is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidSettlementLocation
 
@@ -41,6 +45,8 @@ def test_raises_when_terrace_already_occupied(game: entities.ActiveGame) -> None
         actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
     )
     assert result.succeeded is False
+    assert result.settlement is None
+    assert result.path is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidSettlementLocation
 
@@ -54,6 +60,8 @@ def test_raises_when_path_invalid(game: entities.ActiveGame) -> None:
         actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
     )
     assert result.succeeded is False
+    assert result.settlement is None
+    assert result.path is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidPathLocation
 
@@ -68,6 +76,8 @@ def test_raises_when_path_already_taken(game: entities.ActiveGame) -> None:
         actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
     )
     assert result.succeeded is False
+    assert result.settlement is None
+    assert result.path is None
     assert result.error is not None
     assert type(result.error) is actions.InvalidPathLocation
 
@@ -85,6 +95,8 @@ def test_mutates_board_and_advances_player(game: entities.ActiveGame) -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.FIRST_PLACEMENT
+    assert result.settlement == terrace
+    assert result.path == path
     assert game.player_idx == 1
     assert terrace not in game.free_verticies
     assert path not in game.free_edges
@@ -106,4 +118,6 @@ def test_returns_second_placement_after_last_player(game: entities.ActiveGame) -
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.SECOND_PLACEMENT
+    assert result.settlement == terrace
+    assert result.path == path
     assert game.player_idx == len(game.players) - 1

@@ -201,12 +201,6 @@ class ProposeTradePayload(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True)
 
 
-class ProposeTradeResponse(pydantic.BaseModel):
-    id: uuid.UUID
-
-    model_config = pydantic.ConfigDict(frozen=True)
-
-
 @router.post("/{game_id}/trades")
 def propose_trade(
     game_id: uuid.UUID,
@@ -222,7 +216,7 @@ def propose_trade(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
-) -> ProposeTradeResponse:
+) -> None:
     result, game = services.apply_player_action(
         game_id,
         actions.ProposeTradeAction(
@@ -237,8 +231,6 @@ def propose_trade(
     )
 
     http.raise_if_failed(result)
-    assert isinstance(result, actions.ProposeTradeResult)
-    return ProposeTradeResponse(id=result.proposal_id)
 
 
 @router.post("/{game_id}/trades/{proposal_id}/accept")

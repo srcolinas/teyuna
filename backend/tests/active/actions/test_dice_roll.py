@@ -1,7 +1,6 @@
 import collections
 import random
 
-
 from src.active import actions, entities
 
 
@@ -14,6 +13,9 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         ),
     )
     assert result.succeeded is False
+    assert result.die_1 == -1
+    assert result.die_2 == -1
+    assert result.to_discard == {}
     assert result.error is not None
     assert type(result.error) is actions.PlayerNotInTurnError
 
@@ -32,9 +34,9 @@ def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.MOVE_CONQUISTATOR
-    assert isinstance(result, actions.DiceRollResult)
     assert result.die_1 == 3
     assert result.die_2 == 4
+    assert result.to_discard == {}
     assert game.to_discard_resources == {}
     assert game.player_idx == 0
     assert game.active_player == player
@@ -62,6 +64,9 @@ def test_rolls_seven_with_players_over_seven_moves_to_discard_resources(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.DISCARD_RESOURCES
+    assert result.die_1 == 3
+    assert result.die_2 == 4
+    assert result.to_discard == {over_limit: 4}
     assert game.to_discard_resources == {over_limit: 4}
 
 
@@ -79,6 +84,9 @@ def test_rolls_non_seven_moves_to_trade_and_build(
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 2
+    assert result.die_2 == 3
+    assert result.to_discard == {}
     assert game.player_idx == 0
     assert game.active_player == player
 
@@ -100,6 +108,9 @@ def test_produces_one_resource_from_terrace() -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 3
+    assert result.die_2 == 5
+    assert result.to_discard == {}
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 1
     assert game.players["player-1"].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 18
@@ -126,6 +137,9 @@ def test_produces_two_resources_from_great_terrace() -> None:
     assert result.succeeded is True
     assert result.error is None
     assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 3
+    assert result.die_2 == 5
+    assert result.to_discard == {}
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 2
     assert game.resource_supply[entities.ResourceCard.GOLD] == 17
 
@@ -140,11 +154,17 @@ def test_does_not_grant_when_supply_is_empty() -> None:
         supply_gold=0,
     )
 
-    actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by="player-0", rng_=FixedRandom([3, 5])),
     )
 
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 3
+    assert result.die_2 == 5
+    assert result.to_discard == {}
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 0
 
@@ -163,11 +183,17 @@ def test_grants_partial_when_supply_has_less_than_requested() -> None:
         supply_gold=1,
     )
 
-    actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by="player-0", rng_=FixedRandom([3, 5])),
     )
 
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 3
+    assert result.die_2 == 5
+    assert result.to_discard == {}
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 1
     assert game.resource_supply[entities.ResourceCard.GOLD] == 0
 
@@ -185,11 +211,17 @@ def test_turn_order_gets_remaining_supply_first() -> None:
         supply_gold=1,
     )
 
-    actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by="player-0", rng_=FixedRandom([3, 5])),
     )
 
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 3
+    assert result.die_2 == 5
+    assert result.to_discard == {}
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 1
     assert game.players["player-1"].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 0
@@ -205,11 +237,17 @@ def test_does_not_produce_from_conquistator_hex() -> None:
     )
     game.conquistator_location = entities.HexLocation(q=0, r=0)
 
-    actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by="player-0", rng_=FixedRandom([3, 5])),
     )
 
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 3
+    assert result.die_2 == 5
+    assert result.to_discard == {}
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 19
 
@@ -240,11 +278,17 @@ def test_does_not_produce_from_desert_or_non_matching_roll() -> None:
         },
     )
 
-    actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by="player-0", rng_=FixedRandom([2, 3])),
     )
 
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.die_1 == 2
+    assert result.die_2 == 3
+    assert result.to_discard == {}
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 19
 

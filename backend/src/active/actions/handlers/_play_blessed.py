@@ -2,7 +2,7 @@ import collections
 import dataclasses
 
 from ... import entities
-from .. import _registry, _results
+from .. import _registry
 from . import _errors
 
 
@@ -11,22 +11,43 @@ class PlayBlessedAction(_registry.PlayerAction):
     resources: tuple[entities.ResourceCard, entities.ResourceCard]
 
 
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class PlayedBlessedResult(_registry.ActionExecutionResult):
+    resources: tuple[entities.ResourceCard, entities.ResourceCard] | None = None
+
+
 def handle_dice_play_blessed(
     game: entities.ActiveGame, action: PlayBlessedAction
-) -> _registry.ActionExecutionResult:
+) -> PlayedBlessedResult:
     error = _apply_blessed(game, action)
     if error is not None:
-        return _results.fail(error)
-    return _results.ok(_registry.GamePhaseName.DICE_ROLL)
+        return PlayedBlessedResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
+    return PlayedBlessedResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.DICE_ROLL,
+        resources=action.resources,
+    )
 
 
 def handle_trade_and_build_play_blessed(
     game: entities.ActiveGame, action: PlayBlessedAction
-) -> _registry.ActionExecutionResult:
+) -> PlayedBlessedResult:
     error = _apply_blessed(game, action)
     if error is not None:
-        return _results.fail(error)
-    return _results.ok(_registry.GamePhaseName.TRADE_AND_BUILD)
+        return PlayedBlessedResult(
+            succeeded=False,
+            phase=_registry.GamePhaseName.END_GAME,
+            error=error,
+        )
+    return PlayedBlessedResult(
+        succeeded=True,
+        phase=_registry.GamePhaseName.TRADE_AND_BUILD,
+        resources=action.resources,
+    )
 
 
 def _apply_blessed(
