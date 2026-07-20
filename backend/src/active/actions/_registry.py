@@ -107,8 +107,6 @@ class ActionsRegistry:
         duration: datetime.timedelta,
         on_timeout: TimeoutFn,
     ) -> None:
-        if phase is GamePhaseName.END_GAME:
-            raise ValueError("END_GAME has no phase timeout")
         self._timeouts[phase] = PhaseTimeout(duration=duration, on_timeout=on_timeout)
 
     def timeout_for(self, phase: GamePhaseName) -> PhaseTimeout:

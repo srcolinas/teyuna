@@ -10,7 +10,6 @@ from src.active import (
     services,
 )
 from src.active.actions import timeouts
-from src.active.services import _create
 
 
 def test_set_timeout_and_timeout_for() -> None:
@@ -58,7 +57,7 @@ def test_timeout_trade_and_build_ends_turn(game: entities.ActiveGame) -> None:
 
 def test_timeout_first_placement_executes() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
-    game_id = _create.create_game(
+    game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
         first_placement_timeout=datetime.timedelta(seconds=60),
@@ -96,7 +95,7 @@ def test_timeout_discard_resources_executes(game: entities.ActiveGame) -> None:
 
 def test_timeout_move_conquistator_executes() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
-    game_id = _create.create_game(
+    game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
         first_placement_timeout=datetime.timedelta(seconds=60),
@@ -169,7 +168,7 @@ def test_apply_player_action_resets_deadline() -> None:
         timeouts.timeout_discard_resources,
     )
     game_locks = locks.GameLockManager()
-    game_id = _create.create_game(
+    game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
         first_placement_timeout=datetime.timedelta(seconds=60),
@@ -207,7 +206,7 @@ def test_apply_timeout_if_due_is_noop_when_not_expired() -> None:
         timeouts.timeout_dice_roll,
     )
     game_locks = locks.GameLockManager()
-    game_id = _create.create_game(
+    game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
         first_placement_timeout=datetime.timedelta(seconds=60),
@@ -255,7 +254,7 @@ def test_apply_timeout_if_due_advances_phase() -> None:
         timeouts.timeout_discard_resources,
     )
     game_locks = locks.GameLockManager()
-    game_id = _create.create_game(
+    game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
         first_placement_timeout=datetime.timedelta(seconds=60),
@@ -306,7 +305,7 @@ def test_second_timeout_is_noop_after_deadline_refresh() -> None:
         timeouts.timeout_discard_resources,
     )
     game_locks = locks.GameLockManager()
-    game_id = _create.create_game(
+    game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
         first_placement_timeout=datetime.timedelta(seconds=60),
@@ -342,7 +341,7 @@ def test_apply_timeout_if_due_is_noop_when_deadline_is_none() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     registry = actions.ActionsRegistry()
     game_locks = locks.GameLockManager()
-    game_id = _create.create_game(
+    game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
         first_placement_timeout=datetime.timedelta(seconds=60),
