@@ -1,3 +1,4 @@
+import collections
 import functools
 import random
 import uuid
@@ -183,3 +184,26 @@ def get_player(
 @functools.cache
 def random_generator() -> random.Random:
     return random.Random()
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: collections.defaultdict[
+            uuid.UUID, list[fastapi.WebSocket]
+        ] = collections.defaultdict(list)
+
+    async def connect(self, game_id: uuid.UUID, websocket: fastapi.WebSocket):
+        await websocket.accept()
+        self.active_connections[game_id].append(websocket)
+
+    def disconnect(self, game_id: uuid.UUID, websocket: fastapi.WebSocket):
+        self.active_connections[game_id].remove(websocket)
+
+    async def broadcast(self, game_id: uuid.UUID, message: str):
+        for connection in self.active_connections[game_id]:
+            await connection.send_text(message)
+
+
+@functools.cache
+def get_connection_manager() -> ConnectionManager:
+    return ConnectionManager()

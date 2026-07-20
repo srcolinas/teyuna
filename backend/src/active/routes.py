@@ -6,6 +6,7 @@ from typing import Annotated
 import fastapi
 import pydantic
 from fastapi import status
+from starlette import websockets
 
 from .. import player
 from . import (
@@ -654,3 +655,22 @@ def build_path(
             direction=payload.location.direction,
         ),
     )
+
+
+@router.websocket("/{game_id}/chat")
+async def chat(
+    websocket: fastapi.WebSocket,
+    game_id: uuid.UUID,
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    manager: Annotated[
+        dependencies.ConnectionManager,
+        fastapi.Depends(dependencies.get_connection_manager),
+    ],
+):
+    await manager.connect(game_id, websocket)
+    try:
+        while True:
+            message = await websocket.receive_text()
+            await manager.broadcast(game_id, f"{nickname}: {message}")
+    except websockets.WebSocketDisconnect:
+        manager.disconnect(game_id, websocket)
