@@ -10,6 +10,7 @@ from fastapi import status
 from .. import player
 from . import (
     dependencies,
+    http,
     ports,
     repository as repository_module,
     actions,
@@ -18,7 +19,7 @@ from . import (
     services,
 )
 
-router = fastapi.APIRouter(prefix="/active-games")
+router = fastapi.APIRouter(prefix="/active-games", route_class=http.ActiveGameRoute)
 
 
 @router.get("/{game_id}")
@@ -64,28 +65,13 @@ def advance_or_phase(
     ],
     rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> tuple[actions.GamePhaseName, player.Nickname]:
-    try:
-        new_phase, game, _ = services.apply_player_action(
-            game_id,
-            actions.PlayerAction(by=nickname, rng_=rng),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
+    new_phase, game, _ = services.apply_player_action(
+        game_id,
+        actions.PlayerAction(by=nickname, rng_=rng),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return new_phase, game.active_player
 
 
@@ -122,37 +108,18 @@ def move_conquistator(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ports.HexCoordinate:
-    try:
-        _, game, _ = services.apply_player_action(
-            game_id,
-            actions.MoveConquistatorAction(
-                by=nickname,
-                q=payload.location.q,
-                r=payload.location.r,
-                from_player=payload.take_from,
-            ),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InvalidConquistatorLocation as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    _, game, _ = services.apply_player_action(
+        game_id,
+        actions.MoveConquistatorAction(
+            by=nickname,
+            q=payload.location.q,
+            r=payload.location.r,
+            from_player=payload.take_from,
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return ports.HexCoordinate(
         q=game.conquistator_location.q, r=game.conquistator_location.r
     )
@@ -183,32 +150,13 @@ def play_wisdom_card(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    try:
-        new_phase, _, _ = services.apply_player_action(
-            game_id,
-            actions.PlayWisdomCardAction(by=nickname, card=payload.card),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.PlayerDoesNotHaveCardError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    new_phase, _, _ = services.apply_player_action(
+        game_id,
+        actions.PlayWisdomCardAction(by=nickname, card=payload.card),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return new_phase
 
 
@@ -227,36 +175,13 @@ def buy_wisdom_card(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    try:
-        new_phase, _, _ = services.apply_player_action(
-            game_id,
-            actions.BuyWisdomCardAction(by=nickname),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InsufficientResourcesError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.EmptyWisdomDeckError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    new_phase, _, _ = services.apply_player_action(
+        game_id,
+        actions.BuyWisdomCardAction(by=nickname),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return new_phase
 
 
@@ -293,38 +218,19 @@ def propose_trade(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ProposeTradeResponse:
-    try:
-        _, game, existing_ids = services.apply_player_action(
-            game_id,
-            actions.ProposeTradeAction(
-                by=nickname,
-                offer=collections.Counter(payload.offer),
-                request=collections.Counter(payload.request),
-                to=set(payload.to),
-            ),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-            before=lambda g: set(g.trade_proposals),
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.InsufficientResourcesError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.InvalidTradeTargets as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    _, game, existing_ids = services.apply_player_action(
+        game_id,
+        actions.ProposeTradeAction(
+            by=nickname,
+            offer=collections.Counter(payload.offer),
+            request=collections.Counter(payload.request),
+            to=set(payload.to),
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+        before=lambda g: set(g.trade_proposals),
+    )
 
     assert existing_ids is not None
     proposal_id = next(iter(set(game.trade_proposals) - existing_ids))
@@ -347,36 +253,13 @@ def accept_trade(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    try:
-        new_phase, _, _ = services.apply_player_action(
-            game_id,
-            actions.AcceptTradeAction(by=nickname, id=proposal_id),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.TradeProposalNotFound as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.TradeNotAddressedToPlayerError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.InsufficientResourcesError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    new_phase, _, _ = services.apply_player_action(
+        game_id,
+        actions.AcceptTradeAction(by=nickname, id=proposal_id),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return new_phase
 
 
@@ -403,40 +286,17 @@ def trade_with_supply(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    try:
-        new_phase, _, _ = services.apply_player_action(
-            game_id,
-            actions.TradeWithSupplyAction(
-                by=nickname,
-                offers=payload.offers,
-                requests=payload.requests,
-            ),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InsufficientResourcesError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.InsufficientResourceSupplyError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    new_phase, _, _ = services.apply_player_action(
+        game_id,
+        actions.TradeWithSupplyAction(
+            by=nickname,
+            offers=payload.offers,
+            requests=payload.requests,
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return new_phase
 
 
@@ -465,28 +325,13 @@ def play_mamo(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> dict[entities.ResourceCard, int]:
-    try:
-        _, game, _ = services.apply_player_action(
-            game_id,
-            actions.PlayMamoAction(by=nickname, resource=payload.resource),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
+    _, game, _ = services.apply_player_action(
+        game_id,
+        actions.PlayMamoAction(by=nickname, resource=payload.resource),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return dict(game.players[nickname].resources)
 
 
@@ -512,32 +357,13 @@ def play_blessing(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> dict[entities.ResourceCard, int]:
-    try:
-        _, game, _ = services.apply_player_action(
-            game_id,
-            actions.PlayBlessedAction(by=nickname, resources=payload.resources),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InsufficientResourceSupplyError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    _, game, _ = services.apply_player_action(
+        game_id,
+        actions.PlayBlessedAction(by=nickname, resources=payload.resources),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return dict(game.players[nickname].resources)
 
 
@@ -566,43 +392,24 @@ def play_pathfinder(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> list[ports.PlayedStonePath]:
-    try:
-        _, game, paths_before = services.apply_player_action(
-            game_id,
-            actions.PlayPathfinderAction(
-                by=nickname,
-                paths=tuple(
-                    entities.Coordinate(
-                        q=path.hex_coord.q,
-                        r=path.hex_coord.r,
-                        d=path.direction,
-                    )
-                    for path in payload.paths
-                ),
+    _, game, paths_before = services.apply_player_action(
+        game_id,
+        actions.PlayPathfinderAction(
+            by=nickname,
+            paths=tuple(
+                entities.Coordinate(
+                    q=path.hex_coord.q,
+                    r=path.hex_coord.r,
+                    d=path.direction,
+                )
+                for path in payload.paths
             ),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-            before=lambda g: set(g.players[nickname].paths),
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InvalidPathLocation as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+        before=lambda g: set(g.players[nickname].paths),
+    )
 
     assert paths_before is not None
     placed = game.players[nickname].paths - paths_before
@@ -665,48 +472,25 @@ def add_initial_placements(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> tuple[ports.PlayedSettlement, ports.PlayedStonePath]:
-    try:
-        services.apply_player_action(
-            game_id,
-            actions.FreePlacementAction(
-                by=nickname,
-                terrace=entities.Coordinate(
-                    q=payload.terrace.hex_coord.q,
-                    r=payload.terrace.hex_coord.r,
-                    d=payload.terrace.direction,
-                ),
-                path=entities.Coordinate(
-                    q=payload.path.hex_coord.q,
-                    r=payload.path.hex_coord.r,
-                    d=payload.path.direction,
-                ),
+    services.apply_player_action(
+        game_id,
+        actions.FreePlacementAction(
+            by=nickname,
+            terrace=entities.Coordinate(
+                q=payload.terrace.hex_coord.q,
+                r=payload.terrace.hex_coord.r,
+                d=payload.terrace.direction,
             ),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InvalidSettlementLocation as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.InvalidPathLocation as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+            path=entities.Coordinate(
+                q=payload.path.hex_coord.q,
+                r=payload.path.hex_coord.r,
+                d=payload.path.direction,
+            ),
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
     return ports.PlayedSettlement(
         location=payload.terrace,
         type=entities.SettlementType.TERRACE,
@@ -767,44 +551,21 @@ def build_settlement(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ports.PlayedSettlement:
-    try:
-        services.apply_player_action(
-            game_id,
-            actions.BuildSettlementAction(
-                by=nickname,
-                item=payload.item,
-                coordinate=entities.Coordinate(
-                    q=payload.location.hex_coord.q,
-                    r=payload.location.hex_coord.r,
-                    d=payload.location.direction,
-                ),
+    services.apply_player_action(
+        game_id,
+        actions.BuildSettlementAction(
+            by=nickname,
+            item=payload.item,
+            coordinate=entities.Coordinate(
+                q=payload.location.hex_coord.q,
+                r=payload.location.hex_coord.r,
+                d=payload.location.direction,
             ),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InsufficientResourcesError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.InvalidSettlementLocation as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
 
     return ports.PlayedSettlement(
         owner=nickname,
@@ -869,43 +630,20 @@ def build_path(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ports.PlayedStonePath:
-    try:
-        services.apply_player_action(
-            game_id,
-            actions.BuildPathAction(
-                by=nickname,
-                coordinate=entities.Coordinate(
-                    q=payload.location.hex_coord.q,
-                    r=payload.location.hex_coord.r,
-                    d=payload.location.direction,
-                ),
+    services.apply_player_action(
+        game_id,
+        actions.BuildPathAction(
+            by=nickname,
+            coordinate=entities.Coordinate(
+                q=payload.location.hex_coord.q,
+                r=payload.location.hex_coord.r,
+                d=payload.location.direction,
             ),
-            repository=repository,
-            registry=registry,
-            game_locks=game_locks,
-        )
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except actions.ActionNotAllowedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.GamePhaseHanlderNotImplementedError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(e)
-        )
-    except actions.PlayerNotInTurnError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
-    except actions.InsufficientResourcesError as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
-    except actions.InvalidPathLocation as e:
-        raise fastapi.HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+    )
 
     return ports.PlayedStonePath(
         owner=nickname,

@@ -157,11 +157,7 @@ def get_game(
         fastapi.Depends(get_repository),
     ],
 ) -> ports.ActiveGame:
-    try:
-        game = services.retrieve_game(game_id, repository=repository)
-    except repository_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return game
+    return services.retrieve_game(game_id, repository=repository)
 
 
 def get_player(
