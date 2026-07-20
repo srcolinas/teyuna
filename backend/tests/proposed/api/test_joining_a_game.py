@@ -135,7 +135,9 @@ def test_cannot_join_with_duplicate_nickname(client: testclient.TestClient) -> N
 
 
 class _ActiveRepositoryThatFailsAdd:
-    def add(self, game: entities.ActiveGame) -> uuid.UUID:
+    def add(
+        self, game: entities.ActiveGame, *, phase_deadline: datetime.datetime | None
+    ) -> uuid.UUID:
         raise active.repository.ActiveGameDoesNotExistError
 
 

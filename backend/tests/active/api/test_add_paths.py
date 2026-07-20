@@ -6,6 +6,7 @@ import fastapi.testclient as testclient
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -55,8 +56,9 @@ def test_returns_400_when_action_not_allowed(
     repository, game_id, tokens, active_player, _, path = _setup_trade_and_build(app)
     repository.update(
         game_id,
-        repository.retrieve(game_id)[0],
+        repository.retrieve(game_id).game,
         actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
     )
 
     client.cookies.set("session-token", tokens[active_player])
@@ -96,7 +98,8 @@ def test_builds_path_and_returns_it(
     assert body["location"]["hex_coord"] == {"q": path.q, "r": path.r}
     assert body["location"]["direction"] == path.d
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert path in game.players[active_player].paths
     assert game.players[active_player].resources[entities.ResourceCard.STONE] == 0
@@ -116,8 +119,15 @@ def test_returns_400_when_insufficient_resources(
     game.players[game.active_player].settlements[terrace] = (
         entities.SettlementType.TERRACE
     )
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
@@ -187,7 +197,9 @@ def test_returns_path_by_coordinate(
     game = _create_game()
     path = entities.canonical_edge(0, 0, 0)
     game.players[game.active_player].paths.add(path)
-    game_id = repository.add(game)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
 
     response = client.get(f"/active-games/{game_id}/paths/{path.q}/{path.r}/{path.d}")
@@ -224,8 +236,15 @@ def _setup_trade_and_build(
             entities.ResourceCard.WOOD: 1,
         }
     )
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),

@@ -6,6 +6,7 @@ import fastapi.testclient as testclient
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -44,7 +45,9 @@ def test_returns_turn_order(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
 
     response = client.get(f"/active-games/{game_id}/turn-order")
@@ -60,8 +63,15 @@ def test_returns_turn_order_clockwise_from_active_player(
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
     game.player_idx = 1
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_ROLL)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
 
     response = client.get(f"/active-games/{game_id}/turn-order")
@@ -77,8 +87,15 @@ def test_returns_turn_order_counter_clockwise_during_second_placement(
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
     game.player_idx = 2
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.SECOND_PLACEMENT)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.SECOND_PLACEMENT,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
 
     response = client.get(f"/active-games/{game_id}/turn-order")
@@ -93,8 +110,15 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_WARRIOR)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_PLAY_WARRIOR,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
@@ -110,8 +134,15 @@ def test_returns_501_when_phase_not_implemented(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_ROLL)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     app.dependency_overrides[active.dependencies.get_actions_registry] = (
         lambda: actions.ActionsRegistry()
@@ -130,8 +161,15 @@ def test_returns_403_when_player_not_in_turn(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_ROLL)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     other = game.turn_order[1]
     token = player.service().add(other)
@@ -148,8 +186,15 @@ def test_rolls_dice_and_advances_phase(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_ROLL)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     active_player = game.active_player
     token = player.service().add(active_player)
@@ -164,7 +209,7 @@ def test_rolls_dice_and_advances_phase(
         actions.GamePhaseName.TRADE_AND_BUILD,
     }
     assert nickname == active_player
-    _, stored_phase = repository.retrieve(game_id)
+    stored_phase = repository.retrieve(game_id).phase
     assert stored_phase == phase
     assert game.active_player == active_player
 
@@ -175,8 +220,15 @@ def test_ends_trade_and_build_and_advances_player(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     active_player = game.active_player
     next_player = game.turn_order[1]
@@ -189,7 +241,7 @@ def test_ends_trade_and_build_and_advances_player(
     phase, nickname = response.json()
     assert phase == actions.GamePhaseName.DICE_ROLL
     assert nickname == next_player
-    _, stored_phase = repository.retrieve(game_id)
+    stored_phase = repository.retrieve(game_id).phase
     assert stored_phase is actions.GamePhaseName.DICE_ROLL
     assert game.active_player == next_player
 

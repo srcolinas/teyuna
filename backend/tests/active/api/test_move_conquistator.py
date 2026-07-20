@@ -8,6 +8,7 @@ from src import active, player
 from src.active import actions, entities, repository as repository_module
 
 from . import utils
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -32,7 +33,9 @@ def test_returns_conquistator_location(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
 
     response = client.get(f"/active-games/{game_id}/conquistator")
@@ -65,8 +68,15 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_ROLL)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
@@ -86,8 +96,15 @@ def test_returns_501_when_phase_not_implemented(
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
     game.players[game.active_player].cards[entities.WisdomCard.WARRIOR] = 1
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_WARRIOR)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_PLAY_WARRIOR,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     app.dependency_overrides[active.dependencies.get_actions_registry] = (
         lambda: actions.ActionsRegistry()
@@ -108,9 +125,14 @@ def test_moves_conquistator_and_returns_location(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_warrior_phase(app)
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_WARRIOR)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_PLAY_WARRIOR,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -121,7 +143,8 @@ def test_moves_conquistator_and_returns_location(
     assert response.status_code == 200, response.text
     assert response.json() == {"q": 1, "r": -1}
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.DICE_ROLL
     assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 1
@@ -133,9 +156,14 @@ def test_moves_without_taking_resources_when_take_from_omitted(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_warrior_phase(app)
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_WARRIOR)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_PLAY_WARRIOR,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -144,7 +172,8 @@ def test_moves_without_taking_resources_when_take_from_omitted(
     )
 
     assert response.status_code == 200, response.text
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.DICE_ROLL
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 2
 
@@ -154,7 +183,7 @@ def test_returns_400_when_location_is_unchanged(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, _ = _setup_warrior_phase(app)
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     location = game.conquistator_location
 
     client.cookies.set("session-token", tokens[active_player])
@@ -173,9 +202,14 @@ def test_moves_conquistator_during_move_conquistator_phase(
     repository, game_id, tokens, active_player, other = _setup_move_conquistator_phase(
         app
     )
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    repository.update(game_id, game, actions.GamePhaseName.MOVE_CONQUISTATOR)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.MOVE_CONQUISTATOR,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -186,7 +220,8 @@ def test_moves_conquistator_during_move_conquistator_phase(
     assert response.status_code == 200, response.text
     assert response.json() == {"q": 1, "r": -1}
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 1
@@ -200,9 +235,14 @@ def test_moves_conquistator_during_trade_and_build_play_warrior(
     repository, game_id, tokens, active_player, other = _setup_phase(
         app, actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
     )
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -213,7 +253,8 @@ def test_moves_conquistator_during_trade_and_build_play_warrior(
     assert response.status_code == 200, response.text
     assert response.json() == {"q": 1, "r": -1}
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 1
@@ -259,8 +300,15 @@ def _setup_phase(
     active_player = game.active_player
     other = game.turn_order[1]
     game.players[active_player].cards[entities.WisdomCard.WARRIOR] = 1
-    game_id = repository.add(game)
-    repository.update(game_id, game, phase)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        phase,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),

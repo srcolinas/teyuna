@@ -6,6 +6,7 @@ import fastapi.testclient as testclient
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -24,8 +25,13 @@ def test_returns_400_when_action_not_allowed(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, _, accepts, proposal_id = _setup_with_proposal(app)
-    game, _ = repository.retrieve(game_id)
-    repository.update(game_id, game, actions.GamePhaseName.FIRST_PLACEMENT)
+    game = repository.retrieve(game_id).game
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.FIRST_PLACEMENT,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[accepts])
     response = client.post(f"/active-games/{game_id}/trades/{proposal_id}/accept")
@@ -65,7 +71,7 @@ def test_returns_400_when_not_addressed_to_player(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, _, _, proposal_id = _setup_with_proposal(app)
-    outsider = repository.retrieve(game_id)[0].turn_order[2]
+    outsider = repository.retrieve(game_id).game.turn_order[2]
 
     client.cookies.set("session-token", tokens[outsider])
     response = client.post(f"/active-games/{game_id}/trades/{proposal_id}/accept")
@@ -100,7 +106,8 @@ def test_accepts_trade(
 
     assert response.status_code == 200, response.text
     assert response.json() == actions.GamePhaseName.TRADE_AND_BUILD.value
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.trade_proposals == {}
     assert game.players[proposes].resources[entities.ResourceCard.GOLD] == 0
@@ -135,8 +142,15 @@ def _setup_with_proposal(
         request=collections.Counter({entities.ResourceCard.STONE: 1}),
         to={accepts},
     )
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {nickname: player.service().add(nickname) for nickname in game.turn_order}
     return repository, game_id, tokens, proposes, accepts, proposal_id

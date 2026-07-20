@@ -4,7 +4,7 @@ from typing import Protocol
 
 import pydantic
 
-from ... import player, active
+from ... import player, active, settings
 from .. import entities
 
 
@@ -34,6 +34,7 @@ def add_player(
     repository: AddPlayerGameRepository,
     active_repository: active.services.CreateGameRepository,
     auth: player.PlayerAuthenticationService,
+    settings: settings.Settings,
 ) -> tuple[PlayerAddedResult, player.Token]:
     game = repository.retrieve(game_id)
     if len(game.players) >= game.max_players:
@@ -46,7 +47,9 @@ def add_player(
     proposed = repository.add_player(game_id=game_id, nickname=nickname)
     if proposed.max_players == len(proposed.players):
         id = active.services.create_game(
-            repository=active_repository, players=tuple(proposed.players)
+            repository=active_repository,
+            players=tuple(proposed.players),
+            first_placement_timeout=settings.first_placement_timeout,
         )
         return PlayerAddedResult(proposed=proposed, game=id), token
     return PlayerAddedResult(proposed=proposed), token

@@ -8,7 +8,15 @@ import pydantic
 from fastapi import status
 
 from .. import player
-from . import dependencies, ports, repository as repostory_module, actions, entities
+from . import (
+    dependencies,
+    ports,
+    repository as repository_module,
+    actions,
+    entities,
+    locks,
+    services,
+)
 
 router = fastapi.APIRouter(prefix="/active-games")
 
@@ -45,24 +53,27 @@ def advance_or_phase(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
     rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> tuple[actions.GamePhaseName, player.Nickname]:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        new_phase, game, _ = services.apply_player_action(
+            game_id,
             actions.PlayerAction(by=nickname, rng_=rng),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -75,7 +86,6 @@ def advance_or_phase(
         raise fastapi.HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return new_phase, game.active_player
 
 
@@ -102,28 +112,31 @@ def move_conquistator(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: MoveConquistatorPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> ports.HexCoordinate:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        _, game, _ = services.apply_player_action(
+            game_id,
             actions.MoveConquistatorAction(
                 by=nickname,
                 q=payload.location.q,
                 r=payload.location.r,
                 from_player=payload.take_from,
             ),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -140,7 +153,6 @@ def move_conquistator(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return ports.HexCoordinate(
         q=game.conquistator_location.q, r=game.conquistator_location.r
     )
@@ -161,23 +173,26 @@ def play_wisdom_card(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayWisdomCardPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> actions.GamePhaseName:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        new_phase, _, _ = services.apply_player_action(
+            game_id,
             actions.PlayWisdomCardAction(by=nickname, card=payload.card),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -194,7 +209,6 @@ def play_wisdom_card(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return new_phase
 
 
@@ -203,23 +217,26 @@ def buy_wisdom_card(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> actions.GamePhaseName:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        new_phase, _, _ = services.apply_player_action(
+            game_id,
             actions.BuyWisdomCardAction(by=nickname),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -240,7 +257,6 @@ def buy_wisdom_card(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return new_phase
 
 
@@ -267,30 +283,32 @@ def propose_trade(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: ProposeTradePayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> ProposeTradeResponse:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    existing_ids = set(game.trade_proposals)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        _, game, existing_ids = services.apply_player_action(
+            game_id,
             actions.ProposeTradeAction(
                 by=nickname,
                 offer=collections.Counter(payload.offer),
                 request=collections.Counter(payload.request),
                 to=set(payload.to),
             ),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
+            before=lambda g: set(g.trade_proposals),
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -308,8 +326,8 @@ def propose_trade(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
 
+    assert existing_ids is not None
     proposal_id = next(iter(set(game.trade_proposals) - existing_ids))
-    repository.update(game_id, game, new_phase)
     return ProposeTradeResponse(id=proposal_id)
 
 
@@ -319,23 +337,26 @@ def accept_trade(
     proposal_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> actions.GamePhaseName:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        new_phase, _, _ = services.apply_player_action(
+            game_id,
             actions.AcceptTradeAction(by=nickname, id=proposal_id),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -356,7 +377,6 @@ def accept_trade(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return new_phase
 
 
@@ -373,27 +393,30 @@ def trade_with_supply(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: TradeWithSupplyPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> actions.GamePhaseName:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        new_phase, _, _ = services.apply_player_action(
+            game_id,
             actions.TradeWithSupplyAction(
                 by=nickname,
                 offers=payload.offers,
                 requests=payload.requests,
             ),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -414,7 +437,6 @@ def trade_with_supply(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return new_phase
 
 
@@ -433,23 +455,26 @@ def play_mamo(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayMamoPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> dict[entities.ResourceCard, int]:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        _, game, _ = services.apply_player_action(
+            game_id,
             actions.PlayMamoAction(by=nickname, resource=payload.resource),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -462,7 +487,6 @@ def play_mamo(
         raise fastapi.HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return dict(game.players[nickname].resources)
 
 
@@ -478,23 +502,26 @@ def play_blessing(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayBlessingPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> dict[entities.ResourceCard, int]:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        _, game, _ = services.apply_player_action(
+            game_id,
             actions.PlayBlessedAction(by=nickname, resources=payload.resources),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -511,7 +538,6 @@ def play_blessing(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return dict(game.players[nickname].resources)
 
 
@@ -530,23 +556,19 @@ def play_pathfinder(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayPathfinderPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> list[ports.PlayedStonePath]:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    paths_before = set(game.players[nickname].paths)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        _, game, paths_before = services.apply_player_action(
+            game_id,
             actions.PlayPathfinderAction(
                 by=nickname,
                 paths=tuple(
@@ -558,7 +580,13 @@ def play_pathfinder(
                     for path in payload.paths
                 ),
             ),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
+            before=lambda g: set(g.players[nickname].paths),
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -575,8 +603,8 @@ def play_pathfinder(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
 
+    assert paths_before is not None
     placed = game.players[nickname].paths - paths_before
     return [
         ports.PlayedStonePath(
@@ -627,21 +655,19 @@ def add_initial_placements(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: InitialPlacementPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> tuple[ports.PlayedSettlement, ports.PlayedStonePath]:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        services.apply_player_action(
+            game_id,
             actions.FreePlacementAction(
                 by=nickname,
                 terrace=entities.Coordinate(
@@ -655,7 +681,12 @@ def add_initial_placements(
                     d=payload.path.direction,
                 ),
             ),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -676,7 +707,6 @@ def add_initial_placements(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
     return ports.PlayedSettlement(
         location=payload.terrace,
         type=entities.SettlementType.TERRACE,
@@ -727,21 +757,19 @@ def build_settlement(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: BuildSettlementPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> ports.PlayedSettlement:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        services.apply_player_action(
+            game_id,
             actions.BuildSettlementAction(
                 by=nickname,
                 item=payload.item,
@@ -751,7 +779,12 @@ def build_settlement(
                     d=payload.location.direction,
                 ),
             ),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -772,7 +805,6 @@ def build_settlement(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
 
     return ports.PlayedSettlement(
         owner=nickname,
@@ -827,21 +859,19 @@ def build_path(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: BuildPathPayload,
     repository: Annotated[
-        repostory_module.InMemoryActiveGameRepository,
+        repository_module.InMemoryActiveGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     registry: Annotated[
         actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
     ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
 ) -> ports.PlayedStonePath:
     try:
-        game, phase = repository.retrieve(game_id)
-    except repostory_module.ActiveGameDoesNotExistError:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    try:
-        new_phase = registry.execute(
-            phase,
-            game,
+        services.apply_player_action(
+            game_id,
             actions.BuildPathAction(
                 by=nickname,
                 coordinate=entities.Coordinate(
@@ -850,7 +880,12 @@ def build_path(
                     d=payload.location.direction,
                 ),
             ),
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
         )
+    except repository_module.ActiveGameDoesNotExistError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except actions.ActionNotAllowedError as e:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -871,7 +906,6 @@ def build_path(
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    repository.update(game_id, game, new_phase)
 
     return ports.PlayedStonePath(
         owner=nickname,

@@ -1,9 +1,12 @@
+import os
+import time
 import pprint
 
 import pytest
 import fastapi
 import fastapi.testclient as testclient
 
+from src import main, settings
 from src.active import actions, dependencies, entities, repository as repository_module
 
 from .. import utils
@@ -66,33 +69,82 @@ def test_greedy_builder_reaches_end_game(
             (tokens[first], (0, 0, 2), (0, 0, 1)),
         ],
     )
+    bot = players.GreedyBuilder(client, game_id, tokens[first])
 
-    bots: dict[str, players.BasePlayer] = {
-        first: players.GreedyBuilder(client, game_id, tokens[first]),
-        second: players.BasePlayer(client, game_id, tokens[second]),
-        third: players.BasePlayer(client, game_id, tokens[third]),
-    }
     for turn in range(20):
         stored = repository.retrieve(game_id)
-        game, phase = stored.game, stored.phase
-        active_player = game.active_player
         while (
-            active_player == game.active_player
-            and phase is not actions.GamePhaseName.END_GAME
+            first != stored.game.active_player
+            and stored.phase is not actions.GamePhaseName.END_GAME
         ):
-            print(f"Turn {turn} - Phase: {phase.value} - Player {active_player}")
-            bots[active_player].take_action(phase, game)
+            print(
+                f"Turn {turn} - Phase: {stored.phase.value} - "
+                f"Player {stored.game.active_player} - Waiting for {first}"
+            )
+            time.sleep(0.05)
             stored = repository.retrieve(game_id)
-            game, phase = stored.game, stored.phase
+
+        while (
+            first == stored.game.active_player
+            and stored.phase is not actions.GamePhaseName.END_GAME
+        ):
+            print(
+                f"Turn {turn} - Phase: {stored.phase.value} - "
+                f"Player {stored.game.active_player}"
+            )
+            bot.take_action(stored.phase, stored.game)
+            stored = repository.retrieve(game_id)
+        if stored.phase is actions.GamePhaseName.END_GAME:
+            break
 
     print("--------------------------------")
     print(f"Exiting loop after {turn + 1} turns")
     pprint.pprint((first, second, third))
-    pprint.pprint(phase)
-    pprint.pprint(game)
+    pprint.pprint(stored.phase)
+    pprint.pprint(stored.game)
     print("--------------------------------")
     game = client.get(f"/active-games/{game_id}").json()
     assert game["phase"] == actions.GamePhaseName.END_GAME.value
+
+
+_TIMEOUT_ENV = {
+    "TEYUNA_FIRST_PLACEMENT_TIMEOUT": "PT0.2S",
+    "TEYUNA_SECOND_PLACEMENT_TIMEOUT": "PT0.2S",
+    "TEYUNA_DICE_ROLL_TIMEOUT": "PT0.2S",
+    "TEYUNA_DISCARD_RESOURCES_TIMEOUT": "PT0.2S",
+    "TEYUNA_MOVE_CONQUISTATOR_TIMEOUT": "PT0.2S",
+    "TEYUNA_DICE_PLAY_WARRIOR_TIMEOUT": "PT0.2S",
+    "TEYUNA_DICE_PLAY_MAMO_TIMEOUT": "PT0.2S",
+    "TEYUNA_DICE_PLAY_BLESSED_TIMEOUT": "PT0.2S",
+    "TEYUNA_DICE_PLAY_PATHFINDER_TIMEOUT": "PT0.2S",
+    "TEYUNA_TRADE_AND_BUILD_TIMEOUT": "PT0.2S",
+    "TEYUNA_TRADE_AND_BUILD_PLAY_WARRIOR_TIMEOUT": "PT0.2S",
+    "TEYUNA_TRADE_AND_BUILD_PLAY_MAMO_TIMEOUT": "PT0.2S",
+    "TEYUNA_TRADE_AND_BUILD_PLAY_BLESSED_TIMEOUT": "PT0.2S",
+    "TEYUNA_TRADE_AND_BUILD_PLAY_PATHFINDER_TIMEOUT": "PT0.2S",
+    "TEYUNA_TIMEOUT_POLL_INTERVAL": "PT0.05S",
+}
+
+
+@pytest.fixture
+def setupenvars():
+    previous = {key: os.environ.get(key) for key in _TIMEOUT_ENV}
+    os.environ.update(_TIMEOUT_ENV)
+    settings.settings.cache_clear()
+    dependencies.get_actions_registry.cache_clear()
+    yield
+    for key, value in previous.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+    settings.settings.cache_clear()
+    dependencies.get_actions_registry.cache_clear()
+
+
+@pytest.fixture
+def app(setupenvars) -> fastapi.FastAPI:
+    return main.create_app()
 
 
 class FakeRandomGenerator:

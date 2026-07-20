@@ -1,4 +1,5 @@
 import collections
+import datetime
 import random
 import uuid
 
@@ -10,12 +11,16 @@ from .. import entities
 
 
 class CreateGameRepository(Protocol):
-    def add(self, game: entities.ActiveGame) -> uuid.UUID: ...
+    def add(
+        self, game: entities.ActiveGame, *, phase_deadline: datetime.datetime | None
+    ) -> uuid.UUID: ...
 
 
 def create_game(
     repository: CreateGameRepository,
     players: Sequence[player.Nickname],
+    *,
+    first_placement_timeout: datetime.timedelta,
 ) -> uuid.UUID:
     map = generate_map()
     deserts = [hex for hex in map if hex.type == entities.HexType.DESERT]
@@ -37,7 +42,9 @@ def create_game(
             for nickname in players
         },
     )
-    return repository.add(game)
+    now = datetime.datetime.now(datetime.UTC)
+    phase_deadline = now + first_placement_timeout
+    return repository.add(game, phase_deadline=phase_deadline)
 
 
 def generate_map() -> tuple[entities.Hex, ...]:

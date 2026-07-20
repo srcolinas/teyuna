@@ -6,6 +6,7 @@ import fastapi.testclient as testclient
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -72,7 +73,8 @@ def test_builds_terrace_and_returns_settlement(
     body = response.json()
     assert body["owner"] == active_player
     assert body["type"] == entities.SettlementType.TERRACE.value
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert (
         game.players[active_player].settlements[terrace]
@@ -91,8 +93,15 @@ def test_returns_400_when_insufficient_resources(
         iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
     game.players[game.active_player].paths.add(path)
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
@@ -118,8 +127,9 @@ def test_returns_400_when_action_not_allowed(
     repository, game_id, tokens, active_player, _, terrace = _setup_trade_and_build(app)
     repository.update(
         game_id,
-        repository.retrieve(game_id)[0],
+        repository.retrieve(game_id).game,
         actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
     )
 
     client.cookies.set("session-token", tokens[active_player])
@@ -176,8 +186,15 @@ def test_returns_400_when_invalid_settlement_location(
             entities.ResourceCard.MAIZE: 1,
         }
     )
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
@@ -206,7 +223,9 @@ def test_returns_settlement_by_coordinate(
     game.players[game.active_player].settlements[terrace] = (
         entities.SettlementType.TERRACE
     )
-    game_id = repository.add(game)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
 
     response = client.get(
@@ -246,8 +265,15 @@ def _setup_trade_and_build(
             entities.ResourceCard.MAIZE: 1,
         }
     )
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),

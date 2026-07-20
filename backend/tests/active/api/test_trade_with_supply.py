@@ -6,6 +6,7 @@ import fastapi.testclient as testclient
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -27,8 +28,13 @@ def test_returns_400_when_action_not_allowed(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player = _setup_trade_and_build(app)
-    game, _ = repository.retrieve(game_id)
-    repository.update(game_id, game, actions.GamePhaseName.FIRST_PLACEMENT)
+    game = repository.retrieve(game_id).game
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.FIRST_PLACEMENT,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -62,10 +68,15 @@ def test_returns_403_when_player_not_in_turn(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, _ = _setup_trade_and_build(app)
-    other = repository.retrieve(game_id)[0].turn_order[1]
-    game, _ = repository.retrieve(game_id)
+    other = repository.retrieve(game_id).game.turn_order[1]
+    game = repository.retrieve(game_id).game
     game.players[other].resources.update({entities.ResourceCard.GOLD: 4})
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[other])
     response = client.post(
@@ -96,9 +107,14 @@ def test_returns_400_when_supply_is_empty(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player = _setup_trade_and_build(app)
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     game.resource_supply[entities.ResourceCard.STONE] = 0
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -123,7 +139,8 @@ def test_trades_with_supply_at_default_rate(
 
     assert response.status_code == 200, response.text
     assert response.json() == actions.GamePhaseName.TRADE_AND_BUILD.value
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.players[active_player].resources[entities.ResourceCard.GOLD] == 0
     assert game.players[active_player].resources[entities.ResourceCard.STONE] == 1
@@ -144,8 +161,15 @@ def _setup_trade_and_build(
     active_player = game.active_player
     if grant_offer:
         game.players[active_player].resources.update({entities.ResourceCard.GOLD: 4})
-    game_id = repository.add(game)
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {nickname: player.service().add(nickname) for nickname in game.turn_order}
     return repository, game_id, tokens, active_player

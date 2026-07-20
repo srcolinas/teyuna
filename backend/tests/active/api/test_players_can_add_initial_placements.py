@@ -9,6 +9,7 @@ from src import active, player
 from src.active import actions, entities, repository as repository_module
 
 from . import utils
+import datetime
 
 
 _VALID_TERRACE = (0, -1, 2)
@@ -122,7 +123,9 @@ def test_returns_400_for_invalid_terrace(
     game.use_vertex(
         game.active_player, adjacent_terrace, entities.SettlementType.TERRACE
     )
-    game_id = repository.add(game)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
@@ -178,7 +181,9 @@ def test_returns_501_when_phase_not_implemented(
 ) -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     game = _create_game()
-    game_id = repository.add(game)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     app.dependency_overrides[active.dependencies.get_actions_registry] = (
         lambda: actions.ActionsRegistry()

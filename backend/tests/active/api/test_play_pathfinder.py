@@ -6,6 +6,7 @@ import fastapi.testclient as testclient
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -39,8 +40,9 @@ def test_returns_400_when_action_not_allowed(
     )
     repository.update(
         game_id,
-        repository.retrieve(game_id)[0],
+        repository.retrieve(game_id).game,
         actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
     )
 
     client.cookies.set("session-token", tokens[active_player])
@@ -160,7 +162,8 @@ def test_places_paths_and_returns_them(
     body = response.json()
     assert len(body) == 2
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.DICE_ROLL
     assert first in game.players[active_player].paths
     assert second in game.players[active_player].paths
@@ -197,7 +200,8 @@ def test_places_paths_during_trade_and_build_play_pathfinder(
     body = response.json()
     assert len(body) == 2
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert first in game.players[active_player].paths
     assert second in game.players[active_player].paths
@@ -234,8 +238,15 @@ def _setup_pathfinder_phase(
         if e != first
     )
 
-    game_id = repository.add(game)
-    repository.update(game_id, game, phase)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        phase,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),

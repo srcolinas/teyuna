@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 import inspect
 import random
 from enum import Enum
@@ -33,6 +34,15 @@ class PlayerAction:
     rng_: random.Random = dataclasses.field(default_factory=random.Random, kw_only=True)
 
 
+TimeoutFn = Callable[[entities.ActiveGame, random.Random], PlayerAction]
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class PhaseTimeout:
+    duration: datetime.timedelta
+    on_timeout: TimeoutFn
+
+
 class GamePhaseHanlderNotImplementedError(Exception):
     pass
 
@@ -49,6 +59,7 @@ class ActionsRegistry:
                 type[PlayerAction], Callable[[entities.ActiveGame, Any], GamePhaseName]
             ],
         ] = {}
+        self._timeouts: dict[GamePhaseName, PhaseTimeout] = {}
 
     def register[ActionT: PlayerAction](
         self,
@@ -89,6 +100,24 @@ class ActionsRegistry:
             return handler
 
         return decorator
+
+    def set_timeout(
+        self,
+        phase: GamePhaseName,
+        duration: datetime.timedelta,
+        on_timeout: TimeoutFn,
+    ) -> None:
+        if phase is GamePhaseName.END_GAME:
+            raise ValueError("END_GAME has no phase timeout")
+        self._timeouts[phase] = PhaseTimeout(duration=duration, on_timeout=on_timeout)
+
+    def timeout_for(self, phase: GamePhaseName) -> PhaseTimeout:
+        try:
+            return self._timeouts[phase]
+        except KeyError:
+            raise KeyError(
+                f"No timeout defined for game phase: {phase.value}"
+            ) from None
 
     def execute(
         self, phase: GamePhaseName, game: entities.ActiveGame, action: PlayerAction

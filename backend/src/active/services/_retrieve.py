@@ -2,19 +2,18 @@ import uuid
 from typing import Protocol
 
 from ... import player
-from .. import entities, ports, actions
+from .. import entities, ports, actions, repository as repository_module
 
 
 class RetrieveGameRepository(Protocol):
-    def retrieve(
-        self, id: uuid.UUID
-    ) -> tuple[entities.ActiveGame, actions.GamePhaseName]: ...
+    def retrieve(self, id: uuid.UUID) -> repository_module.StoredActiveGame: ...
 
 
 def retrieve_game(
     id: uuid.UUID, /, *, repository: RetrieveGameRepository
 ) -> ports.ActiveGame:
-    game, phase = repository.retrieve(id)
+    stored = repository.retrieve(id)
+    game, phase = stored.game, stored.phase
     players, settlements, paths = [], [], []
     for nickname, entity_player in game.players.items():
         players.append(_to_port_player(nickname, entity_player))
@@ -58,6 +57,7 @@ def retrieve_game(
         paths=paths,
         turn_order=_turn_order_from_active(game.turn_order, game.player_idx, phase),
         phase=phase,
+        phase_deadline=stored.phase_deadline,
     )
 
 

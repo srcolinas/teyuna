@@ -6,8 +6,8 @@ from typing import Annotated
 import fastapi
 from fastapi import status
 
-from .. import player
-from . import ports, repository as repository_module, services, actions
+from .. import player, settings
+from . import ports, repository as repository_module, services, actions, locks
 
 
 @functools.cache
@@ -16,7 +16,13 @@ def get_repository() -> repository_module.InMemoryActiveGameRepository:
 
 
 @functools.cache
+def get_game_locks() -> locks.GameLockManager:
+    return locks.GameLockManager()
+
+
+@functools.cache
 def get_actions_registry() -> actions.ActionsRegistry:
+    settings_ = settings.get_settings()
     reg = actions.ActionsRegistry()
     reg.register(actions.GamePhaseName.FIRST_PLACEMENT)(actions.handle_first_placement)
     reg.register(actions.GamePhaseName.SECOND_PLACEMENT)(
@@ -66,6 +72,81 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
         actions.handle_trade_and_build_play_pathfinder
     )
+
+    timeouts = (
+        (
+            actions.GamePhaseName.FIRST_PLACEMENT,
+            settings_.first_placement_timeout,
+            actions.timeouts.timeout_first_placement,
+        ),
+        (
+            actions.GamePhaseName.SECOND_PLACEMENT,
+            settings_.second_placement_timeout,
+            actions.timeouts.timeout_second_placement,
+        ),
+        (
+            actions.GamePhaseName.DICE_ROLL,
+            settings_.dice_roll_timeout,
+            actions.timeouts.timeout_dice_roll,
+        ),
+        (
+            actions.GamePhaseName.DISCARD_RESOURCES,
+            settings_.discard_resources_timeout,
+            actions.timeouts.timeout_discard_resources,
+        ),
+        (
+            actions.GamePhaseName.MOVE_CONQUISTATOR,
+            settings_.move_conquistator_timeout,
+            actions.timeouts.timeout_move_conquistator,
+        ),
+        (
+            actions.GamePhaseName.DICE_PLAY_WARRIOR,
+            settings_.dice_play_warrior_timeout,
+            actions.timeouts.timeout_move_conquistator,
+        ),
+        (
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+            settings_.trade_and_build_play_warrior_timeout,
+            actions.timeouts.timeout_move_conquistator,
+        ),
+        (
+            actions.GamePhaseName.DICE_PLAY_MAMO,
+            settings_.dice_play_mamo_timeout,
+            actions.timeouts.timeout_play_mamo,
+        ),
+        (
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+            settings_.trade_and_build_play_mamo_timeout,
+            actions.timeouts.timeout_play_mamo,
+        ),
+        (
+            actions.GamePhaseName.DICE_PLAY_BLESSED,
+            settings_.dice_play_blessed_timeout,
+            actions.timeouts.timeout_play_blessed,
+        ),
+        (
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
+            settings_.trade_and_build_play_blessed_timeout,
+            actions.timeouts.timeout_play_blessed,
+        ),
+        (
+            actions.GamePhaseName.DICE_PLAY_PATHFINDER,
+            settings_.dice_play_pathfinder_timeout,
+            actions.timeouts.timeout_play_pathfinder,
+        ),
+        (
+            actions.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
+            settings_.trade_and_build_play_pathfinder_timeout,
+            actions.timeouts.timeout_play_pathfinder,
+        ),
+        (
+            actions.GamePhaseName.TRADE_AND_BUILD,
+            settings_.trade_and_build_timeout,
+            actions.timeouts.timeout_trade_and_build,
+        ),
+    )
+    for phase, duration, on_timeout in timeouts:
+        reg.set_timeout(phase, duration, on_timeout)
     return reg
 
 

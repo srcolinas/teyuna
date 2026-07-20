@@ -1,26 +1,35 @@
+import asyncio
 import contextlib
 import logging
-from collections.abc import AsyncIterator
+import random
+from collections.abc import AsyncIterator, Callable
+from typing import TypeVar
 
 import fastapi
 
 from . import active, proposed, settings
+from .active import repository as repository_module, services
+
+T = TypeVar("T")
 
 
 def create_app() -> fastapi.FastAPI:
-    settings_ = settings.settings()
+    settings_ = settings.get_settings()
 
     @contextlib.asynccontextmanager
     async def lifespan(app: fastapi.FastAPI) -> AsyncIterator[None]:
-        # Add any piece of configuration require to run the system.
-        # Ideally, we should include all configuration here and avoid the
-        # use of global variables, but sometimes the third party libraries
-        # don't really help, so we need to make exceptions.
-
-        yield
-        # Release any potential resource that was acquired while setting
-        # the above configuration, like deleting temporary files or closing
-        # db connections.
+        poller = asyncio.create_task(
+            _timeout_poller(
+                app,
+                poll_interval=settings_.timeout_poll_interval.total_seconds(),
+            )
+        )
+        try:
+            yield
+        finally:
+            poller.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await poller
 
     app = fastapi.FastAPI(lifespan=lifespan)
 
@@ -32,3 +41,34 @@ def create_app() -> fastapi.FastAPI:
     app.include_router(active.routes.router)
 
     return app
+
+
+async def _timeout_poller(app: fastapi.FastAPI, *, poll_interval: float) -> None:
+    rng = random.Random()
+    while True:
+        await asyncio.sleep(poll_interval)
+        await asyncio.to_thread(_apply_due_timeouts, app=app, rng=rng)
+
+
+def _resolve(app: fastapi.FastAPI, dependency: Callable[[], T]) -> T:
+    override = app.dependency_overrides.get(dependency)
+    if override is None:
+        return dependency()
+    return override()
+
+
+def _apply_due_timeouts(*, app: fastapi.FastAPI, rng: random.Random) -> None:
+    repository = _resolve(app, active.dependencies.get_repository)
+    registry = _resolve(app, active.dependencies.get_actions_registry)
+    game_locks = _resolve(app, active.dependencies.get_game_locks)
+    for game_id, _stored in repository.items():
+        try:
+            services.apply_timeout_if_due(
+                game_id,
+                repository=repository,
+                registry=registry,
+                game_locks=game_locks,
+                rng=rng,
+            )
+        except repository_module.ActiveGameDoesNotExistError:
+            continue

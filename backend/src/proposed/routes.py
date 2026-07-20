@@ -5,7 +5,7 @@ import fastapi
 import pydantic
 from fastapi import status
 
-from .. import active, player
+from .. import active, player, settings
 from . import dependencies, entities, ports, repository
 from .services import _add_player, _create
 
@@ -42,6 +42,7 @@ def join_game(
     auth: Annotated[
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
+    settings_: Annotated[settings.Settings, fastapi.Depends(settings.get_settings)],
 ) -> _add_player.PlayerAddedResult:
     try:
         result, token = _add_player.add_player(
@@ -50,6 +51,7 @@ def join_game(
             repository=repository_,
             active_repository=active_repository,
             auth=auth,
+            settings=settings_,
         )
     except _add_player.GameAlreadyFullError:
         raise fastapi.HTTPException(

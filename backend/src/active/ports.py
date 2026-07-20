@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from typing import Annotated
 
@@ -109,3 +110,4 @@ class ActiveGame(pydantic.BaseModel):
         ),
     ]
     phase: actions.GamePhaseName
+    phase_deadline: datetime.datetime | None

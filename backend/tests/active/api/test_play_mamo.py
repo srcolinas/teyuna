@@ -6,6 +6,7 @@ import fastapi.testclient as testclient
 
 from src import active, player
 from src.active import actions, entities, repository as repository_module
+import datetime
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -29,8 +30,9 @@ def test_returns_400_when_action_not_allowed(
     repository, game_id, tokens, active_player, _ = _setup_mamo_phase(app)
     repository.update(
         game_id,
-        repository.retrieve(game_id)[0],
+        repository.retrieve(game_id).game,
         actions.GamePhaseName.DICE_ROLL,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
     )
 
     client.cookies.set("session-token", tokens[active_player])
@@ -49,8 +51,9 @@ def test_returns_400_when_called_during_blessed_phase(
     repository, game_id, tokens, active_player, _ = _setup_mamo_phase(app)
     repository.update(
         game_id,
-        repository.retrieve(game_id)[0],
+        repository.retrieve(game_id).game,
         actions.GamePhaseName.DICE_PLAY_BLESSED,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
     )
 
     client.cookies.set("session-token", tokens[active_player])
@@ -100,9 +103,14 @@ def test_takes_all_of_resource_from_other_players(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_mamo_phase(app)
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     game.players[other].resources[entities.ResourceCard.WOOD] = 3
-    repository.update(game_id, game, actions.GamePhaseName.DICE_PLAY_MAMO)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.DICE_PLAY_MAMO,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -113,7 +121,8 @@ def test_takes_all_of_resource_from_other_players(
     assert response.status_code == 200, response.text
     assert response.json()[entities.ResourceCard.WOOD.value] == 3
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.DICE_ROLL
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 0
 
@@ -125,9 +134,14 @@ def test_takes_all_of_resource_during_trade_and_build_play_mamo(
     repository, game_id, tokens, active_player, other = _setup_mamo_phase(
         app, phase=actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO
     )
-    game, _ = repository.retrieve(game_id)
+    game = repository.retrieve(game_id).game
     game.players[other].resources[entities.ResourceCard.WOOD] = 3
-    repository.update(game_id, game, actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)
+    repository.update(
+        game_id,
+        game,
+        actions.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
 
     client.cookies.set("session-token", tokens[active_player])
     response = client.post(
@@ -138,7 +152,8 @@ def test_takes_all_of_resource_during_trade_and_build_play_mamo(
     assert response.status_code == 200, response.text
     assert response.json()[entities.ResourceCard.WOOD.value] == 3
 
-    game, phase = repository.retrieve(game_id)
+    stored = repository.retrieve(game_id)
+    game, phase = stored.game, stored.phase
     assert phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.players[other].resources[entities.ResourceCard.WOOD] == 0
 
@@ -158,8 +173,15 @@ def _setup_mamo_phase(
     active_player = game.active_player
     other = game.turn_order[1]
     game.players[active_player].cards[entities.WisdomCard.WINDOM_OF_MAMO] = 1
-    game_id = repository.add(game)
-    repository.update(game_id, game, phase)
+    game_id = repository.add(
+        game, phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    )
+    repository.update(
+        game_id,
+        game,
+        phase,
+        phase_deadline=datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC),
+    )
     app.dependency_overrides[active.dependencies.get_repository] = lambda: repository
     tokens = {
         active_player: player.service().add(active_player),
