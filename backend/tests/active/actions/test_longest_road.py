@@ -268,12 +268,14 @@ def test_handle_build_path_awards_longest_road(game: entities.ActiveGame) -> Non
     fifth = entities.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
-    phase = actions.handle_build_path(
+    result = actions.handle_build_path(
         game,
         actions.BuildPathAction(by=player, coordinate=fifth),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.longest_road == (player, 5)
     assert fifth in game.players[player].paths
 
@@ -288,12 +290,14 @@ def test_handle_build_path_can_end_game_via_longest_road(
     fifth = entities.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
-    phase = actions.handle_build_path(
+    result = actions.handle_build_path(
         game,
         actions.BuildPathAction(by=player, coordinate=fifth),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME
     assert game.longest_road == (player, 5)
     assert actions.victory_points(game, player) == 10
 
@@ -316,7 +320,7 @@ def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
         }
     )
 
-    phase = actions.handle_build_terrace(
+    result = actions.handle_build_terrace(
         game,
         actions.BuildSettlementAction(
             by=breaker,
@@ -325,7 +329,9 @@ def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
         ),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.longest_road == (None, 0)
     assert game.players[breaker].settlements[vertex] is entities.SettlementType.TERRACE
 
@@ -338,12 +344,14 @@ def test_pathfinder_awards_longest_road_on_fifth_path(
     fourth = entities.canonical_edge(0, 0, 3)
     fifth = entities.canonical_edge(0, 0, 4)
 
-    phase = actions.handle_dice_play_pathfinder(
+    result = actions.handle_dice_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(fourth, fifth)),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert game.longest_road == (player, 5)
     assert fourth in game.players[player].paths
     assert fifth in game.players[player].paths

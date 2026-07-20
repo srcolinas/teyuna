@@ -31,9 +31,11 @@ from .handlers._play_pathfinder import (
     handle_trade_and_build_play_pathfinder,
 )
 from .handlers._dice_roll import (
+    DiceRollResult,
     handle_play_wisdom_card,
     handle_dice_roll,
 )
+from .handlers._end_game import handle_end_game
 from .handlers._play_card import PlayWisdomCardAction
 from .handlers._discard_resources import (
     DiscardResourcesAction,
@@ -48,6 +50,7 @@ from .handlers._second_placement import handle_second_placement
 from .handlers._trade import (
     AcceptTradeAction,
     ProposeTradeAction,
+    ProposeTradeResult,
     TradeWithSupplyAction,
     handle_accept_trade,
     handle_propose_trade,
@@ -71,6 +74,7 @@ from .handlers._longest_road import (
 )
 
 from ._registry import (
+    ActionExecutionResult,
     ActionNotAllowedError,
     ActionsRegistry,
     GamePhaseHanlderNotImplementedError,
@@ -79,6 +83,7 @@ from ._registry import (
     PlayerAction,
     TimeoutFn,
 )
+from ._results import fail, ok
 from . import timeouts
 
 __all__ = [
@@ -94,6 +99,7 @@ __all__ = [
     "PlayPathfinderAction",
     "PlayWisdomCardAction",
     "ProposeTradeAction",
+    "ProposeTradeResult",
     "TradeWithSupplyAction",
     "handle_accept_trade",
     "handle_build_terrace",
@@ -114,6 +120,7 @@ __all__ = [
     "handle_trade_and_build_play_mamo",
     "handle_trade_and_build_play_pathfinder",
     "handle_dice_roll",
+    "handle_end_game",
     "handle_move_conquistator",
     "handle_second_placement",
     "phase_after_victory_check",
@@ -121,13 +128,17 @@ __all__ = [
     "recompute_longest_road",
     "update_longest_road",
     "victory_points",
+    "ActionExecutionResult",
     "ActionNotAllowedError",
     "ActionsRegistry",
+    "DiceRollResult",
     "GamePhaseHanlderNotImplementedError",
     "GamePhaseName",
     "PhaseTimeout",
     "PlayerAction",
     "TimeoutFn",
+    "fail",
+    "ok",
     "timeouts",
     "PlayerNotInTurnError",
     "PlayerDoesNotHaveCardError",

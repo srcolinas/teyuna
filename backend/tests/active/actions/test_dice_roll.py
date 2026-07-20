@@ -1,20 +1,21 @@
 import collections
 import random
 
-import pytest
 
 from src.active import actions, entities
 
 
 def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_dice_roll(
-            game,
-            actions.PlayerAction(
-                by=game.turn_order[1],
-                rng_=FixedRandom([1, 1]),
-            ),
-        )
+    result = actions.handle_dice_roll(
+        game,
+        actions.PlayerAction(
+            by=game.turn_order[1],
+            rng_=FixedRandom([1, 1]),
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
@@ -23,12 +24,17 @@ def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
     game.player_idx = 0
     player = game.active_player
 
-    phase = actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by=player, rng_=FixedRandom([3, 4])),
     )
 
-    assert phase is actions.GamePhaseName.MOVE_CONQUISTATOR
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.MOVE_CONQUISTATOR
+    assert isinstance(result, actions.DiceRollResult)
+    assert result.die_1 == 3
+    assert result.die_2 == 4
     assert game.to_discard_resources == {}
     assert game.player_idx == 0
     assert game.active_player == player
@@ -48,12 +54,14 @@ def test_rolls_seven_with_players_over_seven_moves_to_discard_resources(
         {entities.ResourceCard.WOOD: 7}
     )
 
-    phase = actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by=player, rng_=FixedRandom([3, 4])),
     )
 
-    assert phase is actions.GamePhaseName.DISCARD_RESOURCES
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DISCARD_RESOURCES
     assert game.to_discard_resources == {over_limit: 4}
 
 
@@ -63,12 +71,14 @@ def test_rolls_non_seven_moves_to_trade_and_build(
     game.player_idx = 0
     player = game.active_player
 
-    phase = actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by=player, rng_=FixedRandom([2, 3])),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.player_idx == 0
     assert game.active_player == player
 
@@ -82,12 +92,14 @@ def test_produces_one_resource_from_terrace() -> None:
         },
     )
 
-    phase = actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by="player-0", rng_=FixedRandom([3, 5])),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 1
     assert game.players["player-1"].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 18
@@ -106,12 +118,14 @@ def test_produces_two_resources_from_great_terrace() -> None:
         },
     )
 
-    phase = actions.handle_dice_roll(
+    result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(by="player-0", rng_=FixedRandom([3, 5])),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.players["player-0"].resources[entities.ResourceCard.GOLD] == 2
     assert game.resource_supply[entities.ResourceCard.GOLD] == 17
 

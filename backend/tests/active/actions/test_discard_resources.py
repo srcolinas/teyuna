@@ -1,6 +1,5 @@
 import collections
 
-import pytest
 
 from src.active import actions, entities
 
@@ -11,14 +10,16 @@ def test_raises_when_player_not_required_to_discard(
     player = game.turn_order[0]
     game.to_discard_resources = {game.turn_order[1]: 4}
 
-    with pytest.raises(actions.PlayerNotRequiredToDiscardError):
-        actions.handle_discard_resources(
-            game,
-            actions.DiscardResourcesAction(
-                by=player,
-                count=collections.Counter({entities.ResourceCard.WOOD: 4}),
-            ),
-        )
+    result = actions.handle_discard_resources(
+        game,
+        actions.DiscardResourcesAction(
+            by=player,
+            count=collections.Counter({entities.ResourceCard.WOOD: 4}),
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotRequiredToDiscardError
 
 
 def test_raises_when_discard_count_is_wrong(game: entities.ActiveGame) -> None:
@@ -28,14 +29,16 @@ def test_raises_when_discard_count_is_wrong(game: entities.ActiveGame) -> None:
         {entities.ResourceCard.WOOD: 9}
     )
 
-    with pytest.raises(actions.InvalidDiscardCountError):
-        actions.handle_discard_resources(
-            game,
-            actions.DiscardResourcesAction(
-                by=player,
-                count=collections.Counter({entities.ResourceCard.WOOD: 5}),
-            ),
-        )
+    result = actions.handle_discard_resources(
+        game,
+        actions.DiscardResourcesAction(
+            by=player,
+            count=collections.Counter({entities.ResourceCard.WOOD: 5}),
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidDiscardCountError
 
 
 def test_raises_when_insufficient_resources_of_type(
@@ -50,14 +53,16 @@ def test_raises_when_insufficient_resources_of_type(
         }
     )
 
-    with pytest.raises(actions.InsufficientResourcesError):
-        actions.handle_discard_resources(
-            game,
-            actions.DiscardResourcesAction(
-                by=player,
-                count=collections.Counter({entities.ResourceCard.GOLD: 4}),
-            ),
-        )
+    result = actions.handle_discard_resources(
+        game,
+        actions.DiscardResourcesAction(
+            by=player,
+            count=collections.Counter({entities.ResourceCard.GOLD: 4}),
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_discard_removes_player_and_stays_in_phase_when_others_remain(
@@ -71,7 +76,7 @@ def test_discard_removes_player_and_stays_in_phase_when_others_remain(
     )
     supply_before = game.resource_supply[entities.ResourceCard.WOOD]
 
-    phase = actions.handle_discard_resources(
+    result = actions.handle_discard_resources(
         game,
         actions.DiscardResourcesAction(
             by=player,
@@ -79,7 +84,9 @@ def test_discard_removes_player_and_stays_in_phase_when_others_remain(
         ),
     )
 
-    assert phase is actions.GamePhaseName.DISCARD_RESOURCES
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DISCARD_RESOURCES
     assert game.to_discard_resources == {other: 5}
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 4
     assert game.resource_supply[entities.ResourceCard.WOOD] == supply_before + 4
@@ -97,7 +104,7 @@ def test_last_discard_moves_to_move_conquistator(
         }
     )
 
-    phase = actions.handle_discard_resources(
+    result = actions.handle_discard_resources(
         game,
         actions.DiscardResourcesAction(
             by=player,
@@ -110,6 +117,8 @@ def test_last_discard_moves_to_move_conquistator(
         ),
     )
 
-    assert phase is actions.GamePhaseName.MOVE_CONQUISTATOR
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.MOVE_CONQUISTATOR
     assert game.to_discard_resources == {}
     assert sum(game.players[player].resources.values()) == 5

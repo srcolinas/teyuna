@@ -8,7 +8,13 @@ import fastapi
 from fastapi import status
 
 from .. import player, settings
-from . import ports, repository as repository_module, services, actions, locks
+from . import (
+    ports,
+    repository as repository_module,
+    services,
+    actions,
+    locks,
+)
 
 
 @functools.cache
@@ -73,6 +79,7 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(actions.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
         actions.handle_trade_and_build_play_pathfinder
     )
+    reg.register(actions.GamePhaseName.END_GAME)(actions.handle_end_game)
 
     timeouts = (
         (
@@ -187,7 +194,7 @@ def random_generator() -> random.Random:
 
 
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: collections.defaultdict[
             uuid.UUID, list[fastapi.WebSocket]
         ] = collections.defaultdict(list)

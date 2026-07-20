@@ -4,7 +4,7 @@ import random
 
 from .... import player
 from ... import entities
-from .. import _registry
+from .. import _registry, _results
 from . import _errors
 
 
@@ -17,27 +17,31 @@ class MoveConquistatorAction(_registry.PlayerAction):
 
 def handle_dice_play_warrior(
     game: entities.ActiveGame, action: MoveConquistatorAction
-) -> _registry.GamePhaseName:
-    _apply_move_conquistator(game, action)
-    return _registry.GamePhaseName.DICE_ROLL
+) -> _registry.ActionExecutionResult:
+    error = _apply_move_conquistator(game, action)
+    if error is not None:
+        return _results.fail(error)
+    return _results.ok(_registry.GamePhaseName.DICE_ROLL)
 
 
 def handle_move_conquistator(
     game: entities.ActiveGame, action: MoveConquistatorAction
-) -> _registry.GamePhaseName:
-    _apply_move_conquistator(game, action)
-    return _registry.GamePhaseName.TRADE_AND_BUILD
+) -> _registry.ActionExecutionResult:
+    error = _apply_move_conquistator(game, action)
+    if error is not None:
+        return _results.fail(error)
+    return _results.ok(_registry.GamePhaseName.TRADE_AND_BUILD)
 
 
 def _apply_move_conquistator(
     game: entities.ActiveGame, action: MoveConquistatorAction
-) -> None:
+) -> Exception | None:
     if game.active_player != action.by:
-        raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
     location = entities.HexLocation(q=action.q, r=action.r)
     if location == game.conquistator_location:
-        raise _errors.InvalidConquistatorLocation(
+        return _errors.InvalidConquistatorLocation(
             target=location,
             player=action.by,
             current_location=game.conquistator_location,
@@ -55,3 +59,4 @@ def _apply_move_conquistator(
                 action.by,
                 collections.Counter({stolen: 1}),
             )
+    return None

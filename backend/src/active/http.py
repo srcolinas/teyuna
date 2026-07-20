@@ -32,6 +32,16 @@ class ActiveGameRoute(APIRoute):
         return handler
 
 
+def raise_if_failed(result: actions.ActionExecutionResult) -> None:
+    if result.succeeded:
+        return
+    assert result.error is not None
+    status_code = _STATUS_BY_EXCEPTION.get(type(result.error))
+    if status_code is None:
+        raise result.error
+    raise fastapi.HTTPException(status_code=status_code, detail=str(result.error))
+
+
 _STATUS_BY_EXCEPTION: Final[dict[type[BaseException], int]] = {
     repository_module.ActiveGameDoesNotExistError: status.HTTP_404_NOT_FOUND,
     actions.PlayerNotInTurnError: status.HTTP_403_FORBIDDEN,

@@ -1,5 +1,3 @@
-import pytest
-
 from src.active import actions, entities
 
 
@@ -12,11 +10,13 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         entities.SettlementType.TERRACE
     )
 
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_dice_play_pathfinder(
-            game,
-            actions.PlayPathfinderAction(by=game.turn_order[1], paths=(path,)),
-        )
+    result = actions.handle_dice_play_pathfinder(
+        game,
+        actions.PlayPathfinderAction(by=game.turn_order[1], paths=(path,)),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_places_two_paths_and_returns_to_dice_roll(
@@ -36,12 +36,14 @@ def test_places_two_paths_and_returns_to_dice_roll(
         if e != first
     )
 
-    phase = actions.handle_dice_play_pathfinder(
+    result = actions.handle_dice_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(first, second)),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert first in game.players[player].paths
     assert second in game.players[player].paths
 
@@ -63,12 +65,14 @@ def test_places_two_paths_and_returns_to_trade_and_build(
         if e != first
     )
 
-    phase = actions.handle_trade_and_build_play_pathfinder(
+    result = actions.handle_trade_and_build_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(first, second)),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert first in game.players[player].paths
     assert second in game.players[player].paths
 
@@ -94,12 +98,14 @@ def test_ignores_second_path_when_only_one_slot_remaining(
         for i in range(entities.MAX_PATHS - 1)
     }
 
-    phase = actions.handle_dice_play_pathfinder(
+    result = actions.handle_dice_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(first, second)),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert first in game.players[player].paths
     assert second not in game.players[player].paths
     assert len(game.players[player].paths) == entities.MAX_PATHS
@@ -109,11 +115,13 @@ def test_raises_when_path_is_invalid(game: entities.ActiveGame) -> None:
     player = game.active_player
     disconnected = entities.canonical_edge(1, 0, 0)
 
-    with pytest.raises(actions.InvalidPathLocation):
-        actions.handle_dice_play_pathfinder(
-            game,
-            actions.PlayPathfinderAction(by=player, paths=(disconnected,)),
-        )
+    result = actions.handle_dice_play_pathfinder(
+        game,
+        actions.PlayPathfinderAction(by=player, paths=(disconnected,)),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_raises_when_path_already_taken(game: entities.ActiveGame) -> None:
@@ -125,11 +133,13 @@ def test_raises_when_path_already_taken(game: entities.ActiveGame) -> None:
     )
     game.use_edge(game.turn_order[1], path)
 
-    with pytest.raises(actions.InvalidPathLocation):
-        actions.handle_dice_play_pathfinder(
-            game,
-            actions.PlayPathfinderAction(by=player, paths=(path,)),
-        )
+    result = actions.handle_dice_play_pathfinder(
+        game,
+        actions.PlayPathfinderAction(by=player, paths=(path,)),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_placing_paths_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
@@ -141,12 +151,14 @@ def test_placing_paths_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
         iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
-    phase = actions.handle_dice_play_pathfinder(
+    result = actions.handle_dice_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(path,)),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME
 
 
 def test_placing_paths_at_ten_vp_ends_game_from_trade_and_build(
@@ -160,9 +172,11 @@ def test_placing_paths_at_ten_vp_ends_game_from_trade_and_build(
         iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
-    phase = actions.handle_trade_and_build_play_pathfinder(
+    result = actions.handle_trade_and_build_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(path,)),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME

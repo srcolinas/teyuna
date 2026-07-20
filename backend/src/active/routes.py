@@ -66,14 +66,15 @@ def advance_or_phase(
     ],
     rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> tuple[actions.GamePhaseName, player.Nickname]:
-    new_phase, game, _ = services.apply_player_action(
+    result, game = services.apply_player_action(
         game_id,
         actions.PlayerAction(by=nickname, rng_=rng),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
     )
-    return new_phase, game.active_player
+    http.raise_if_failed(result)
+    return result.phase, game.active_player
 
 
 # --- Conquistator ---
@@ -109,7 +110,7 @@ def move_conquistator(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ports.HexCoordinate:
-    _, game, _ = services.apply_player_action(
+    result, game = services.apply_player_action(
         game_id,
         actions.MoveConquistatorAction(
             by=nickname,
@@ -121,6 +122,7 @@ def move_conquistator(
         registry=registry,
         game_locks=game_locks,
     )
+    http.raise_if_failed(result)
     return ports.HexCoordinate(
         q=game.conquistator_location.q, r=game.conquistator_location.r
     )
@@ -151,14 +153,15 @@ def play_wisdom_card(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    new_phase, _, _ = services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.PlayWisdomCardAction(by=nickname, card=payload.card),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
     )
-    return new_phase
+    http.raise_if_failed(result)
+    return result.phase
 
 
 @router.post("/{game_id}/wisdom-cards/buy")
@@ -176,14 +179,15 @@ def buy_wisdom_card(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    new_phase, _, _ = services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.BuyWisdomCardAction(by=nickname),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
     )
-    return new_phase
+    http.raise_if_failed(result)
+    return result.phase
 
 
 # --- Trades ---
@@ -219,7 +223,7 @@ def propose_trade(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ProposeTradeResponse:
-    _, game, existing_ids = services.apply_player_action(
+    result, game = services.apply_player_action(
         game_id,
         actions.ProposeTradeAction(
             by=nickname,
@@ -230,12 +234,11 @@ def propose_trade(
         repository=repository,
         registry=registry,
         game_locks=game_locks,
-        before=lambda g: set(g.trade_proposals),
     )
 
-    assert existing_ids is not None
-    proposal_id = next(iter(set(game.trade_proposals) - existing_ids))
-    return ProposeTradeResponse(id=proposal_id)
+    http.raise_if_failed(result)
+    assert isinstance(result, actions.ProposeTradeResult)
+    return ProposeTradeResponse(id=result.proposal_id)
 
 
 @router.post("/{game_id}/trades/{proposal_id}/accept")
@@ -254,14 +257,15 @@ def accept_trade(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    new_phase, _, _ = services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.AcceptTradeAction(by=nickname, id=proposal_id),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
     )
-    return new_phase
+    http.raise_if_failed(result)
+    return result.phase
 
 
 class TradeWithSupplyPayload(pydantic.BaseModel):
@@ -287,7 +291,7 @@ def trade_with_supply(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> actions.GamePhaseName:
-    new_phase, _, _ = services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.TradeWithSupplyAction(
             by=nickname,
@@ -298,7 +302,8 @@ def trade_with_supply(
         registry=registry,
         game_locks=game_locks,
     )
-    return new_phase
+    http.raise_if_failed(result)
+    return result.phase
 
 
 # --- Wisdom card resolutions ---
@@ -326,13 +331,14 @@ def play_mamo(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> dict[entities.ResourceCard, int]:
-    _, game, _ = services.apply_player_action(
+    result, game = services.apply_player_action(
         game_id,
         actions.PlayMamoAction(by=nickname, resource=payload.resource),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
     )
+    http.raise_if_failed(result)
     return dict(game.players[nickname].resources)
 
 
@@ -358,13 +364,14 @@ def play_blessing(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> dict[entities.ResourceCard, int]:
-    _, game, _ = services.apply_player_action(
+    result, game = services.apply_player_action(
         game_id,
         actions.PlayBlessedAction(by=nickname, resources=payload.resources),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
     )
+    http.raise_if_failed(result)
     return dict(game.players[nickname].resources)
 
 
@@ -393,27 +400,27 @@ def play_pathfinder(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> list[ports.PlayedStonePath]:
-    _, game, paths_before = services.apply_player_action(
-        game_id,
-        actions.PlayPathfinderAction(
-            by=nickname,
-            paths=tuple(
-                entities.Coordinate(
-                    q=path.hex_coord.q,
-                    r=path.hex_coord.r,
-                    d=path.direction,
-                )
-                for path in payload.paths
-            ),
+    action = actions.PlayPathfinderAction(
+        by=nickname,
+        paths=tuple(
+            entities.Coordinate(
+                q=path.hex_coord.q,
+                r=path.hex_coord.r,
+                d=path.direction,
+            )
+            for path in payload.paths
         ),
+    )
+    result, game = services.apply_player_action(
+        game_id,
+        action,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
-        before=lambda g: set(g.players[nickname].paths),
     )
 
-    assert paths_before is not None
-    placed = game.players[nickname].paths - paths_before
+    http.raise_if_failed(result)
+
     return [
         ports.PlayedStonePath(
             owner=nickname,
@@ -422,7 +429,8 @@ def play_pathfinder(
                 direction=coord.d,
             ),
         )
-        for coord in placed
+        for coord in action.paths
+        if coord in game.players[nickname].paths
     ]
 
 
@@ -473,7 +481,7 @@ def add_initial_placements(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> tuple[ports.PlayedSettlement, ports.PlayedStonePath]:
-    services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.FreePlacementAction(
             by=nickname,
@@ -492,6 +500,7 @@ def add_initial_placements(
         registry=registry,
         game_locks=game_locks,
     )
+    http.raise_if_failed(result)
     return ports.PlayedSettlement(
         location=payload.terrace,
         type=entities.SettlementType.TERRACE,
@@ -552,7 +561,7 @@ def build_settlement(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ports.PlayedSettlement:
-    services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.BuildSettlementAction(
             by=nickname,
@@ -567,6 +576,8 @@ def build_settlement(
         registry=registry,
         game_locks=game_locks,
     )
+
+    http.raise_if_failed(result)
 
     return ports.PlayedSettlement(
         owner=nickname,
@@ -631,7 +642,7 @@ def build_path(
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
 ) -> ports.PlayedStonePath:
-    services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.BuildPathAction(
             by=nickname,
@@ -645,6 +656,8 @@ def build_path(
         registry=registry,
         game_locks=game_locks,
     )
+
+    http.raise_if_failed(result)
 
     return ports.PlayedStonePath(
         owner=nickname,

@@ -23,15 +23,17 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         }
     )
 
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=game.turn_order[1],
-                item=entities.SettlementType.TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=game.turn_order[1],
+            item=entities.SettlementType.TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_builds_terrace_spends_resources_and_stays_in_phase(
@@ -53,7 +55,7 @@ def test_builds_terrace_spends_resources_and_stays_in_phase(
         }
     )
 
-    phase = actions.handle_build_terrace(
+    result = actions.handle_build_terrace(
         game,
         actions.BuildSettlementAction(
             by=player,
@@ -62,7 +64,9 @@ def test_builds_terrace_spends_resources_and_stays_in_phase(
         ),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.players[player].settlements[terrace] is entities.SettlementType.TERRACE
     assert game.players[player].resources[entities.ResourceCard.STONE] == 0
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 0
@@ -86,7 +90,7 @@ def test_builds_path_spends_resources_and_stays_in_phase(
         }
     )
 
-    phase = actions.handle_build_path(
+    result = actions.handle_build_path(
         game,
         actions.BuildPathAction(
             by=player,
@@ -94,7 +98,9 @@ def test_builds_path_spends_resources_and_stays_in_phase(
         ),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert path in game.players[player].paths
     assert game.players[player].resources[entities.ResourceCard.STONE] == 0
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 0
@@ -118,12 +124,14 @@ def test_builds_path_chained_from_owned_path(game: entities.ActiveGame) -> None:
         }
     )
 
-    phase = actions.handle_build_path(
+    result = actions.handle_build_path(
         game,
         actions.BuildPathAction(by=player, coordinate=adjacent),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert adjacent in game.players[player].paths
     assert game.players[player].resources[entities.ResourceCard.STONE] == 0
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 0
@@ -141,11 +149,13 @@ def test_raises_invalid_path_location_when_disconnected(
         }
     )
 
-    with pytest.raises(actions.InvalidPathLocation):
-        actions.handle_build_path(
-            game,
-            actions.BuildPathAction(by=player, coordinate=disconnected),
-        )
+    result = actions.handle_build_path(
+        game,
+        actions.BuildPathAction(by=player, coordinate=disconnected),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_raises_invalid_path_location_when_already_taken(
@@ -165,11 +175,13 @@ def test_raises_invalid_path_location_when_already_taken(
         }
     )
 
-    with pytest.raises(actions.InvalidPathLocation):
-        actions.handle_build_path(
-            game,
-            actions.BuildPathAction(by=player, coordinate=path),
-        )
+    result = actions.handle_build_path(
+        game,
+        actions.BuildPathAction(by=player, coordinate=path),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_builds_great_terrace_upgrades_and_stays_in_phase(
@@ -185,7 +197,7 @@ def test_builds_great_terrace_upgrades_and_stays_in_phase(
         }
     )
 
-    phase = actions.handle_build_terrace(
+    result = actions.handle_build_terrace(
         game,
         actions.BuildSettlementAction(
             by=player,
@@ -194,7 +206,9 @@ def test_builds_great_terrace_upgrades_and_stays_in_phase(
         ),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert (
         game.players[player].settlements[terrace]
         is entities.SettlementType.GREAT_TERRACE
@@ -221,7 +235,7 @@ def test_building_terrace_to_ten_vp_ends_game(game: entities.ActiveGame) -> None
         }
     )
 
-    phase = actions.handle_build_terrace(
+    result = actions.handle_build_terrace(
         game,
         actions.BuildSettlementAction(
             by=player,
@@ -230,7 +244,9 @@ def test_building_terrace_to_ten_vp_ends_game(game: entities.ActiveGame) -> None
         ),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME
 
 
 def test_building_great_terrace_to_ten_vp_ends_game(
@@ -247,7 +263,7 @@ def test_building_great_terrace_to_ten_vp_ends_game(
         }
     )
 
-    phase = actions.handle_build_terrace(
+    result = actions.handle_build_terrace(
         game,
         actions.BuildSettlementAction(
             by=player,
@@ -256,7 +272,9 @@ def test_building_great_terrace_to_ten_vp_ends_game(
         ),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME
 
 
 def test_building_path_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
@@ -274,12 +292,14 @@ def test_building_path_at_ten_vp_ends_game(game: entities.ActiveGame) -> None:
         }
     )
 
-    phase = actions.handle_build_path(
+    result = actions.handle_build_path(
         game,
         actions.BuildPathAction(by=player, coordinate=path),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME
 
 
 def test_building_path_below_ten_vp_stays_in_phase(
@@ -299,12 +319,14 @@ def test_building_path_below_ten_vp_stays_in_phase(
         }
     )
 
-    phase = actions.handle_build_path(
+    result = actions.handle_build_path(
         game,
         actions.BuildPathAction(by=player, coordinate=path),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
 
 
 def test_raises_insufficient_resources_for_terrace(
@@ -317,15 +339,17 @@ def test_raises_insufficient_resources_for_terrace(
     )
     game.players[player].paths.add(path)
 
-    with pytest.raises(actions.InsufficientResourcesError):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_raises_invalid_settlement_location_without_path(
@@ -342,15 +366,17 @@ def test_raises_invalid_settlement_location_without_path(
         }
     )
 
-    with pytest.raises(actions.InvalidSettlementLocation):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidSettlementLocation
 
 
 def test_raises_invalid_settlement_location_when_restricted(
@@ -376,15 +402,17 @@ def test_raises_invalid_settlement_location_when_restricted(
         }
     )
 
-    with pytest.raises(actions.InvalidSettlementLocation):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.TERRACE,
-                coordinate=restricted,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.TERRACE,
+            coordinate=restricted,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidSettlementLocation
 
 
 def test_raises_invalid_settlement_location_when_occupied(
@@ -406,15 +434,17 @@ def test_raises_invalid_settlement_location_when_occupied(
         }
     )
 
-    with pytest.raises(actions.InvalidSettlementLocation):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidSettlementLocation
 
 
 def test_raises_when_terrace_cap_reached(game: entities.ActiveGame) -> None:
@@ -437,15 +467,17 @@ def test_raises_when_terrace_cap_reached(game: entities.ActiveGame) -> None:
             entities.Coordinate(q=9, r=i // 6, d=i % 6)
         ] = entities.SettlementType.TERRACE
 
-    with pytest.raises(actions.InsufficientResourcesError):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_raises_when_great_terrace_cap_reached(game: entities.ActiveGame) -> None:
@@ -463,15 +495,17 @@ def test_raises_when_great_terrace_cap_reached(game: entities.ActiveGame) -> Non
             entities.Coordinate(q=9, r=i // 6, d=i % 6)
         ] = entities.SettlementType.GREAT_TERRACE
 
-    with pytest.raises(actions.InsufficientResourcesError):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.GREAT_TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.GREAT_TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_raises_when_upgrading_without_terrace(game: entities.ActiveGame) -> None:
@@ -484,15 +518,17 @@ def test_raises_when_upgrading_without_terrace(game: entities.ActiveGame) -> Non
         }
     )
 
-    with pytest.raises(actions.InvalidSettlementLocation):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.GREAT_TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.GREAT_TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidSettlementLocation
 
 
 def test_raises_when_already_great_terrace(game: entities.ActiveGame) -> None:
@@ -506,15 +542,17 @@ def test_raises_when_already_great_terrace(game: entities.ActiveGame) -> None:
         }
     )
 
-    with pytest.raises(actions.InvalidSettlementLocation):
-        actions.handle_build_terrace(
-            game,
-            actions.BuildSettlementAction(
-                by=player,
-                item=entities.SettlementType.GREAT_TERRACE,
-                coordinate=terrace,
-            ),
-        )
+    result = actions.handle_build_terrace(
+        game,
+        actions.BuildSettlementAction(
+            by=player,
+            item=entities.SettlementType.GREAT_TERRACE,
+            coordinate=terrace,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidSettlementLocation
 
 
 def test_raises_when_path_cap_reached(game: entities.ActiveGame) -> None:
@@ -533,11 +571,13 @@ def test_raises_when_path_cap_reached(game: entities.ActiveGame) -> None:
     for i in range(entities.MAX_PATHS):
         game.players[player].paths.add(entities.Coordinate(q=9, r=i // 6, d=i % 6))
 
-    with pytest.raises(actions.InsufficientResourcesError):
-        actions.handle_build_path(
-            game,
-            actions.BuildPathAction(by=player, coordinate=path),
-        )
+    result = actions.handle_build_path(
+        game,
+        actions.BuildPathAction(by=player, coordinate=path),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_end_turn_advances_player_and_returns_to_dice_roll(
@@ -546,12 +586,14 @@ def test_end_turn_advances_player_and_returns_to_dice_roll(
     game.player_idx = 0
     player = game.active_player
 
-    phase = actions.handle_end_trade_and_build(
+    result = actions.handle_end_trade_and_build(
         game,
         actions.PlayerAction(by=player),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert game.player_idx == 1
     assert game.active_player == game.turn_order[1]
 
@@ -563,12 +605,14 @@ def test_end_turn_promotes_cards_bought_this_turn(
     card = entities.WisdomCard.WARRIOR
     game.players[player].cards_bought_this_turn[card] = 1
 
-    phase = actions.handle_end_trade_and_build(
+    result = actions.handle_end_trade_and_build(
         game,
         actions.PlayerAction(by=player),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert game.players[player].cards[card] == 1
     assert game.players[player].cards_bought_this_turn[card] == 0
 
@@ -577,12 +621,14 @@ def test_end_turn_wraps_to_first_player(game: entities.ActiveGame) -> None:
     game.player_idx = len(game.players) - 1
     player = game.active_player
 
-    phase = actions.handle_end_trade_and_build(
+    result = actions.handle_end_trade_and_build(
         game,
         actions.PlayerAction(by=player),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert game.player_idx == 0
     assert game.active_player == game.turn_order[0]
 
@@ -598,23 +644,27 @@ def test_end_turn_clears_trade_proposals(game: entities.ActiveGame) -> None:
         )
     }
 
-    phase = actions.handle_end_trade_and_build(
+    result = actions.handle_end_trade_and_build(
         game,
         actions.PlayerAction(by=player),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert game.trade_proposals == {}
 
 
 def test_end_turn_raises_when_player_not_in_turn(
     game: entities.ActiveGame,
 ) -> None:
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_end_trade_and_build(
-            game,
-            actions.PlayerAction(by=game.turn_order[1]),
-        )
+    result = actions.handle_end_trade_and_build(
+        game,
+        actions.PlayerAction(by=game.turn_order[1]),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 @pytest.mark.parametrize(
@@ -631,11 +681,13 @@ def test_play_wisdom_card_raises_when_player_does_not_have_card(
     game: entities.ActiveGame,
     card: entities.WisdomCard,
 ) -> None:
-    with pytest.raises(actions.PlayerDoesNotHaveCardError):
-        actions.handle_trade_and_build_play_wisdom_card(
-            game,
-            actions.PlayWisdomCardAction(by=game.active_player, card=card),
-        )
+    result = actions.handle_trade_and_build_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(by=game.active_player, card=card),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerDoesNotHaveCardError
 
 
 def test_play_wisdom_card_raises_when_player_not_in_turn(
@@ -643,14 +695,16 @@ def test_play_wisdom_card_raises_when_player_not_in_turn(
 ) -> None:
     game.players[game.active_player].cards[entities.WisdomCard.WARRIOR] = 1
 
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_trade_and_build_play_wisdom_card(
-            game,
-            actions.PlayWisdomCardAction(
-                by=game.turn_order[1],
-                card=entities.WisdomCard.WARRIOR,
-            ),
-        )
+    result = actions.handle_trade_and_build_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(
+            by=game.turn_order[1],
+            card=entities.WisdomCard.WARRIOR,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_play_wisdom_card_raises_when_card_cannot_be_played(
@@ -664,11 +718,13 @@ def test_play_wisdom_card_raises_when_card_cannot_be_played(
     unknown_card = _UnplayableCard.UNKNOWN
     game.players[player].cards[unknown_card] = 1  # type: ignore[index]
 
-    with pytest.raises(actions.ActionNotAllowedError):
-        actions.handle_trade_and_build_play_wisdom_card(
-            game,
-            actions.PlayWisdomCardAction(by=player, card=unknown_card),  # type: ignore[arg-type]
-        )
+    result = actions.handle_trade_and_build_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(by=player, card=unknown_card),  # type: ignore[arg-type]
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.ActionNotAllowedError
 
 
 @pytest.mark.parametrize(
@@ -704,12 +760,14 @@ def test_play_wisdom_card_transitions_to_expected_phase(
     player = game.active_player
     game.players[player].cards[card] = 1
 
-    phase = actions.handle_trade_and_build_play_wisdom_card(
+    result = actions.handle_trade_and_build_play_wisdom_card(
         game,
         actions.PlayWisdomCardAction(by=player, card=card),
     )
 
-    assert phase is expected_phase
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is expected_phase
     assert game.players[player].cards[card] == 0
     assert game.players[player].played_cards[card] == 1
 
@@ -719,14 +777,16 @@ def test_playing_legacy_to_ten_vp_ends_game(game: entities.ActiveGame) -> None:
     game.players[player].cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
     game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
 
-    phase = actions.handle_trade_and_build_play_wisdom_card(
+    result = actions.handle_trade_and_build_play_wisdom_card(
         game,
         actions.PlayWisdomCardAction(
             by=player, card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
         ),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME
     assert (
         game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS]
         == 10
@@ -766,12 +826,14 @@ def test_buy_wisdom_card_spends_resources_and_draws_top(
         resource: game.resource_supply[resource] for resource in _WISDOM_CARD_COST
     }
 
-    phase = actions.handle_buy_wisdom_card(
+    result = actions.handle_buy_wisdom_card(
         game,
         actions.BuyWisdomCardAction(by=player),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.wisdom_deck == [entities.WisdomCard.PATHFINDER]
     assert game.players[player].cards_bought_this_turn[card] == 1
     assert game.players[player].cards[card] == 0
@@ -793,11 +855,13 @@ def test_buy_wisdom_card_raises_when_insufficient_resources(
         }
     )
 
-    with pytest.raises(actions.InsufficientResourcesError):
-        actions.handle_buy_wisdom_card(
-            game,
-            actions.BuyWisdomCardAction(by=player),
-        )
+    result = actions.handle_buy_wisdom_card(
+        game,
+        actions.BuyWisdomCardAction(by=player),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_buy_wisdom_card_raises_when_deck_is_empty(
@@ -807,13 +871,13 @@ def test_buy_wisdom_card_raises_when_deck_is_empty(
     game.wisdom_deck = []
     game.players[player].resources.update(_WISDOM_CARD_COST)
 
-    with pytest.raises(
-        actions.EmptyWisdomDeckError, match="Cannot buy more wisdom cards"
-    ):
-        actions.handle_buy_wisdom_card(
-            game,
-            actions.BuyWisdomCardAction(by=player),
-        )
+    result = actions.handle_buy_wisdom_card(
+        game,
+        actions.BuyWisdomCardAction(by=player),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.EmptyWisdomDeckError
 
 
 def test_buy_wisdom_card_raises_when_player_not_in_turn(
@@ -822,8 +886,10 @@ def test_buy_wisdom_card_raises_when_player_not_in_turn(
     game.wisdom_deck = [entities.WisdomCard.WARRIOR]
     game.players[game.turn_order[1]].resources.update(_WISDOM_CARD_COST)
 
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_buy_wisdom_card(
-            game,
-            actions.BuyWisdomCardAction(by=game.turn_order[1]),
-        )
+    result = actions.handle_buy_wisdom_card(
+        game,
+        actions.BuyWisdomCardAction(by=game.turn_order[1]),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError

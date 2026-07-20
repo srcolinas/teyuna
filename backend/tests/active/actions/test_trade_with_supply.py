@@ -10,32 +10,33 @@ def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
         {entities.ResourceCard.GOLD: 4}
     )
 
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_trade_with_supply(
-            game,
-            actions.TradeWithSupplyAction(
-                by=game.turn_order[1],
-                offers=entities.ResourceCard.GOLD,
-                requests=entities.ResourceCard.STONE,
-            ),
-        )
+    result = actions.handle_trade_with_supply(
+        game,
+        actions.TradeWithSupplyAction(
+            by=game.turn_order[1],
+            offers=entities.ResourceCard.GOLD,
+            requests=entities.ResourceCard.STONE,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_cannot_trade_if_not_enough_resources_from_player(
     game: entities.ActiveGame,
 ) -> None:
-    with pytest.raises(
-        actions.InsufficientResourcesError,
-        match="You do not have enough gold to offer.",
-    ):
-        actions.handle_trade_with_supply(
-            game,
-            actions.TradeWithSupplyAction(
-                by=game.active_player,
-                offers=entities.ResourceCard.GOLD,
-                requests=entities.ResourceCard.STONE,
-            ),
-        )
+    result = actions.handle_trade_with_supply(
+        game,
+        actions.TradeWithSupplyAction(
+            by=game.active_player,
+            offers=entities.ResourceCard.GOLD,
+            requests=entities.ResourceCard.STONE,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_cannot_trade_if_not_enough_resources_from_supply(
@@ -45,18 +46,17 @@ def test_cannot_trade_if_not_enough_resources_from_supply(
         {entities.ResourceCard.GOLD: 4}
     )
     game.resource_supply[entities.ResourceCard.STONE] = 0
-    with pytest.raises(
-        actions.InsufficientResourceSupplyError,
-        match="The supply does not have enough stone to request.",
-    ):
-        actions.handle_trade_with_supply(
-            game,
-            actions.TradeWithSupplyAction(
-                by=game.active_player,
-                offers=entities.ResourceCard.GOLD,
-                requests=entities.ResourceCard.STONE,
-            ),
-        )
+    result = actions.handle_trade_with_supply(
+        game,
+        actions.TradeWithSupplyAction(
+            by=game.active_player,
+            offers=entities.ResourceCard.GOLD,
+            requests=entities.ResourceCard.STONE,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourceSupplyError
 
 
 def test_default_rate_is_four_for_one(game: entities.ActiveGame) -> None:
@@ -67,7 +67,7 @@ def test_default_rate_is_four_for_one(game: entities.ActiveGame) -> None:
     supply_gold_before = game.resource_supply[entities.ResourceCard.GOLD]
     supply_stone_before = game.resource_supply[entities.ResourceCard.STONE]
 
-    phase = actions.handle_trade_with_supply(
+    result = actions.handle_trade_with_supply(
         game,
         actions.TradeWithSupplyAction(
             by=player,
@@ -76,7 +76,9 @@ def test_default_rate_is_four_for_one(game: entities.ActiveGame) -> None:
         ),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.players[player].resources == collections.Counter(
         {entities.ResourceCard.GOLD: 0, entities.ResourceCard.STONE: 1}
     )
@@ -154,12 +156,14 @@ def test_specific_harbour_does_not_apply_to_other_resources(
         {entities.ResourceCard.GOLD: 3}
     )
 
-    with pytest.raises(actions.InsufficientResourcesError):
-        actions.handle_trade_with_supply(
-            game,
-            actions.TradeWithSupplyAction(
-                by=player,
-                offers=entities.ResourceCard.GOLD,
-                requests=entities.ResourceCard.STONE,
-            ),
-        )
+    result = actions.handle_trade_with_supply(
+        game,
+        actions.TradeWithSupplyAction(
+            by=player,
+            offers=entities.ResourceCard.GOLD,
+            requests=entities.ResourceCard.STONE,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError

@@ -35,8 +35,8 @@ def test_timeout_dice_roll_executes(game: entities.ActiveGame) -> None:
     registry.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
     rng = random.Random(0)
     action = timeouts.timeout_dice_roll(game, rng)
-    phase = registry.execute(actions.GamePhaseName.DICE_ROLL, game, action)
-    assert phase in {
+    result = registry.execute(actions.GamePhaseName.DICE_ROLL, game, action)
+    assert result.phase in {
         actions.GamePhaseName.TRADE_AND_BUILD,
         actions.GamePhaseName.DISCARD_RESOURCES,
         actions.GamePhaseName.MOVE_CONQUISTATOR,
@@ -50,8 +50,10 @@ def test_timeout_trade_and_build_ends_turn(game: entities.ActiveGame) -> None:
     )
     active = game.active_player
     action = timeouts.timeout_trade_and_build(game, random.Random(0))
-    phase = registry.execute(actions.GamePhaseName.TRADE_AND_BUILD, game, action)
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    result = registry.execute(actions.GamePhaseName.TRADE_AND_BUILD, game, action)
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
     assert game.active_player != active
 
 
@@ -68,8 +70,10 @@ def test_timeout_first_placement_executes() -> None:
         actions.handle_first_placement
     )
     action = timeouts.timeout_first_placement(game, random.Random(1))
-    phase = registry.execute(actions.GamePhaseName.FIRST_PLACEMENT, game, action)
-    assert phase is actions.GamePhaseName.FIRST_PLACEMENT
+    result = registry.execute(actions.GamePhaseName.FIRST_PLACEMENT, game, action)
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.FIRST_PLACEMENT
     assert len(list(game.players[action.by].settlements.locations())) == 1
     assert len(game.players[action.by].paths) == 1
 
@@ -88,9 +92,11 @@ def test_timeout_discard_resources_executes(game: entities.ActiveGame) -> None:
         actions.handle_discard_resources
     )
     action = timeouts.timeout_discard_resources(game, random.Random(0))
-    phase = registry.execute(actions.GamePhaseName.DISCARD_RESOURCES, game, action)
+    result = registry.execute(actions.GamePhaseName.DISCARD_RESOURCES, game, action)
     assert nick not in game.to_discard_resources
-    assert phase is actions.GamePhaseName.MOVE_CONQUISTATOR
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.MOVE_CONQUISTATOR
 
 
 def test_timeout_move_conquistator_executes() -> None:
@@ -107,8 +113,10 @@ def test_timeout_move_conquistator_executes() -> None:
     )
     before = game.conquistator_location
     action = timeouts.timeout_move_conquistator(game, random.Random(2))
-    phase = registry.execute(actions.GamePhaseName.MOVE_CONQUISTATOR, game, action)
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    result = registry.execute(actions.GamePhaseName.MOVE_CONQUISTATOR, game, action)
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.conquistator_location != before
 
 
@@ -122,12 +130,12 @@ def test_timeout_play_mamo_and_blessed(game: entities.ActiveGame) -> None:
     )
     mamo = timeouts.timeout_play_mamo(game, random.Random(0))
     assert (
-        registry.execute(actions.GamePhaseName.DICE_PLAY_MAMO, game, mamo)
+        registry.execute(actions.GamePhaseName.DICE_PLAY_MAMO, game, mamo).phase
         is actions.GamePhaseName.DICE_ROLL
     )
     blessed = timeouts.timeout_play_blessed(game, random.Random(0))
     assert (
-        registry.execute(actions.GamePhaseName.DICE_PLAY_BLESSED, game, blessed)
+        registry.execute(actions.GamePhaseName.DICE_PLAY_BLESSED, game, blessed).phase
         is actions.GamePhaseName.DICE_ROLL
     )
 
@@ -139,8 +147,10 @@ def test_timeout_play_pathfinder_allows_empty(game: entities.ActiveGame) -> None
     )
     action = timeouts.timeout_play_pathfinder(game, random.Random(0))
     assert action.paths == ()
-    phase = registry.execute(actions.GamePhaseName.DICE_PLAY_PATHFINDER, game, action)
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    result = registry.execute(actions.GamePhaseName.DICE_PLAY_PATHFINDER, game, action)
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
 
 
 def test_apply_player_action_resets_deadline() -> None:
@@ -181,7 +191,7 @@ def test_apply_player_action_resets_deadline() -> None:
         phase_deadline=now + datetime.timedelta(seconds=5),
     )
     game = repository.retrieve(game_id).game
-    new_phase, _, _ = services.apply_player_action(
+    result, _ = services.apply_player_action(
         game_id,
         actions.PlayerAction(by=game.active_player, rng_=random.Random(0)),
         repository=repository,
@@ -190,8 +200,8 @@ def test_apply_player_action_resets_deadline() -> None:
         now=now,
     )
     stored = repository.retrieve(game_id)
-    assert stored.phase is new_phase
-    timeout = registry.timeout_for(new_phase)
+    assert stored.phase is result.phase
+    timeout = registry.timeout_for(result.phase)
     assert timeout is not None
     assert stored.phase_deadline == now + timeout.duration
 

@@ -1,21 +1,19 @@
 import collections
 import uuid
 
-import pytest
 
 from src.active import actions, entities
 
 
 def test_cannot_accept_if_not_in_trade_proposals(game: entities.ActiveGame) -> None:
     proposal_id = uuid.uuid4()
-    with pytest.raises(
-        actions.TradeProposalNotFound,
-        match=f"Trade proposal {proposal_id} not found.",
-    ):
-        actions.handle_accept_trade(
-            game,
-            actions.AcceptTradeAction(by=game.active_player, id=proposal_id),
-        )
+    result = actions.handle_accept_trade(
+        game,
+        actions.AcceptTradeAction(by=game.active_player, id=proposal_id),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.TradeProposalNotFound
 
 
 def test_cannot_accept_if_not_addressed_to_player(game: entities.ActiveGame) -> None:
@@ -32,14 +30,13 @@ def test_cannot_accept_if_not_addressed_to_player(game: entities.ActiveGame) -> 
         )
     }
 
-    with pytest.raises(
-        actions.TradeNotAddressedToPlayerError,
-        match=f"Player {outsider} cannot accept this trade proposal",
-    ):
-        actions.handle_accept_trade(
-            game,
-            actions.AcceptTradeAction(by=outsider, id=proposal_id),
-        )
+    result = actions.handle_accept_trade(
+        game,
+        actions.AcceptTradeAction(by=outsider, id=proposal_id),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.TradeNotAddressedToPlayerError
 
 
 def test_cannot_accept_if_not_enough_resources(game: entities.ActiveGame) -> None:
@@ -58,14 +55,13 @@ def test_cannot_accept_if_not_enough_resources(game: entities.ActiveGame) -> Non
         {entities.ResourceCard.GOLD: 2}
     )
 
-    with pytest.raises(
-        actions.InsufficientResourcesError,
-        match="You do not have enough stone to accept the trade.",
-    ):
-        actions.handle_accept_trade(
-            game,
-            actions.AcceptTradeAction(by=accepts, id=proposal_id),
-        )
+    result = actions.handle_accept_trade(
+        game,
+        actions.AcceptTradeAction(by=accepts, id=proposal_id),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_cannot_accept_if_proposer_no_longer_has_offer(
@@ -86,14 +82,13 @@ def test_cannot_accept_if_proposer_no_longer_has_offer(
         {entities.ResourceCard.STONE: 1}
     )
 
-    with pytest.raises(
-        actions.InsufficientResourcesError,
-        match="You do not have enough gold to complete the trade.",
-    ):
-        actions.handle_accept_trade(
-            game,
-            actions.AcceptTradeAction(by=accepts, id=proposal_id),
-        )
+    result = actions.handle_accept_trade(
+        game,
+        actions.AcceptTradeAction(by=accepts, id=proposal_id),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_accepted_trade_is_removed_from_trade_proposals(
@@ -118,12 +113,14 @@ def test_accepted_trade_changes_resources(game: entities.ActiveGame) -> None:
     accepts = game.turn_order[0]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
-    phase = actions.handle_accept_trade(
+    result = actions.handle_accept_trade(
         game,
         actions.AcceptTradeAction(by=accepts, id=proposal_id),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.players[proposes].resources[entities.ResourceCard.GOLD] == 0
     assert game.players[proposes].resources[entities.ResourceCard.STONE] == 1
     assert game.players[accepts].resources[entities.ResourceCard.GOLD] == 2
@@ -138,12 +135,14 @@ def test_non_active_player_can_accept_when_addressed(
     accepts = game.turn_order[1]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
-    phase = actions.handle_accept_trade(
+    result = actions.handle_accept_trade(
         game,
         actions.AcceptTradeAction(by=accepts, id=proposal_id),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.trade_proposals == {}
 
 

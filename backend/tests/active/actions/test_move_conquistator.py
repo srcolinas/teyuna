@@ -1,25 +1,27 @@
-import pytest
-
 from src.active import actions, entities
 
 
 def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_move_conquistator(
-            game,
-            actions.MoveConquistatorAction(by=game.turn_order[1], q=1, r=0),
-        )
+    result = actions.handle_move_conquistator(
+        game,
+        actions.MoveConquistatorAction(by=game.turn_order[1], q=1, r=0),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_raises_when_location_is_unchanged(game: entities.ActiveGame) -> None:
     location = game.conquistator_location
-    with pytest.raises(actions.InvalidConquistatorLocation):
-        actions.handle_move_conquistator(
-            game,
-            actions.MoveConquistatorAction(
-                by=game.active_player, q=location.q, r=location.r
-            ),
-        )
+    result = actions.handle_move_conquistator(
+        game,
+        actions.MoveConquistatorAction(
+            by=game.active_player, q=location.q, r=location.r
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidConquistatorLocation
 
 
 def test_moves_conquistator_and_returns_to_trade_and_build(
@@ -27,12 +29,14 @@ def test_moves_conquistator_and_returns_to_trade_and_build(
 ) -> None:
     player = game.active_player
 
-    phase = actions.handle_move_conquistator(
+    result = actions.handle_move_conquistator(
         game,
         actions.MoveConquistatorAction(by=player, q=1, r=-1),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
     assert game.player_idx == 0
 

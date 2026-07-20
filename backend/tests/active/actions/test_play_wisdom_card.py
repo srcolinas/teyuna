@@ -19,24 +19,28 @@ def test_raises_when_player_does_not_have_card(
     game: entities.ActiveGame,
     card: entities.WisdomCard,
 ) -> None:
-    with pytest.raises(actions.PlayerDoesNotHaveCardError):
-        actions.handle_play_wisdom_card(
-            game,
-            actions.PlayWisdomCardAction(by=game.active_player, card=card),
-        )
+    result = actions.handle_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(by=game.active_player, card=card),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerDoesNotHaveCardError
 
 
 def test_raises_when_player_not_in_turn(game: entities.ActiveGame) -> None:
     game.players[game.active_player].cards[entities.WisdomCard.WARRIOR] = 1
 
-    with pytest.raises(actions.PlayerNotInTurnError):
-        actions.handle_play_wisdom_card(
-            game,
-            actions.PlayWisdomCardAction(
-                by=game.turn_order[1],
-                card=entities.WisdomCard.WARRIOR,
-            ),
-        )
+    result = actions.handle_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(
+            by=game.turn_order[1],
+            card=entities.WisdomCard.WARRIOR,
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_raises_when_card_cannot_be_played(
@@ -50,11 +54,13 @@ def test_raises_when_card_cannot_be_played(
     unknown_card = _UnplayableCard.UNKNOWN
     game.players[player].cards[unknown_card] = 1  # type: ignore[index]
 
-    with pytest.raises(actions.ActionNotAllowedError):
-        actions.handle_play_wisdom_card(
-            game,
-            actions.PlayWisdomCardAction(by=player, card=unknown_card),  # type: ignore[arg-type]
-        )
+    result = actions.handle_play_wisdom_card(
+        game,
+        actions.PlayWisdomCardAction(by=player, card=unknown_card),  # type: ignore[arg-type]
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.ActionNotAllowedError
 
 
 @pytest.mark.parametrize(
@@ -81,12 +87,14 @@ def test_uses_card_and_transitions_to_expected_dice_phase(
     player = game.active_player
     game.players[player].cards[card] = 1
 
-    phase = actions.handle_play_wisdom_card(
+    result = actions.handle_play_wisdom_card(
         game,
         actions.PlayWisdomCardAction(by=player, card=card),
     )
 
-    assert phase is expected_phase
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is expected_phase
     assert game.players[player].cards[card] == 0
     assert game.players[player].played_cards[card] == 1
 
@@ -176,14 +184,16 @@ def test_playing_legacy_to_ten_vp_ends_game(game: entities.ActiveGame) -> None:
     game.players[player].cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
     game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
 
-    phase = actions.handle_play_wisdom_card(
+    result = actions.handle_play_wisdom_card(
         game,
         actions.PlayWisdomCardAction(
             by=player, card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
         ),
     )
 
-    assert phase is actions.GamePhaseName.END_GAME
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.END_GAME
     assert (
         game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS]
         == 10
@@ -197,11 +207,13 @@ def test_playing_legacy_below_ten_vp_stays_in_dice_roll(
     game.players[player].cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
     game.players[player].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
 
-    phase = actions.handle_play_wisdom_card(
+    result = actions.handle_play_wisdom_card(
         game,
         actions.PlayWisdomCardAction(
             by=player, card=entities.WisdomCard.LEGACY_OF_THE_ELDERS
         ),
     )
 
-    assert phase is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.DICE_ROLL

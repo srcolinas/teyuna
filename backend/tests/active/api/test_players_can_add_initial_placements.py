@@ -210,8 +210,12 @@ def _registry_with_wrong_action() -> actions.ActionsRegistry:
 
     def handle_dummy(
         game: entities.ActiveGame, action: _DummyAction
-    ) -> actions.GamePhaseName:
-        return actions.GamePhaseName.DICE_ROLL
+    ) -> actions.ActionExecutionResult:
+        return actions.ActionExecutionResult(
+            succeeded=True,
+            phase=actions.GamePhaseName.DICE_ROLL,
+            error=None,
+        )
 
     registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
     return registry

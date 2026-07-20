@@ -1,6 +1,5 @@
 import collections
 
-import pytest
 
 from src.active import actions, entities
 
@@ -14,7 +13,7 @@ def test_propose_trade_stores_proposal(game: entities.ActiveGame) -> None:
     offer = collections.Counter({entities.ResourceCard.GOLD: 2})
     request = collections.Counter({entities.ResourceCard.STONE: 1})
 
-    phase = actions.handle_propose_trade(
+    result = actions.handle_propose_trade(
         game,
         actions.ProposeTradeAction(
             by=proposer,
@@ -24,10 +23,13 @@ def test_propose_trade_stores_proposal(game: entities.ActiveGame) -> None:
         ),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert isinstance(result, actions.ProposeTradeResult)
     assert len(game.trade_proposals) == 1
-    proposal_id = next(iter(game.trade_proposals))
-    assert game.trade_proposals[proposal_id] == entities.TradeProposal(
+    assert result.proposal_id in game.trade_proposals
+    assert game.trade_proposals[result.proposal_id] == entities.TradeProposal(
         by=proposer,
         offer=offer,
         request=request,
@@ -42,7 +44,7 @@ def test_non_active_player_can_propose(game: entities.ActiveGame) -> None:
         {entities.ResourceCard.GOLD: 2}
     )
 
-    phase = actions.handle_propose_trade(
+    result = actions.handle_propose_trade(
         game,
         actions.ProposeTradeAction(
             by=proposer,
@@ -52,45 +54,47 @@ def test_non_active_player_can_propose(game: entities.ActiveGame) -> None:
         ),
     )
 
-    assert phase is actions.GamePhaseName.TRADE_AND_BUILD
-    proposal = next(iter(game.trade_proposals.values()))
+    assert result.succeeded is True
+    assert result.error is None
+    assert result.phase is actions.GamePhaseName.TRADE_AND_BUILD
+    assert isinstance(result, actions.ProposeTradeResult)
+    assert result.proposal_id in game.trade_proposals
+    proposal = game.trade_proposals[result.proposal_id]
     assert proposal.by == proposer
     assert proposal.to == {target}
 
 
 def test_cannot_propose_if_not_enough_resources(game: entities.ActiveGame) -> None:
-    with pytest.raises(
-        actions.InsufficientResourcesError,
-        match="You do not have enough gold to offer.",
-    ):
-        actions.handle_propose_trade(
-            game,
-            actions.ProposeTradeAction(
-                by=game.active_player,
-                offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-                request=collections.Counter({entities.ResourceCard.STONE: 1}),
-                to={game.turn_order[1]},
-            ),
-        )
+    result = actions.handle_propose_trade(
+        game,
+        actions.ProposeTradeAction(
+            by=game.active_player,
+            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to={game.turn_order[1]},
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_cannot_propose_with_empty_targets(game: entities.ActiveGame) -> None:
     game.players[game.active_player].resources = collections.Counter(
         {entities.ResourceCard.GOLD: 2}
     )
-    with pytest.raises(
-        actions.InvalidTradeTargets,
-        match="Trade proposal must target at least one player.",
-    ):
-        actions.handle_propose_trade(
-            game,
-            actions.ProposeTradeAction(
-                by=game.active_player,
-                offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-                request=collections.Counter({entities.ResourceCard.STONE: 1}),
-                to=set(),
-            ),
-        )
+    result = actions.handle_propose_trade(
+        game,
+        actions.ProposeTradeAction(
+            by=game.active_player,
+            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to=set(),
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidTradeTargets
 
 
 def test_cannot_propose_to_self(game: entities.ActiveGame) -> None:
@@ -98,38 +102,36 @@ def test_cannot_propose_to_self(game: entities.ActiveGame) -> None:
     game.players[proposer].resources = collections.Counter(
         {entities.ResourceCard.GOLD: 2}
     )
-    with pytest.raises(
-        actions.InvalidTradeTargets,
-        match="Trade proposal cannot target the proposing player.",
-    ):
-        actions.handle_propose_trade(
-            game,
-            actions.ProposeTradeAction(
-                by=proposer,
-                offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-                request=collections.Counter({entities.ResourceCard.STONE: 1}),
-                to={proposer},
-            ),
-        )
+    result = actions.handle_propose_trade(
+        game,
+        actions.ProposeTradeAction(
+            by=proposer,
+            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to={proposer},
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidTradeTargets
 
 
 def test_cannot_propose_to_unknown_player(game: entities.ActiveGame) -> None:
     game.players[game.active_player].resources = collections.Counter(
         {entities.ResourceCard.GOLD: 2}
     )
-    with pytest.raises(
-        actions.InvalidTradeTargets,
-        match="Trade proposal targets unknown player",
-    ):
-        actions.handle_propose_trade(
-            game,
-            actions.ProposeTradeAction(
-                by=game.active_player,
-                offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-                request=collections.Counter({entities.ResourceCard.STONE: 1}),
-                to={"not-a-player"},
-            ),
-        )
+    result = actions.handle_propose_trade(
+        game,
+        actions.ProposeTradeAction(
+            by=game.active_player,
+            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
+            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            to={"not-a-player"},
+        ),
+    )
+    assert result.succeeded is False
+    assert result.error is not None
+    assert type(result.error) is actions.InvalidTradeTargets
 
 
 def test_propose_does_not_move_resources(game: entities.ActiveGame) -> None:

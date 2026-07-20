@@ -1,7 +1,7 @@
 import dataclasses
 
 from ... import entities
-from .. import _registry
+from .. import _registry, _results
 from . import _errors, _placement
 from ._longest_road import update_longest_road
 from ._victory import phase_after_victory_check
@@ -23,23 +23,33 @@ class PlayPathfinderAction(_registry.PlayerAction):
 
 def handle_dice_play_pathfinder(
     game: entities.ActiveGame, action: PlayPathfinderAction
-) -> _registry.GamePhaseName:
-    _apply_pathfinder(game, action)
-    return phase_after_victory_check(game, action.by, _registry.GamePhaseName.DICE_ROLL)
+) -> _registry.ActionExecutionResult:
+    error = _apply_pathfinder(game, action)
+    if error is not None:
+        return _results.fail(error)
+    return _results.ok(
+        phase_after_victory_check(game, action.by, _registry.GamePhaseName.DICE_ROLL)
+    )
 
 
 def handle_trade_and_build_play_pathfinder(
     game: entities.ActiveGame, action: PlayPathfinderAction
-) -> _registry.GamePhaseName:
-    _apply_pathfinder(game, action)
-    return phase_after_victory_check(
-        game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+) -> _registry.ActionExecutionResult:
+    error = _apply_pathfinder(game, action)
+    if error is not None:
+        return _results.fail(error)
+    return _results.ok(
+        phase_after_victory_check(
+            game, action.by, _registry.GamePhaseName.TRADE_AND_BUILD
+        )
     )
 
 
-def _apply_pathfinder(game: entities.ActiveGame, action: PlayPathfinderAction) -> None:
+def _apply_pathfinder(
+    game: entities.ActiveGame, action: PlayPathfinderAction
+) -> Exception | None:
     if game.active_player != action.by:
-        raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
 
     player_state = game.players[action.by]
     remaining = entities.MAX_PATHS - len(player_state.paths)
@@ -54,7 +64,7 @@ def _apply_pathfinder(game: entities.ActiveGame, action: PlayPathfinderAction) -
             free_vertices=game.free_verticies,
         )
         if not can:
-            raise _errors.InvalidPathLocation(
+            return _errors.InvalidPathLocation(
                 target=path,
                 player=action.by,
                 existing_settlements=player_state.settlements.locations(),
@@ -63,3 +73,4 @@ def _apply_pathfinder(game: entities.ActiveGame, action: PlayPathfinderAction) -
             )
         game.use_edge(action.by, path)
         update_longest_road(game, action.by, edge=path)
+    return None

@@ -12,14 +12,16 @@ def test_registered_handler_can_be_executed(game: entities.ActiveGame) -> None:
 
     def handle_dummy(
         game: entities.ActiveGame, action: DummyAction
-    ) -> actions.GamePhaseName:
-        return actions.GamePhaseName.DICE_ROLL
+    ) -> actions.ActionExecutionResult:
+        return actions.ok(actions.GamePhaseName.DICE_ROLL)
 
     registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
 
     result = registry.execute(actions.GamePhaseName.FIRST_PLACEMENT, game, action)
 
-    assert result is actions.GamePhaseName.DICE_ROLL
+    assert result.succeeded is True
+    assert result.phase is actions.GamePhaseName.DICE_ROLL
+    assert result.error is None
 
 
 def test_unregistered_phase_raises(game: entities.ActiveGame) -> None:
@@ -38,8 +40,8 @@ def test_unregistered_action_type_raises(game: entities.ActiveGame) -> None:
 
     def handle_dummy(
         game: entities.ActiveGame, action: DummyAction
-    ) -> actions.GamePhaseName:
-        return actions.GamePhaseName.DICE_ROLL
+    ) -> actions.ActionExecutionResult:
+        return actions.ok(actions.GamePhaseName.DICE_ROLL)
 
     registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
 
@@ -52,13 +54,26 @@ def test_unregistered_action_type_raises(game: entities.ActiveGame) -> None:
         )
 
 
-def test_end_game_rejects_all_actions(game: entities.ActiveGame) -> None:
+def test_end_game_handler_keeps_phase(game: entities.ActiveGame) -> None:
     registry = actions.ActionsRegistry()
+    registry.register(actions.GamePhaseName.END_GAME)(actions.handle_end_game)
 
-    with pytest.raises(
-        actions.ActionNotAllowedError,
-        match="Game has ended; no actions are allowed",
-    ):
+    result = registry.execute(
+        actions.GamePhaseName.END_GAME,
+        game,
+        actions.PlayerAction(by="player"),
+    )
+
+    assert result.succeeded is True
+    assert result.phase is actions.GamePhaseName.END_GAME
+    assert result.error is None
+
+
+def test_end_game_rejects_unregistered_action_types(game: entities.ActiveGame) -> None:
+    registry = actions.ActionsRegistry()
+    registry.register(actions.GamePhaseName.END_GAME)(actions.handle_end_game)
+
+    with pytest.raises(actions.ActionNotAllowedError):
         registry.execute(
             actions.GamePhaseName.END_GAME,
             game,
@@ -69,8 +84,8 @@ def test_end_game_rejects_all_actions(game: entities.ActiveGame) -> None:
 def test_register_requires_at_least_two_parameters() -> None:
     registry = actions.ActionsRegistry()
 
-    def handle_invalid(game: entities.ActiveGame) -> actions.GamePhaseName:
-        return actions.GamePhaseName.DICE_ROLL
+    def handle_invalid(game: entities.ActiveGame) -> actions.ActionExecutionResult:
+        return actions.ok(actions.GamePhaseName.DICE_ROLL)
 
     with pytest.raises(ValueError, match="must accept at least two parameters"):
         registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(
@@ -81,8 +96,10 @@ def test_register_requires_at_least_two_parameters() -> None:
 def test_register_requires_player_action_annotation() -> None:
     registry = actions.ActionsRegistry()
 
-    def handle_invalid(game: entities.ActiveGame, action: str) -> actions.GamePhaseName:
-        return actions.GamePhaseName.DICE_ROLL
+    def handle_invalid(
+        game: entities.ActiveGame, action: str
+    ) -> actions.ActionExecutionResult:
+        return actions.ok(actions.GamePhaseName.DICE_ROLL)
 
     with pytest.raises(TypeError, match="must be annotated with a subclass"):
         registry.register(actions.GamePhaseName.FIRST_PLACEMENT)(

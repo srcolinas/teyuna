@@ -1,17 +1,26 @@
 import collections
+import dataclasses
 from typing import Final
 
 from ... import entities
-from .. import _registry
+from .. import _registry, _results
 from . import _errors
 from ._play_card import PlayWisdomCardAction, play_wisdom_card
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class DiceRollResult(_registry.ActionExecutionResult):
+    die_1: int = 0
+    die_2: int = 0
+
+
 def handle_dice_roll(
     game: entities.ActiveGame, action: _registry.PlayerAction
-) -> _registry.GamePhaseName:
+) -> _registry.ActionExecutionResult:
     if game.active_player != action.by:
-        raise _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        return _results.fail(
+            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn")
+        )
 
     dice_1, dice_2 = action.rng_.randint(1, 6), action.rng_.randint(1, 6)
     total = dice_1 + dice_2
@@ -23,15 +32,24 @@ def handle_dice_roll(
             if (total_resources := sum(p.resources.values())) > 7
         }
         if game.to_discard_resources:
-            return _registry.GamePhaseName.DISCARD_RESOURCES
-        return _registry.GamePhaseName.MOVE_CONQUISTATOR
-    _produce_resources(game, roll=total)
-    return _registry.GamePhaseName.TRADE_AND_BUILD
+            phase = _registry.GamePhaseName.DISCARD_RESOURCES
+        else:
+            phase = _registry.GamePhaseName.MOVE_CONQUISTATOR
+    else:
+        _produce_resources(game, roll=total)
+        phase = _registry.GamePhaseName.TRADE_AND_BUILD
+
+    return DiceRollResult(
+        succeeded=True,
+        phase=phase,
+        die_1=dice_1,
+        die_2=dice_2,
+    )
 
 
 def handle_play_wisdom_card(
     game: entities.ActiveGame, action: PlayWisdomCardAction
-) -> _registry.GamePhaseName:
+) -> _registry.ActionExecutionResult:
     return play_wisdom_card(
         game,
         action,

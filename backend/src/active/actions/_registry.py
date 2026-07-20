@@ -29,6 +29,13 @@ class GamePhaseName(str, Enum):
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
+class ActionExecutionResult:
+    succeeded: bool
+    phase: GamePhaseName
+    error: Exception | None = None
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
 class PlayerAction:
     by: player.Nickname
     rng_: random.Random = dataclasses.field(default_factory=random.Random, kw_only=True)
@@ -56,7 +63,8 @@ class ActionsRegistry:
         self._registry: dict[
             GamePhaseName,
             dict[
-                type[PlayerAction], Callable[[entities.ActiveGame, Any], GamePhaseName]
+                type[PlayerAction],
+                Callable[[entities.ActiveGame, Any], ActionExecutionResult],
             ],
         ] = {}
         self._timeouts: dict[GamePhaseName, PhaseTimeout] = {}
@@ -65,12 +73,12 @@ class ActionsRegistry:
         self,
         phase: GamePhaseName,
     ) -> Callable[
-        [Callable[[entities.ActiveGame, ActionT], GamePhaseName]],
-        Callable[[entities.ActiveGame, ActionT], GamePhaseName],
+        [Callable[[entities.ActiveGame, ActionT], ActionExecutionResult]],
+        Callable[[entities.ActiveGame, ActionT], ActionExecutionResult],
     ]:
         def decorator(
-            handler: Callable[[entities.ActiveGame, ActionT], GamePhaseName],
-        ) -> Callable[[entities.ActiveGame, ActionT], GamePhaseName]:
+            handler: Callable[[entities.ActiveGame, ActionT], ActionExecutionResult],
+        ) -> Callable[[entities.ActiveGame, ActionT], ActionExecutionResult]:
             sig = inspect.signature(handler)
             params = list(sig.parameters.values())
 
@@ -119,10 +127,7 @@ class ActionsRegistry:
 
     def execute(
         self, phase: GamePhaseName, game: entities.ActiveGame, action: PlayerAction
-    ) -> GamePhaseName:
-        if phase is GamePhaseName.END_GAME:
-            raise ActionNotAllowedError("Game has ended; no actions are allowed")
-
+    ) -> ActionExecutionResult:
         phase_handlers = self._registry.get(phase)
         if not phase_handlers:
             raise GamePhaseHanlderNotImplementedError(
@@ -134,7 +139,11 @@ class ActionsRegistry:
 
         if not handler:
             raise ActionNotAllowedError(
-                f"Action '{action_type.__name__}' by '{action.by}' is not allowed during the '{phase.value}' phase."
+                f"Action '{action_type.__name__}' by '{action.by}' is not allowed "
+                f"during the '{phase.value}' phase."
             )
 
-        return handler(game, action)
+        result = handler(game, action)
+        if not result.succeeded:
+            return dataclasses.replace(result, phase=phase)
+        return result
