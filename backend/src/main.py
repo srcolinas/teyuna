@@ -50,6 +50,9 @@ async def _timeout_poller(app: fastapi.FastAPI, *, poll_interval: float) -> None
         await asyncio.to_thread(_apply_due_timeouts, app=app, rng=rng)
 
 
+# TODO: handling dependency overrides should be done by the fastapi framework,
+# we need to investigate how to allow to access to the dependencies when they
+# have been already used by the lifespan to run background tasks.
 def _resolve(app: fastapi.FastAPI, dependency: Callable[[], T]) -> T:
     override = app.dependency_overrides.get(dependency)
     if override is None:
