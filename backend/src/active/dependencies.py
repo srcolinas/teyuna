@@ -14,6 +14,7 @@ from . import (
     services,
     actions,
     locks,
+    broker,
 )
 
 
@@ -214,3 +215,8 @@ class ConnectionManager:
 @functools.cache
 def get_connection_manager() -> ConnectionManager:
     return ConnectionManager()
+
+
+@functools.cache
+def get_event_broker() -> broker.EventBroker:
+    return broker.EventBroker()

@@ -6,6 +6,8 @@ from enum import Enum
 from collections.abc import Callable
 from typing import Any
 
+import pydantic
+
 from ... import player
 from .. import entities
 
@@ -28,11 +30,17 @@ class GamePhaseName(str, Enum):
     END_GAME = "end game"
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
-class ActionExecutionResult:
+class ActionExecutionResult(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
     succeeded: bool
     phase: GamePhaseName
+    by: player.Nickname | None = None
     error: Exception | None = None
+
+    @pydantic.field_serializer("error")
+    def _serialize_error(self, error: Exception | None) -> str | None:
+        return type(error).__name__ if error is not None else None
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -144,6 +152,7 @@ class ActionsRegistry:
             )
 
         result = handler(game, action)
+        updates: dict[str, Any] = {"by": action.by}
         if not result.succeeded:
-            return dataclasses.replace(result, phase=phase)
-        return result
+            updates["phase"] = phase
+        return result.model_copy(update=updates)

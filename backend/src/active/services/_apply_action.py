@@ -33,13 +33,20 @@ class ApplyActionLocks(Protocol):
     def lock_for(self, game_id: uuid.UUID): ...
 
 
-def apply_player_action(
+class Broker(Protocol):
+    async def publish(
+        self, game_id: uuid.UUID, data: actions.ActionExecutionResult
+    ) -> None: ...
+
+
+async def apply_player_action(
     game_id: uuid.UUID,
     action: actions.PlayerAction,
     *,
     repository: ApplyActionRepository,
     registry: ApplyActionRegistry,
     game_locks: ApplyActionLocks,
+    broker: Broker,
     now: datetime.datetime | None = None,
 ) -> tuple[actions.ActionExecutionResult, entities.ActiveGame]:
     if now is None:
@@ -51,15 +58,19 @@ def apply_player_action(
         if result.succeeded:
             deadline = _deadline_for(registry, result.phase, now)
             repository.update(game_id, stored.game, result.phase, deadline)
-        return result, stored.game
+        game = stored.game
+
+    await broker.publish(game_id, result)
+    return result, game
 
 
-def apply_timeout_if_due(
+async def apply_timeout_if_due(
     game_id: uuid.UUID,
     *,
     repository: ApplyActionRepository,
     registry: ApplyActionRegistry,
     game_locks: ApplyActionLocks,
+    broker: Broker,
     rng: random.Random,
     now: datetime.datetime | None = None,
 ) -> actions.ActionExecutionResult | None:
@@ -77,7 +88,10 @@ def apply_timeout_if_due(
         if result.succeeded:
             deadline = _deadline_for(registry, result.phase, now)
             repository.update(game_id, stored.game, result.phase, deadline)
-        return result
+
+    result = result.model_copy(update={"by": None})
+    await broker.publish(game_id, result)
+    return result
 
 
 def _deadline_for(

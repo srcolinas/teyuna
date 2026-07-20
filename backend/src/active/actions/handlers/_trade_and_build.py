@@ -26,7 +26,6 @@ class BuildSettlementAction(_registry.PlayerAction):
         )
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class BuiltSettlementResult(_registry.ActionExecutionResult):
     item: entities.SettlementType | None = None
     coordinate: entities.Coordinate | None = None
@@ -46,12 +45,10 @@ class BuildPathAction(_registry.PlayerAction):
         )
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class BuiltPathResult(_registry.ActionExecutionResult):
     coordinate: entities.Coordinate | None = None
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class EndedTradeAndBuildResult(_registry.ActionExecutionResult):
     next_player: player.Nickname = ""
 
@@ -61,7 +58,6 @@ class BuyWisdomCardAction(_registry.PlayerAction):
     pass
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class BoughtWisdomCardResult(_registry.ActionExecutionResult):
     card: entities.WisdomCard | None = None
 

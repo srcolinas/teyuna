@@ -1,16 +1,29 @@
+import asyncio
 import collections
 import datetime
 import random
+import uuid
 from typing import cast
+
+import pytest
 
 from src.active import (
     actions,
+    broker,
     entities,
     locks,
     repository as repository_module,
     services,
 )
 from src.active.actions import timeouts
+
+
+async def _next_broker_event(
+    event_broker: broker.EventBroker, game_id: uuid.UUID
+) -> broker.Event:
+    async for event in event_broker.iterate(game_id):
+        return event
+    raise AssertionError("expected a broker event")
 
 
 def test_set_timeout_and_timeout_for() -> None:
@@ -192,7 +205,8 @@ def test_timeout_play_pathfinder_allows_empty(game: entities.ActiveGame) -> None
     assert result.paths == ()
 
 
-def test_apply_player_action_resets_deadline() -> None:
+@pytest.mark.asyncio
+async def test_apply_player_action_resets_deadline() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     registry = actions.ActionsRegistry()
     registry.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
@@ -217,6 +231,7 @@ def test_apply_player_action_resets_deadline() -> None:
         timeouts.timeout_discard_resources,
     )
     game_locks = locks.GameLockManager()
+    event_broker = broker.EventBroker()
     game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
@@ -230,14 +245,25 @@ def test_apply_player_action_resets_deadline() -> None:
         phase_deadline=now + datetime.timedelta(seconds=5),
     )
     game = repository.retrieve(game_id).game
-    result, _ = services.apply_player_action(
+    active_player = game.active_player
+
+    waiter = asyncio.create_task(_next_broker_event(event_broker, game_id))
+    await asyncio.sleep(0)
+
+    result, _ = await services.apply_player_action(
         game_id,
-        actions.PlayerAction(by=game.active_player, rng_=random.Random(0)),
+        actions.PlayerAction(by=active_player, rng_=random.Random(0)),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=event_broker,
         now=now,
     )
+
+    assert result.by == active_player
+    published = await waiter
+    assert published.data is result
+
     stored = repository.retrieve(game_id)
     assert stored.phase is result.phase
     timeout = registry.timeout_for(result.phase)
@@ -245,7 +271,8 @@ def test_apply_player_action_resets_deadline() -> None:
     assert stored.phase_deadline == now + timeout.duration
 
 
-def test_apply_timeout_if_due_is_noop_when_not_expired() -> None:
+@pytest.mark.asyncio
+async def test_apply_timeout_if_due_is_noop_when_not_expired() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     registry = actions.ActionsRegistry()
     registry.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
@@ -255,6 +282,7 @@ def test_apply_timeout_if_due_is_noop_when_not_expired() -> None:
         timeouts.timeout_dice_roll,
     )
     game_locks = locks.GameLockManager()
+    event_broker = broker.EventBroker()
     game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
@@ -267,18 +295,22 @@ def test_apply_timeout_if_due_is_noop_when_not_expired() -> None:
         actions.GamePhaseName.DICE_ROLL,
         phase_deadline=now + datetime.timedelta(seconds=10),
     )
-    services.apply_timeout_if_due(
+    result = await services.apply_timeout_if_due(
         game_id,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=event_broker,
         rng=random.Random(0),
         now=now,
     )
+    assert result is None
+    assert event_broker._next_id[game_id] == 0
     assert repository.retrieve(game_id).phase is actions.GamePhaseName.DICE_ROLL
 
 
-def test_apply_timeout_if_due_advances_phase() -> None:
+@pytest.mark.asyncio
+async def test_apply_timeout_if_due_advances_phase() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     registry = actions.ActionsRegistry()
     registry.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
@@ -303,6 +335,7 @@ def test_apply_timeout_if_due_advances_phase() -> None:
         timeouts.timeout_discard_resources,
     )
     game_locks = locks.GameLockManager()
+    event_broker = broker.EventBroker()
     game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
@@ -315,18 +348,30 @@ def test_apply_timeout_if_due_advances_phase() -> None:
         actions.GamePhaseName.DICE_ROLL,
         phase_deadline=now - datetime.timedelta(seconds=1),
     )
-    services.apply_timeout_if_due(
+
+    waiter = asyncio.create_task(_next_broker_event(event_broker, game_id))
+    await asyncio.sleep(0)
+
+    result = await services.apply_timeout_if_due(
         game_id,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=event_broker,
         rng=random.Random(0),
         now=now,
     )
+
+    assert result is not None
+    assert result.succeeded is True
+    assert result.by is None
+    published = await waiter
+    assert published.data is result
     assert repository.retrieve(game_id).phase is not actions.GamePhaseName.DICE_ROLL
 
 
-def test_second_timeout_is_noop_after_deadline_refresh() -> None:
+@pytest.mark.asyncio
+async def test_second_timeout_is_noop_after_deadline_refresh() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     registry = actions.ActionsRegistry()
     registry.register(actions.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
@@ -354,6 +399,7 @@ def test_second_timeout_is_noop_after_deadline_refresh() -> None:
         timeouts.timeout_discard_resources,
     )
     game_locks = locks.GameLockManager()
+    event_broker = broker.EventBroker()
     game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
@@ -366,30 +412,40 @@ def test_second_timeout_is_noop_after_deadline_refresh() -> None:
         actions.GamePhaseName.DICE_ROLL,
         phase_deadline=now - datetime.timedelta(seconds=1),
     )
-    services.apply_timeout_if_due(
+    first = await services.apply_timeout_if_due(
         game_id,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=event_broker,
         rng=random.Random(0),
         now=now,
     )
+    assert first is not None
+    assert first.by is None
+    assert event_broker._next_id[game_id] == 1
+
     phase_after = repository.retrieve(game_id).phase
-    services.apply_timeout_if_due(
+    second = await services.apply_timeout_if_due(
         game_id,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=event_broker,
         rng=random.Random(0),
         now=now,
     )
+    assert second is None
+    assert event_broker._next_id[game_id] == 1
     assert repository.retrieve(game_id).phase is phase_after
 
 
-def test_apply_timeout_if_due_is_noop_when_deadline_is_none() -> None:
+@pytest.mark.asyncio
+async def test_apply_timeout_if_due_is_noop_when_deadline_is_none() -> None:
     repository = repository_module.InMemoryActiveGameRepository()
     registry = actions.ActionsRegistry()
     game_locks = locks.GameLockManager()
+    event_broker = broker.EventBroker()
     game_id = services.create_game(
         repository,
         players=["player-0", "player-1", "player-2"],
@@ -403,12 +459,15 @@ def test_apply_timeout_if_due_is_noop_when_deadline_is_none() -> None:
         actions.GamePhaseName.END_GAME,
         phase_deadline=None,
     )
-    services.apply_timeout_if_due(
+    result = await services.apply_timeout_if_due(
         game_id,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=event_broker,
         rng=random.Random(0),
         now=now,
     )
+    assert result is None
+    assert event_broker._next_id[game_id] == 0
     assert repository.retrieve(game_id).phase is actions.GamePhaseName.END_GAME

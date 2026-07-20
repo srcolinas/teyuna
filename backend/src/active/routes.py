@@ -1,11 +1,12 @@
 import collections
 import random
 import uuid
-from typing import Annotated
+from typing import Annotated, AsyncIterable
 
 import fastapi
 import pydantic
 from fastapi import status
+from fastapi.sse import EventSourceResponse, ServerSentEvent
 from starlette import websockets
 
 from .. import player
@@ -18,6 +19,7 @@ from . import (
     entities,
     locks,
     services,
+    broker as broker_module,
 )
 
 router = fastapi.APIRouter(prefix="/active-games", route_class=http.ActiveGameRoute)
@@ -51,7 +53,7 @@ def get_turn_order(
 
 
 @router.post("/{game_id}/turn-order")
-def advance_or_phase(
+async def advance_or_phase(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     repository: Annotated[
@@ -64,14 +66,18 @@ def advance_or_phase(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
     rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> tuple[actions.GamePhaseName, player.Nickname]:
-    result, game = services.apply_player_action(
+    result, game = await services.apply_player_action(
         game_id,
         actions.PlayerAction(by=nickname, rng_=rng),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return result.phase, game.active_player
@@ -95,7 +101,7 @@ class MoveConquistatorPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/conquistator")
-def move_conquistator(
+async def move_conquistator(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: MoveConquistatorPayload,
@@ -109,8 +115,11 @@ def move_conquistator(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> ports.HexCoordinate:
-    result, game = services.apply_player_action(
+    result, game = await services.apply_player_action(
         game_id,
         actions.MoveConquistatorAction(
             by=nickname,
@@ -121,6 +130,7 @@ def move_conquistator(
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return ports.HexCoordinate(
@@ -138,7 +148,7 @@ class PlayWisdomCardPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/wisdom-cards")
-def play_wisdom_card(
+async def play_wisdom_card(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayWisdomCardPayload,
@@ -152,20 +162,24 @@ def play_wisdom_card(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> actions.GamePhaseName:
-    result, _ = services.apply_player_action(
+    result, _ = await services.apply_player_action(
         game_id,
         actions.PlayWisdomCardAction(by=nickname, card=payload.card),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return result.phase
 
 
 @router.post("/{game_id}/wisdom-cards/buy")
-def buy_wisdom_card(
+async def buy_wisdom_card(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     repository: Annotated[
@@ -178,13 +192,17 @@ def buy_wisdom_card(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> actions.GamePhaseName:
-    result, _ = services.apply_player_action(
+    result, _ = await services.apply_player_action(
         game_id,
         actions.BuyWisdomCardAction(by=nickname),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return result.phase
@@ -202,7 +220,7 @@ class ProposeTradePayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/trades")
-def propose_trade(
+async def propose_trade(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: ProposeTradePayload,
@@ -216,8 +234,11 @@ def propose_trade(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> None:
-    result, game = services.apply_player_action(
+    result, game = await services.apply_player_action(
         game_id,
         actions.ProposeTradeAction(
             by=nickname,
@@ -228,13 +249,14 @@ def propose_trade(
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
 
     http.raise_if_failed(result)
 
 
 @router.post("/{game_id}/trades/{proposal_id}/accept")
-def accept_trade(
+async def accept_trade(
     game_id: uuid.UUID,
     proposal_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
@@ -248,13 +270,17 @@ def accept_trade(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> actions.GamePhaseName:
-    result, _ = services.apply_player_action(
+    result, _ = await services.apply_player_action(
         game_id,
         actions.AcceptTradeAction(by=nickname, id=proposal_id),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return result.phase
@@ -268,7 +294,7 @@ class TradeWithSupplyPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/trades/supply")
-def trade_with_supply(
+async def trade_with_supply(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: TradeWithSupplyPayload,
@@ -282,8 +308,11 @@ def trade_with_supply(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> actions.GamePhaseName:
-    result, _ = services.apply_player_action(
+    result, _ = await services.apply_player_action(
         game_id,
         actions.TradeWithSupplyAction(
             by=nickname,
@@ -293,6 +322,7 @@ def trade_with_supply(
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return result.phase
@@ -308,7 +338,7 @@ class PlayMamoPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/wisdom-cards/mamo")
-def play_mamo(
+async def play_mamo(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayMamoPayload,
@@ -322,13 +352,17 @@ def play_mamo(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> dict[entities.ResourceCard, int]:
-    result, game = services.apply_player_action(
+    result, game = await services.apply_player_action(
         game_id,
         actions.PlayMamoAction(by=nickname, resource=payload.resource),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return dict(game.players[nickname].resources)
@@ -341,7 +375,7 @@ class PlayBlessingPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/wisdom-cards/blessing")
-def play_blessing(
+async def play_blessing(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayBlessingPayload,
@@ -355,13 +389,17 @@ def play_blessing(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> dict[entities.ResourceCard, int]:
-    result, game = services.apply_player_action(
+    result, game = await services.apply_player_action(
         game_id,
         actions.PlayBlessedAction(by=nickname, resources=payload.resources),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return dict(game.players[nickname].resources)
@@ -377,7 +415,7 @@ class PlayPathfinderPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/wisdom-cards/pathfinder")
-def play_pathfinder(
+async def play_pathfinder(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: PlayPathfinderPayload,
@@ -391,6 +429,9 @@ def play_pathfinder(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> list[ports.PlayedStonePath]:
     action = actions.PlayPathfinderAction(
         by=nickname,
@@ -403,12 +444,13 @@ def play_pathfinder(
             for path in payload.paths
         ),
     )
-    result, game = services.apply_player_action(
+    result, game = await services.apply_player_action(
         game_id,
         action,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
 
     http.raise_if_failed(result)
@@ -458,7 +500,7 @@ class InitialPlacementPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/initial-placements")
-def add_initial_placements(
+async def add_initial_placements(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: InitialPlacementPayload,
@@ -472,8 +514,11 @@ def add_initial_placements(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> tuple[ports.PlayedSettlement, ports.PlayedStonePath]:
-    result, _ = services.apply_player_action(
+    result, _ = await services.apply_player_action(
         game_id,
         actions.FreePlacementAction(
             by=nickname,
@@ -491,6 +536,7 @@ def add_initial_placements(
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
     http.raise_if_failed(result)
     return ports.PlayedSettlement(
@@ -538,7 +584,7 @@ class BuildSettlementPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/settlements")
-def build_settlement(
+async def build_settlement(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: BuildSettlementPayload,
@@ -552,8 +598,11 @@ def build_settlement(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> ports.PlayedSettlement:
-    result, _ = services.apply_player_action(
+    result, _ = await services.apply_player_action(
         game_id,
         actions.BuildSettlementAction(
             by=nickname,
@@ -567,6 +616,7 @@ def build_settlement(
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
 
     http.raise_if_failed(result)
@@ -619,7 +669,7 @@ class BuildPathPayload(pydantic.BaseModel):
 
 
 @router.post("/{game_id}/paths")
-def build_path(
+async def build_path(
     game_id: uuid.UUID,
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     payload: BuildPathPayload,
@@ -633,8 +683,11 @@ def build_path(
     game_locks: Annotated[
         locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
     ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
 ) -> ports.PlayedStonePath:
-    result, _ = services.apply_player_action(
+    result, _ = await services.apply_player_action(
         game_id,
         actions.BuildPathAction(
             by=nickname,
@@ -647,6 +700,7 @@ def build_path(
         repository=repository,
         registry=registry,
         game_locks=game_locks,
+        broker=broker,
     )
 
     http.raise_if_failed(result)
@@ -679,3 +733,15 @@ async def chat(
             await manager.broadcast(game_id, f"{nickname}: {message}")
     except websockets.WebSocketDisconnect:
         manager.disconnect(game_id, websocket)
+
+
+@router.get("/{game_id}/events", response_class=EventSourceResponse)
+async def stream_items(
+    game_id: uuid.UUID,
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
+) -> AsyncIterable[ServerSentEvent]:
+    yield ServerSentEvent(comment="connected")
+    async for event in broker.iterate(game_id):
+        yield ServerSentEvent(data=event.data.model_dump(mode="json"), id=str(event.id))

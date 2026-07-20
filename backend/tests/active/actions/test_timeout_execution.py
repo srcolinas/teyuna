@@ -8,6 +8,7 @@ import pytest
 
 from src.active import (
     actions,
+    broker,
     entities,
     locks,
     repository as repository_module,
@@ -19,58 +20,79 @@ ZERO = datetime.timedelta(0)
 NOW = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
 
 
-def test_zero_timeout_executes_first_placement() -> None:
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_first_placement() -> None:
     game_id, repository, registry = _create_stored_game(
         phase=actions.GamePhaseName.FIRST_PLACEMENT
     )
     game = repository.retrieve(game_id).game
     active = game.active_player
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert len(list(stored.game.players[active].settlements.locations())) == 1
     assert len(stored.game.players[active].paths) == 1
 
 
-def test_zero_timeout_executes_second_placement() -> None:
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_second_placement() -> None:
     game_id, repository, registry = _create_stored_game(
         phase=actions.GamePhaseName.SECOND_PLACEMENT
     )
     game = repository.retrieve(game_id).game
     active = game.active_player
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert len(list(stored.game.players[active].settlements.locations())) == 1
     assert len(stored.game.players[active].paths) == 1
 
 
-def test_zero_timeout_executes_dice_roll() -> None:
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_dice_roll() -> None:
     game_id, repository, registry = _create_stored_game(
         phase=actions.GamePhaseName.DICE_ROLL
     )
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     assert repository.retrieve(game_id).phase is not actions.GamePhaseName.DICE_ROLL
 
 
-def test_zero_timeout_executes_trade_and_build() -> None:
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_trade_and_build() -> None:
     game_id, repository, registry = _create_stored_game(
         phase=actions.GamePhaseName.TRADE_AND_BUILD
     )
     active = repository.retrieve(game_id).game.active_player
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is actions.GamePhaseName.DICE_ROLL
     assert stored.game.active_player != active
 
 
-def test_zero_timeout_executes_discard_resources() -> None:
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_discard_resources() -> None:
     def setup(game: entities.ActiveGame) -> None:
         nick = game.active_player
         game.players[nick].resources = collections.Counter(
@@ -86,22 +108,31 @@ def test_zero_timeout_executes_discard_resources() -> None:
         setup=setup,
     )
     nick = repository.retrieve(game_id).game.active_player
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert nick not in stored.game.to_discard_resources
     assert stored.phase is actions.GamePhaseName.MOVE_CONQUISTATOR
 
 
-def test_zero_timeout_executes_move_conquistator() -> None:
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_move_conquistator() -> None:
     game_id, repository, registry = _create_stored_game(
         phase=actions.GamePhaseName.MOVE_CONQUISTATOR
     )
     before = repository.retrieve(game_id).game.conquistator_location
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is actions.GamePhaseName.TRADE_AND_BUILD
     assert stored.game.conquistator_location != before
@@ -117,15 +148,20 @@ def test_zero_timeout_executes_move_conquistator() -> None:
         ),
     ],
 )
-def test_zero_timeout_executes_play_warrior(
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_play_warrior(
     phase: actions.GamePhaseName,
     expected_phase: actions.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     before = repository.retrieve(game_id).game.conquistator_location
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is expected_phase
     assert stored.game.conquistator_location != before
@@ -141,14 +177,19 @@ def test_zero_timeout_executes_play_warrior(
         ),
     ],
 )
-def test_zero_timeout_executes_play_mamo(
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_play_mamo(
     phase: actions.GamePhaseName,
     expected_phase: actions.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     assert repository.retrieve(game_id).phase is expected_phase
 
 
@@ -162,15 +203,20 @@ def test_zero_timeout_executes_play_mamo(
         ),
     ],
 )
-def test_zero_timeout_executes_play_blessed(
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_play_blessed(
     phase: actions.GamePhaseName,
     expected_phase: actions.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     before_supply = sum(repository.retrieve(game_id).game.resource_supply.values())
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is expected_phase
     assert sum(stored.game.resource_supply.values()) == before_supply - 2
@@ -186,14 +232,19 @@ def test_zero_timeout_executes_play_blessed(
         ),
     ],
 )
-def test_zero_timeout_executes_play_pathfinder(
+@pytest.mark.asyncio
+async def test_zero_timeout_executes_play_pathfinder(
     phase: actions.GamePhaseName,
     expected_phase: actions.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
+    event_broker = broker.EventBroker()
 
-    _apply_due(game_id, repository, registry)
+    result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
+    assert result is not None
+    assert result.by is None
+    assert event_broker._next_id[game_id] == 1
     assert repository.retrieve(game_id).phase is expected_phase
 
 
@@ -292,18 +343,20 @@ def _create_stored_game(
     return game_id, repository, _zero_timeout_registry()
 
 
-def _apply_due(
+async def _apply_due(
     game_id: uuid.UUID,
     repository: repository_module.InMemoryActiveGameRepository,
     registry: actions.ActionsRegistry,
     *,
     rng: random.Random | None = None,
-) -> None:
-    services.apply_timeout_if_due(
+    event_broker: broker.EventBroker | None = None,
+) -> actions.ActionExecutionResult | None:
+    return await services.apply_timeout_if_due(
         game_id,
         repository=repository,
         registry=registry,
         game_locks=locks.GameLockManager(),
+        broker=event_broker or broker.EventBroker(),
         rng=rng or random.Random(0),
         now=NOW,
     )

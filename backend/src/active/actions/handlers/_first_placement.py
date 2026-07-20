@@ -23,7 +23,6 @@ class FreePlacementAction(_registry.PlayerAction):
         )
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class PlacedBuildingsResult(_registry.ActionExecutionResult):
     settlement: entities.Coordinate | None = None
     path: entities.Coordinate | None = None

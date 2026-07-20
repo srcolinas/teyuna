@@ -1,9 +1,7 @@
 from ... import entities
 from .. import _registry
-import dataclasses
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class EndGameResult(_registry.ActionExecutionResult):
     pass
 

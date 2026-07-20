@@ -15,7 +15,6 @@ class MoveConquistatorAction(_registry.PlayerAction):
     from_player: player.Nickname | None = None
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class MovedConquistatorResult(_registry.ActionExecutionResult):
     q: int = -1
     r: int = -1

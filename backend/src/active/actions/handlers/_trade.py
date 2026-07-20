@@ -3,6 +3,8 @@ import dataclasses
 import uuid
 from typing import Final
 
+import pydantic
+
 from .... import player
 from ... import entities
 from .. import _registry
@@ -21,22 +23,16 @@ class AcceptTradeAction(_registry.PlayerAction):
     id: uuid.UUID
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class ProposeTradeResult(_registry.ActionExecutionResult):
     proposal_id: uuid.UUID | None = None
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class AcceptedTradeResult(_registry.ActionExecutionResult):
     proposal_id: uuid.UUID | None = None
     proposer: player.Nickname = ""
     acceptor: player.Nickname = ""
-    offer: entities.ResourceCount = dataclasses.field(
-        default_factory=collections.Counter
-    )
-    request: entities.ResourceCount = dataclasses.field(
-        default_factory=collections.Counter
-    )
+    offer: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
+    request: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -45,7 +41,6 @@ class TradeWithSupplyAction(_registry.PlayerAction):
     requests: entities.ResourceCard
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class TradedWithSupplyResult(_registry.ActionExecutionResult):
     offers: entities.ResourceCard | None = None
     requests: entities.ResourceCard | None = None

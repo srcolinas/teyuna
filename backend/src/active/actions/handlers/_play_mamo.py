@@ -10,7 +10,6 @@ class PlayMamoAction(_registry.PlayerAction):
     resource: entities.ResourceCard
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class PlayedMamoResult(_registry.ActionExecutionResult):
     resource: entities.ResourceCard | None = None
 

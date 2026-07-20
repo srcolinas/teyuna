@@ -1,5 +1,6 @@
-import collections
 import dataclasses
+
+import pydantic
 
 from ... import entities
 from .. import _registry
@@ -11,11 +12,8 @@ class DiscardResourcesAction(_registry.PlayerAction):
     count: entities.ResourceCount
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class DiscardedResourcesResult(_registry.ActionExecutionResult):
-    count: entities.ResourceCount = dataclasses.field(
-        default_factory=collections.Counter
-    )
+    count: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
 
 
 def handle_discard_resources(

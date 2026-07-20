@@ -47,7 +47,7 @@ async def _timeout_poller(app: fastapi.FastAPI, *, poll_interval: float) -> None
     rng = random.Random()
     while True:
         await asyncio.sleep(poll_interval)
-        await asyncio.to_thread(_apply_due_timeouts, app=app, rng=rng)
+        await _apply_due_timeouts(app=app, rng=rng)
 
 
 # TODO: handling dependency overrides should be done by the fastapi framework,
@@ -60,17 +60,19 @@ def _resolve(app: fastapi.FastAPI, dependency: Callable[[], T]) -> T:
     return override()
 
 
-def _apply_due_timeouts(*, app: fastapi.FastAPI, rng: random.Random) -> None:
+async def _apply_due_timeouts(*, app: fastapi.FastAPI, rng: random.Random) -> None:
     repository = _resolve(app, active.dependencies.get_repository)
     registry = _resolve(app, active.dependencies.get_actions_registry)
     game_locks = _resolve(app, active.dependencies.get_game_locks)
+    broker = _resolve(app, active.dependencies.get_event_broker)
     for game_id, _stored in repository.items():
         try:
-            services.apply_timeout_if_due(
+            await services.apply_timeout_if_due(
                 game_id,
                 repository=repository,
                 registry=registry,
                 game_locks=game_locks,
+                broker=broker,
                 rng=rng,
             )
         except repository_module.ActiveGameDoesNotExistError:

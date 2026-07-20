@@ -1,6 +1,7 @@
 import collections
-import dataclasses
 from typing import Final
+
+import pydantic
 
 from .... import player
 from ... import entities
@@ -9,11 +10,10 @@ from . import _errors
 from ._play_card import PlayWisdomCardAction, PlayedWisdomCardResult, play_wisdom_card
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class DiceRollResult(_registry.ActionExecutionResult):
     die_1: int = -1
     die_2: int = -1
-    to_discard: dict[player.Nickname, int] = dataclasses.field(default_factory=dict)
+    to_discard: dict[player.Nickname, int] = pydantic.Field(default_factory=dict)
 
 
 def handle_dice_roll(

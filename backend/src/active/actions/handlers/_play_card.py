@@ -14,7 +14,6 @@ class PlayWisdomCardAction(_registry.PlayerAction):
     card: entities.WisdomCard
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class PlayedWisdomCardResult(_registry.ActionExecutionResult):
     card: entities.WisdomCard | None = None
 

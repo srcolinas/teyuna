@@ -11,7 +11,6 @@ class PlayBlessedAction(_registry.PlayerAction):
     resources: tuple[entities.ResourceCard, entities.ResourceCard]
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class PlayedBlessedResult(_registry.ActionExecutionResult):
     resources: tuple[entities.ResourceCard, entities.ResourceCard] | None = None
 

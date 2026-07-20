@@ -21,7 +21,6 @@ class PlayPathfinderAction(_registry.PlayerAction):
         )
 
 
-@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
 class PlayedPathfinderResult(_registry.ActionExecutionResult):
     paths: tuple[entities.Coordinate, ...] = ()
 
