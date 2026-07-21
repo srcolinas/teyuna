@@ -203,12 +203,34 @@ def test_cannot_join_nonexistent_game(client: testclient.TestClient) -> None:
     assert response.status_code == 404, response.text
 
 
-def test_cannot_join_with_duplicate_nickname(client: testclient.TestClient) -> None:
+def test_existing_player_can_rejoin_and_receive_a_new_token(
+    client: testclient.TestClient,
+) -> None:
     response = client.post("/games", json={"num_players": 3})
     game_id = response.json()["id"]
     response = client.post(f"/games/{game_id}/players", json={"nickname": "srcolinas"})
     assert response.status_code == 200, response.text
+    first_token = client.cookies["session-token"]
 
     response = client.post(f"/games/{game_id}/players", json={"nickname": "srcolinas"})
-    assert response.status_code == 400, response.text
-    assert response.json()["detail"] == "nickname already exists"
+    assert response.status_code == 200, response.text
+    assert client.cookies["session-token"] != first_token
+    assert [player["nickname"] for player in response.json()["players"]] == [
+        "srcolinas"
+    ]
+
+
+def test_existing_player_can_rejoin_after_game_started(
+    client: testclient.TestClient,
+) -> None:
+    response = client.post("/games", json={"num_players": 3})
+    game_id = response.json()["id"]
+    for nickname in ("early", "mid", "last"):
+        response = client.post(f"/games/{game_id}/players", json={"nickname": nickname})
+    assert response.json()["phase"] == entities.GamePhaseName.FIRST_PLACEMENT
+
+    response = client.post(f"/games/{game_id}/players", json={"nickname": "early"})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["phase"] == entities.GamePhaseName.FIRST_PLACEMENT
+    assert "session-token" in client.cookies

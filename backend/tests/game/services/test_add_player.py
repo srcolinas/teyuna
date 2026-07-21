@@ -60,11 +60,13 @@ def test_add_player_raises_when_game_already_started() -> None:
         )
 
 
-def test_add_player_raises_when_nickname_already_taken() -> None:
+def test_add_player_reauthenticates_existing_player_without_adding_a_duplicate() -> (
+    None
+):
     repository = repository_module.InMemoryGameRepository()
     game_id = repository.add(_lobby_game(available_slots=3))
     auth = player.PlayerAuthenticationService()
-    services.add_player(
+    game, first_token = services.add_player(
         game_id=game_id,
         nickname="srcolinas",
         repository=repository,
@@ -72,14 +74,18 @@ def test_add_player_raises_when_nickname_already_taken() -> None:
         first_placement_timeout=datetime.timedelta(seconds=60),
     )
 
-    with pytest.raises(entities.NicknameAlreadyTakenError):
-        services.add_player(
-            game_id=game_id,
-            nickname="srcolinas",
-            repository=repository,
-            auth=auth,
-            first_placement_timeout=datetime.timedelta(seconds=60),
-        )
+    game, second_token = services.add_player(
+        game_id=game_id,
+        nickname="srcolinas",
+        repository=repository,
+        auth=auth,
+        first_placement_timeout=datetime.timedelta(seconds=60),
+    )
+
+    assert second_token != first_token
+    assert auth.retrieve(second_token) == "srcolinas"
+    assert game.available_slots == 2
+    assert [p.nickname for p in game.players] == ["srcolinas"]
 
 
 def _lobby_game(*, available_slots: int) -> entities.Game:
