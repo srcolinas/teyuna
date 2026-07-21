@@ -10,7 +10,11 @@ requires-python = ">=3.14.6"
 dependencies = [
     "httpx>=0.28.1",
     "httpx-sse>=0.4.3",
+    "pydantic>=2.13.4",
 ]
+
+[project.scripts]
+teyuna-players = "teyuna_players.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.26,<0.12.0"]

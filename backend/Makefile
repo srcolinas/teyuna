@@ -37,5 +37,3 @@ coverage:
 coverage-html:
 	uv run pytest -n auto -m "not slow" tests --cov=src --cov-report=html
 
-run:
-	uv run uvicorn teyuna.main:app --reload --host 0.0.0.0 --port 8000

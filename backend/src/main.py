@@ -37,6 +37,10 @@ def create_app() -> fastapi.FastAPI:
     print(f"Setting log level to: {settings_.loglevel} ({loglevel})")
     logging.basicConfig(level=loglevel)
 
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
+
     app.include_router(game.routes.router)
 
     return app

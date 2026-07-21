@@ -46,7 +46,10 @@ class GamePhaseHanlderNotImplementedError(Exception):
 
 
 class ActionNotAllowedError(Exception):
-    pass
+    def __init__(
+        self, message: str = "Action is not allowed in the current phase"
+    ) -> None:
+        super().__init__(message)
 
 
 class ActionsRegistry:

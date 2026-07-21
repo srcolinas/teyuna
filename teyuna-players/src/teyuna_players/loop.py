@@ -1,47 +1,42 @@
-import asyncio
+import logging
 import uuid
 from typing import Self
 
-import httpx
-import httpx_sse
+from . import entities, sdk
 
-from . import events
+logger = logging.getLogger(__name__)
 
 
 class GameLoop:
-    @classmethod
-    def create(cls) -> Self:
-        raise NotImplementedError
-
-    def __init__(self, game_id: uuid.UUID, host: str) -> None:
+    def __init__(self, game_id: uuid.UUID, client: sdk.GameClient) -> None:
         self._game_id = game_id
-        self._host = host
-        self._listeners = set[asyncio.Queue[events.ActionExecutionResult]]()
+        self._client = client
 
-    @property
-    def game_id(self) -> uuid.UUID:
-        return self._game_id
+    @classmethod
+    async def create(
+        cls,
+        host: str,
+        *,
+        num_players: int = 3,
+    ) -> Self:
+        client = sdk.GameClient(host)
+        game = await client.create_game(num_players)
+        logger.info("Created game %s for %s players", game.id, num_players)
+        return cls(game.id, client)
 
-    async def add_player(
-        self, nickname: str
-    ) -> tuple[asyncio.Queue[events.ActionExecutionResult], str]:
-        with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self._host}/proposed-games/{self._game_id}/players",
-                json={"nickname": nickname},
-            )
-            response.raise_for_status()
-            
-        queue = asyncio.Queue()
-        self._listeners.add(queue)
-        return queue, nickname
+    @classmethod
+    def join_existing(cls, game_id: uuid.UUID, host: str) -> Self:
+        return cls(game_id, sdk.GameClient(host))
 
-    async def run(self, event: events.ActionExecutionResult) -> None:
-        async with httpx.AsyncClient() as client:
-            async with httpx_sse.aconnect_sse(
-                client, "GET", f"{self._host}/active-games/{self._game_id}/events"
-            ) as source:
-                async for event in source:
-                    parsed = events.ActionExecutionResult.model_validate_json(event.data)
-                    for listener in self._listeners:
-                        await listener.put(parsed)
+    async def add_player(self, nickname: str) -> entities.PlayerContext:
+        client = await self._client.join_game(self._game_id, nickname)
+        logger.info("Player %s joined game %s", nickname, self._game_id)
+        return entities.PlayerContext(
+            nickname=nickname,
+            game_id=self._game_id,
+            client=client,
+        )
+
+    async def run(self) -> None:
+        async for event in self._client.stream_events(self._game_id):
+            logger.info("GameLoop event: %s", event)

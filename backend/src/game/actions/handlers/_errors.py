@@ -5,7 +5,8 @@ from ... import entities
 
 
 class PlayerNotInTurnError(Exception):
-    pass
+    def __init__(self, message: str = "Player is not in turn") -> None:
+        super().__init__(message)
 
 
 def _sorted_coords(
@@ -93,36 +94,51 @@ class InvalidConquistatorLocation(Exception):
 
 
 class PlayerDoesNotHaveCardError(Exception):
-    pass
+    def __init__(self, message: str = "Player does not have the required card") -> None:
+        super().__init__(message)
 
 
 class InsufficientResourceSupplyError(Exception):
-    pass
+    def __init__(
+        self, message: str = "Resource supply does not have enough cards"
+    ) -> None:
+        super().__init__(message)
 
 
 class InsufficientResourcesError(Exception):
-    pass
+    def __init__(self, message: str = "Player has insufficient resources") -> None:
+        super().__init__(message)
 
 
 class EmptyWisdomDeckError(Exception):
-    pass
+    def __init__(self, message: str = "Wisdom deck is empty") -> None:
+        super().__init__(message)
 
 
 class PlayerNotRequiredToDiscardError(Exception):
-    pass
+    def __init__(
+        self, message: str = "Player is not required to discard resources"
+    ) -> None:
+        super().__init__(message)
 
 
 class InvalidDiscardCountError(Exception):
-    pass
+    def __init__(self, message: str = "Invalid discard resource count") -> None:
+        super().__init__(message)
 
 
 class TradeProposalNotFound(Exception):
-    pass
+    def __init__(self, message: str = "Trade proposal not found") -> None:
+        super().__init__(message)
 
 
 class InvalidTradeTargets(Exception):
-    pass
+    def __init__(self, message: str = "Invalid trade targets") -> None:
+        super().__init__(message)
 
 
 class TradeNotAddressedToPlayerError(Exception):
-    pass
+    def __init__(
+        self, message: str = "Trade proposal is not addressed to this player"
+    ) -> None:
+        super().__init__(message)
