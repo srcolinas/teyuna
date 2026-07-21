@@ -11,6 +11,7 @@ class Settings(pydantic_settings.BaseSettings):
 
     loglevel: Literal["DEBUG", "INFO", "WARNING", "ERRROR", "CRITICAL"] = "INFO"
 
+    lobby_timeout: datetime.timedelta = datetime.timedelta(minutes=2)
     first_placement_timeout: datetime.timedelta = datetime.timedelta(seconds=60)
     second_placement_timeout: datetime.timedelta = datetime.timedelta(seconds=60)
     dice_roll_timeout: datetime.timedelta = datetime.timedelta(seconds=30)
