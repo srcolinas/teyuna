@@ -39,7 +39,7 @@ async def test_apply_player_action_to_end_game_clears_phase_deadline() -> None:
         now=NOW,
     )
 
-    assert result.succeeded is True
+    assert result.error is None
     assert updated.phase is entities.GamePhaseName.END_GAME
     assert updated.phase_deadline is None
 
@@ -79,7 +79,7 @@ async def test_apply_player_action_keeps_deadline_when_staying_in_phase() -> Non
         now=NOW,
     )
 
-    assert result.succeeded is True
+    assert result.error is None
     assert updated.phase is entities.GamePhaseName.DICE_ROLL
     assert updated.phase_deadline == NOW + datetime.timedelta(seconds=30)
 
@@ -111,7 +111,7 @@ async def test_apply_timeout_if_due_lobby_timeout_ends_game_and_clears_deadline(
     )
 
     assert result is not None
-    assert result.succeeded is True
+    assert result.error is None
     stored = repository.retrieve(game_id)
     assert stored.phase is entities.GamePhaseName.END_GAME
     assert stored.phase_deadline is None

@@ -1,5 +1,4 @@
 import collections
-import dataclasses
 import uuid
 
 import fastapi
@@ -95,7 +94,7 @@ def test_persists_placement_after_success(client: testclient.TestClient) -> None
     ]
 
 
-def test_returns_403_when_player_not_in_turn(
+def test_returns_400_when_player_not_in_turn(
     client: testclient.TestClient,
 ) -> None:
     game_id, tokens = utils.create_active_game_with_tokens(client)
@@ -110,7 +109,7 @@ def test_returns_403_when_player_not_in_turn(
         utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
     )
 
-    assert response.status_code == 403, response.text
+    assert response.status_code == 400, response.text
 
 
 def test_returns_400_for_invalid_terrace(
@@ -199,7 +198,6 @@ def test_returns_501_when_phase_not_implemented(
     assert response.status_code == 501, response.text
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class _DummyAction(actions.PlayerAction):
     pass
 
@@ -211,10 +209,9 @@ def _registry_with_wrong_action() -> actions.ActionsRegistry:
         game: entities.Game, action: _DummyAction
     ) -> actions.ActionExecutionResult:
         return actions.ActionExecutionResult(
-            succeeded=True,
-            phase=entities.GamePhaseName.DICE_ROLL,
-            by=action.by,
-            error=None,
+            previous_phase=game.phase,
+            next_phase=entities.GamePhaseName.DICE_ROLL,
+            action=action,
         )
 
     registry.register(entities.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)

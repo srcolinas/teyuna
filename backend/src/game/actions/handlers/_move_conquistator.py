@@ -1,14 +1,12 @@
 import collections
-import dataclasses
 import random
 
 from ... import player
 from ... import entities
 from .. import _registry
-from . import _errors
+from . import _placement
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class MoveConquistatorAction(_registry.PlayerAction):
     q: int
     r: int
@@ -25,21 +23,20 @@ class MovedConquistatorResult(_registry.ActionExecutionResult):
 def handle_dice_play_warrior(
     game: entities.Game, action: MoveConquistatorAction
 ) -> MovedConquistatorResult:
+    previous_phase = game.phase
     error, stolen = _apply_move_conquistator(game, action)
     if error is not None:
         return MovedConquistatorResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
     game.phase = entities.GamePhaseName.DICE_ROLL
     return MovedConquistatorResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         q=action.q,
         r=action.r,
         from_player=action.from_player,
@@ -50,21 +47,20 @@ def handle_dice_play_warrior(
 def handle_move_conquistator(
     game: entities.Game, action: MoveConquistatorAction
 ) -> MovedConquistatorResult:
+    previous_phase = game.phase
     error, stolen = _apply_move_conquistator(game, action)
     if error is not None:
         return MovedConquistatorResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
     game.phase = entities.GamePhaseName.TRADE_AND_BUILD
     return MovedConquistatorResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         q=action.q,
         r=action.r,
         from_player=action.from_player,
@@ -74,17 +70,14 @@ def handle_move_conquistator(
 
 def _apply_move_conquistator(
     game: entities.Game, action: MoveConquistatorAction
-) -> tuple[Exception | None, entities.ResourceCard | None]:
+) -> tuple[str | None, entities.ResourceCard | None]:
     if game.active_player != action.by:
-        return (
-            _errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
-            None,
-        )
+        return f"Player {action.by} is not in turn", None
 
     location = entities.HexLocation(q=action.q, r=action.r)
     if location == game.conquistator_location:
         return (
-            _errors.InvalidConquistatorLocation(
+            _placement.format_invalid_conquistator_location(
                 target=location,
                 player=action.by,
                 current_location=game.conquistator_location,

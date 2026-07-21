@@ -22,9 +22,8 @@ def test_propose_trade_stores_proposal(game: entities.Game) -> None:
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert len(game.trade_proposals) == 1
     assert result.proposal_id in game.trade_proposals
     assert game.trade_proposals[result.proposal_id] == entities.TradeProposal(
@@ -52,9 +51,8 @@ def test_non_active_player_can_propose(game: entities.Game) -> None:
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.proposal_id in game.trade_proposals
     proposal = game.trade_proposals[result.proposal_id]
     assert proposal.by == proposer
@@ -71,10 +69,8 @@ def test_cannot_propose_if_not_enough_resources(game: entities.Game) -> None:
             to={game.turn_order[1]},
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "You do not have enough gold to offer."
     assert result.proposal_id is None
-    assert result.error is not None
-    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_cannot_propose_with_empty_targets(game: entities.Game) -> None:
@@ -90,10 +86,8 @@ def test_cannot_propose_with_empty_targets(game: entities.Game) -> None:
             to=set(),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "Trade proposal must target at least one player."
     assert result.proposal_id is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidTradeTargets
 
 
 def test_cannot_propose_to_self(game: entities.Game) -> None:
@@ -110,10 +104,8 @@ def test_cannot_propose_to_self(game: entities.Game) -> None:
             to={proposer},
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "Trade proposal cannot target the proposing player."
     assert result.proposal_id is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidTradeTargets
 
 
 def test_cannot_propose_to_unknown_player(game: entities.Game) -> None:
@@ -129,10 +121,8 @@ def test_cannot_propose_to_unknown_player(game: entities.Game) -> None:
             to={"not-a-player"},
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "Trade proposal targets unknown player not-a-player."
     assert result.proposal_id is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidTradeTargets
 
 
 def test_propose_does_not_move_resources(game: entities.Game) -> None:
@@ -151,8 +141,7 @@ def test_propose_does_not_move_resources(game: entities.Game) -> None:
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.proposal_id in game.trade_proposals
     assert game.players[proposer].resources[entities.ResourceCard.GOLD] == 2

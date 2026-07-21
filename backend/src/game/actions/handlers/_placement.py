@@ -1,6 +1,70 @@
-from collections.abc import Container
+from collections.abc import Collection, Container, Mapping
 
+from ... import player
 from ... import entities
+
+
+def _sorted_coords(
+    coords: Collection[entities.Coordinate],
+) -> list[entities.Coordinate]:
+    return sorted(coords)
+
+
+def format_invalid_settlement_location(
+    *,
+    target: entities.Coordinate,
+    player: player.Nickname,
+    free_vertices: Collection[entities.Coordinate],
+    restricted_vertices: Collection[entities.Coordinate],
+    existing_paths: Collection[entities.Coordinate] = (),
+    existing_settlements: Mapping[entities.Coordinate, entities.SettlementType]
+    | None = None,
+    reason: str | None = None,
+) -> str:
+    parts = [
+        f"Player {player} cannot place settlement at {target}",
+    ]
+    if reason is not None:
+        parts.append(reason)
+    parts.append(f"free_vertices={_sorted_coords(free_vertices)}")
+    parts.append(f"restricted_vertices={_sorted_coords(restricted_vertices)}")
+    if existing_paths:
+        parts.append(f"existing_paths={_sorted_coords(existing_paths)}")
+    if existing_settlements is not None:
+        settlements = {
+            coord: settlement_type
+            for coord, settlement_type in sorted(existing_settlements.items())
+        }
+        parts.append(f"existing_settlements={settlements}")
+    return "; ".join(parts)
+
+
+def format_invalid_path_location(
+    *,
+    target: entities.Coordinate,
+    player: player.Nickname,
+    existing_settlements: Collection[entities.Coordinate],
+    existing_paths: Collection[entities.Coordinate],
+    free_edges: Collection[entities.Coordinate],
+) -> str:
+    return (
+        f"Player {player} cannot place path at {target}; "
+        f"existing_settlements={_sorted_coords(existing_settlements)}; "
+        f"existing_paths={_sorted_coords(existing_paths)}; "
+        f"free_edges={_sorted_coords(free_edges)}"
+    )
+
+
+def format_invalid_conquistator_location(
+    *,
+    target: entities.HexLocation,
+    player: player.Nickname,
+    current_location: entities.HexLocation,
+) -> str:
+    return (
+        f"Player {player} cannot move conquistator to {target}; "
+        f"current_location={current_location}"
+    )
 
 
 def can_add_free_path_at(

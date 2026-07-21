@@ -1,35 +1,37 @@
 from src.game import actions, entities
+from src.game.actions.handlers import _placement
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
+    other = game.turn_order[1]
     result = actions.handle_dice_play_warrior(
         game,
-        actions.MoveConquistatorAction(by=game.turn_order[1], q=1, r=0),
+        actions.MoveConquistatorAction(by=other, q=1, r=0),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.q == -1
     assert result.r == -1
     assert result.from_player is None
     assert result.stolen is None
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_raises_when_location_is_unchanged(game: entities.Game) -> None:
     location = game.conquistator_location
+    player = game.active_player
+    expected = _placement.format_invalid_conquistator_location(
+        target=location,
+        player=player,
+        current_location=location,
+    )
     result = actions.handle_dice_play_warrior(
         game,
-        actions.MoveConquistatorAction(
-            by=game.active_player, q=location.q, r=location.r
-        ),
+        actions.MoveConquistatorAction(by=player, q=location.q, r=location.r),
     )
-    assert result.succeeded is False
+    assert result.error == expected
     assert result.q == -1
     assert result.r == -1
     assert result.from_player is None
     assert result.stolen is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidConquistatorLocation
 
 
 def test_moves_conquistator_and_returns_to_dice_roll(
@@ -42,9 +44,8 @@ def test_moves_conquistator_and_returns_to_dice_roll(
         actions.MoveConquistatorAction(by=player, q=1, r=-1),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.DICE_ROLL
+    assert result.next_phase is entities.GamePhaseName.DICE_ROLL
     assert result.q == 1
     assert result.r == -1
     assert result.from_player is None
@@ -63,9 +64,8 @@ def test_moves_conquistator_and_returns_to_trade_and_build(
         actions.MoveConquistatorAction(by=player, q=1, r=-1),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.q == 1
     assert result.r == -1
     assert result.from_player is None
@@ -86,7 +86,7 @@ def test_does_not_take_resources_when_from_player_is_none(
         actions.MoveConquistatorAction(by=player, q=1, r=0, from_player=None),
     )
 
-    assert result.succeeded is True
+    assert result.error is None
     assert result.q == 1
     assert result.r == 0
     assert result.from_player is None
@@ -107,7 +107,7 @@ def test_takes_one_resource_when_from_player_is_set(
         actions.MoveConquistatorAction(by=player, q=1, r=0, from_player=other),
     )
 
-    assert result.succeeded is True
+    assert result.error is None
     assert result.q == 1
     assert result.r == 0
     assert result.from_player == other

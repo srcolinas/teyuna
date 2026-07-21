@@ -1,16 +1,17 @@
-import dataclasses
+import pydantic
 
+from ... import player
 from ... import entities
 from .. import _registry
-from . import _errors, _placement
+from . import _placement
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class FreePlacementAction(_registry.PlayerAction):
     terrace: entities.Coordinate
     path: entities.Coordinate
 
-    def __post_init__(self) -> None:
+    @pydantic.model_validator(mode="after")
+    def _canonicalize(self) -> "FreePlacementAction":
         object.__setattr__(
             self,
             "terrace",
@@ -21,23 +22,25 @@ class FreePlacementAction(_registry.PlayerAction):
             "path",
             entities.canonical_edge(self.path.q, self.path.r, self.path.d),
         )
+        return self
 
 
 class PlacedBuildingsResult(_registry.ActionExecutionResult):
     settlement: entities.Coordinate | None = None
     path: entities.Coordinate | None = None
+    next_player: player.Nickname = ""
 
 
 def handle_first_placement(
     game: entities.Game, action: FreePlacementAction
 ) -> PlacedBuildingsResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return PlacedBuildingsResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     can = _placement.can_add_free_terrace_at(
@@ -47,11 +50,10 @@ def handle_first_placement(
     )
     if not can:
         return PlacedBuildingsResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.InvalidSettlementLocation(
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=_placement.format_invalid_settlement_location(
                 target=action.terrace,
                 player=action.by,
                 free_vertices=game.free_verticies,
@@ -70,11 +72,10 @@ def handle_first_placement(
     )
     if not can:
         return PlacedBuildingsResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.InvalidPathLocation(
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=_placement.format_invalid_path_location(
                 target=action.path,
                 player=action.by,
                 existing_settlements=player_state.settlements.locations(),
@@ -92,10 +93,10 @@ def handle_first_placement(
     else:
         game.phase = entities.GamePhaseName.SECOND_PLACEMENT
     return PlacedBuildingsResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         settlement=action.terrace,
         path=action.path,
+        next_player=game.active_player,
     )

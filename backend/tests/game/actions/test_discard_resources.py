@@ -16,10 +16,8 @@ def test_raises_when_player_not_required_to_discard(
             count=collections.Counter({entities.ResourceCard.WOOD: 4}),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {player} is not required to discard resources"
     assert result.count == collections.Counter()
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotRequiredToDiscardError
 
 
 def test_raises_when_discard_count_is_wrong(game: entities.Game) -> None:
@@ -36,10 +34,8 @@ def test_raises_when_discard_count_is_wrong(game: entities.Game) -> None:
             count=collections.Counter({entities.ResourceCard.WOOD: 5}),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {player} must discard 4 resources"
     assert result.count == collections.Counter()
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidDiscardCountError
 
 
 def test_raises_when_insufficient_resources_of_type(
@@ -61,10 +57,8 @@ def test_raises_when_insufficient_resources_of_type(
             count=collections.Counter({entities.ResourceCard.GOLD: 4}),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "Insufficient gold to discard"
     assert result.count == collections.Counter()
-    assert result.error is not None
-    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_discard_removes_player_and_stays_in_phase_when_others_remain(
@@ -87,9 +81,8 @@ def test_discard_removes_player_and_stays_in_phase_when_others_remain(
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.DISCARD_RESOURCES
+    assert result.next_phase is entities.GamePhaseName.DISCARD_RESOURCES
     assert result.count == count
     assert game.to_discard_resources == {other: 5}
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 4
@@ -122,9 +115,8 @@ def test_last_discard_moves_to_move_conquistator(
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.MOVE_CONQUISTATOR
+    assert result.next_phase is entities.GamePhaseName.MOVE_CONQUISTATOR
     assert result.count == count
     assert game.to_discard_resources == {}
     assert sum(game.players[player].resources.values()) == 5

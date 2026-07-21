@@ -1,4 +1,5 @@
 from src.game import actions, entities
+from src.game.actions.handlers import _placement
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
@@ -9,15 +10,14 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     game.players[game.active_player].settlements[terrace] = (
         entities.SettlementType.TERRACE
     )
+    other = game.turn_order[1]
 
     result = actions.handle_dice_play_pathfinder(
         game,
-        actions.PlayPathfinderAction(by=game.turn_order[1], paths=(path,)),
+        actions.PlayPathfinderAction(by=other, paths=(path,)),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.paths == ()
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> None:
@@ -28,15 +28,14 @@ def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> 
     game.players[game.active_player].settlements[terrace] = (
         entities.SettlementType.TERRACE
     )
+    other = game.turn_order[1]
 
     result = actions.handle_trade_and_build_play_pathfinder(
         game,
-        actions.PlayPathfinderAction(by=game.turn_order[1], paths=(path,)),
+        actions.PlayPathfinderAction(by=other, paths=(path,)),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.paths == ()
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_places_two_paths_and_returns_to_dice_roll(
@@ -61,9 +60,8 @@ def test_places_two_paths_and_returns_to_dice_roll(
         actions.PlayPathfinderAction(by=player, paths=(first, second)),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.DICE_ROLL
+    assert result.next_phase is entities.GamePhaseName.DICE_ROLL
     assert result.paths == (first, second)
     assert first in game.players[player].paths
     assert second in game.players[player].paths
@@ -91,9 +89,8 @@ def test_places_two_paths_and_returns_to_trade_and_build(
         actions.PlayPathfinderAction(by=player, paths=(first, second)),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.paths == (first, second)
     assert first in game.players[player].paths
     assert second in game.players[player].paths
@@ -125,9 +122,8 @@ def test_ignores_second_path_when_only_one_slot_remaining(
         actions.PlayPathfinderAction(by=player, paths=(first, second)),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.DICE_ROLL
+    assert result.next_phase is entities.GamePhaseName.DICE_ROLL
     assert result.paths == (first,)
     assert first in game.players[player].paths
     assert second not in game.players[player].paths
@@ -137,15 +133,21 @@ def test_ignores_second_path_when_only_one_slot_remaining(
 def test_raises_when_path_is_invalid(game: entities.Game) -> None:
     player = game.active_player
     disconnected = entities.canonical_edge(1, 0, 0)
+    player_state = game.players[player]
+    expected = _placement.format_invalid_path_location(
+        target=disconnected,
+        player=player,
+        existing_settlements=player_state.settlements.locations(),
+        existing_paths=player_state.paths,
+        free_edges=game.free_edges,
+    )
 
     result = actions.handle_dice_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(disconnected,)),
     )
-    assert result.succeeded is False
+    assert result.error == expected
     assert result.paths == ()
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_raises_when_path_already_taken(game: entities.Game) -> None:
@@ -156,15 +158,21 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
         iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
     game.use_edge(game.turn_order[1], path)
+    player_state = game.players[player]
+    expected = _placement.format_invalid_path_location(
+        target=path,
+        player=player,
+        existing_settlements=player_state.settlements.locations(),
+        existing_paths=player_state.paths,
+        free_edges=game.free_edges,
+    )
 
     result = actions.handle_dice_play_pathfinder(
         game,
         actions.PlayPathfinderAction(by=player, paths=(path,)),
     )
-    assert result.succeeded is False
+    assert result.error == expected
     assert result.paths == ()
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_placing_paths_at_ten_vp_ends_game(game: entities.Game) -> None:
@@ -181,9 +189,8 @@ def test_placing_paths_at_ten_vp_ends_game(game: entities.Game) -> None:
         actions.PlayPathfinderAction(by=player, paths=(path,)),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.END_GAME
+    assert result.next_phase is entities.GamePhaseName.END_GAME
     assert result.paths == (path,)
 
 
@@ -203,7 +210,6 @@ def test_placing_paths_at_ten_vp_ends_game_from_trade_and_build(
         actions.PlayPathfinderAction(by=player, paths=(path,)),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.END_GAME
+    assert result.next_phase is entities.GamePhaseName.END_GAME
     assert result.paths == (path,)

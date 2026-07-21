@@ -32,7 +32,7 @@ async def test_zero_timeout_executes_first_placement() -> None:
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert len(list(stored.players[active].settlements.locations())) == 1
@@ -51,7 +51,7 @@ async def test_zero_timeout_executes_second_placement() -> None:
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert len(list(stored.players[active].settlements.locations())) == 1
@@ -68,7 +68,7 @@ async def test_zero_timeout_executes_dice_roll() -> None:
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     assert repository.retrieve(game_id).phase is not entities.GamePhaseName.DICE_ROLL
 
@@ -84,7 +84,7 @@ async def test_zero_timeout_executes_trade_and_build() -> None:
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is entities.GamePhaseName.DICE_ROLL
@@ -113,7 +113,7 @@ async def test_zero_timeout_executes_discard_resources() -> None:
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert nick not in stored.to_discard_resources
@@ -131,7 +131,7 @@ async def test_zero_timeout_executes_move_conquistator() -> None:
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is entities.GamePhaseName.TRADE_AND_BUILD
@@ -160,7 +160,7 @@ async def test_zero_timeout_executes_play_warrior(
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is expected_phase
@@ -188,7 +188,7 @@ async def test_zero_timeout_executes_play_mamo(
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     assert repository.retrieve(game_id).phase is expected_phase
 
@@ -215,7 +215,7 @@ async def test_zero_timeout_executes_play_blessed(
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert stored.phase is expected_phase
@@ -243,7 +243,7 @@ async def test_zero_timeout_executes_play_pathfinder(
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.due_to_timeout is True
+    assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     assert repository.retrieve(game_id).phase is expected_phase
 

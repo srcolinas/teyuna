@@ -1,22 +1,23 @@
 import datetime
 
 from src.game import actions, entities
+from src.game.actions.handlers import _placement
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     terrace = entities.canonical_vertex(0, 0, 0)
     path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    other = game.turn_order[0]
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=game.turn_order[0], terrace=terrace, path=path),
+        actions.FreePlacementAction(by=other, terrace=terrace, path=path),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.settlement is None
     assert result.path is None
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
+    assert result.next_player == ""
 
 
 def test_raises_when_terrace_invalid(game: entities.Game) -> None:
@@ -27,16 +28,21 @@ def test_raises_when_terrace_invalid(game: entities.Game) -> None:
     game.use_vertex(
         game.active_player, adjacent_terrace, entities.SettlementType.TERRACE
     )
+    player = game.active_player
+    expected = _placement.format_invalid_settlement_location(
+        target=terrace,
+        player=player,
+        free_vertices=game.free_verticies,
+        restricted_vertices=game.restricted_verticies,
+    )
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
+        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
-    assert result.succeeded is False
+    assert result.error == expected
     assert result.settlement is None
     assert result.path is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidSettlementLocation
 
 
 def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
@@ -44,16 +50,21 @@ def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
     terrace = entities.canonical_vertex(0, 0, 0)
     path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
     game.use_vertex(game.turn_order[0], terrace, entities.SettlementType.TERRACE)
+    player = game.active_player
+    expected = _placement.format_invalid_settlement_location(
+        target=terrace,
+        player=player,
+        free_vertices=game.free_verticies,
+        restricted_vertices=game.restricted_verticies,
+    )
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
+        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
-    assert result.succeeded is False
+    assert result.error == expected
     assert result.settlement is None
     assert result.path is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidSettlementLocation
 
 
 def test_raises_when_path_invalid(game: entities.Game) -> None:
@@ -61,16 +72,23 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
     terrace = entities.canonical_vertex(0, 0, 0)
     path = entities.canonical_edge(1, 1, 1)
     assert terrace not in entities.vertices_of_edge(path)
+    player = game.active_player
+    player_state = game.players[player]
+    expected = _placement.format_invalid_path_location(
+        target=path,
+        player=player,
+        existing_settlements=player_state.settlements.locations(),
+        existing_paths=player_state.paths,
+        free_edges=game.free_edges,
+    )
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
+        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
-    assert result.succeeded is False
+    assert result.error == expected
     assert result.settlement is None
     assert result.path is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_raises_when_path_already_taken(game: entities.Game) -> None:
@@ -78,16 +96,23 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
     terrace = entities.canonical_vertex(0, 0, 0)
     path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
     game.use_edge(game.turn_order[0], path)
+    player = game.active_player
+    player_state = game.players[player]
+    expected = _placement.format_invalid_path_location(
+        target=path,
+        player=player,
+        existing_settlements=player_state.settlements.locations(),
+        existing_paths=player_state.paths,
+        free_edges=game.free_edges,
+    )
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=game.active_player, terrace=terrace, path=path),
+        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
-    assert result.succeeded is False
+    assert result.error == expected
     assert result.settlement is None
     assert result.path is None
-    assert result.error is not None
-    assert type(result.error) is actions.InvalidPathLocation
 
 
 def test_decrements_player_idx_and_stays_in_second_placement(
@@ -103,9 +128,9 @@ def test_decrements_player_idx_and_stays_in_second_placement(
         actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_player == game.active_player
     assert result.settlement == terrace
     assert result.path == path
     assert game.player_idx == len(game.players) - 2
@@ -130,9 +155,9 @@ def test_returns_dice_roll_and_keeps_player_idx_after_first_player(
         actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.DICE_ROLL
+    assert result.next_phase is entities.GamePhaseName.DICE_ROLL
+    assert result.next_player == player
     assert result.settlement == terrace
     assert result.path == path
     assert game.player_idx == 0
@@ -151,9 +176,9 @@ def test_increments_players_resources_after_turn(game: entities.Game) -> None:
         actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_player == game.active_player
     assert result.settlement == terrace
     assert result.path == path
     assert game.players[player].resources[entities.ResourceCard.GOLD] == 1
@@ -189,9 +214,9 @@ def test_grants_one_resource_per_adjacent_producing_hex() -> None:
         actions.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_player == game.active_player
     assert result.settlement == terrace
     assert result.path == path
     assert game.players[player].resources[entities.ResourceCard.GOLD] == 1

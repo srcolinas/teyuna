@@ -17,13 +17,17 @@ from ..handlers import (
 def timeout_dice_roll(
     game: entities.Game, rng: random.Random
 ) -> _registry.PlayerAction:
-    return _registry.PlayerAction(by=game.active_player, due_to_timeout=True, rng_=rng)
+    return _registry.PlayerAction.model_construct(
+        by=game.active_player, due_to_timeout=True, rng_=rng
+    )
 
 
 def timeout_trade_and_build(
     game: entities.Game, rng: random.Random
 ) -> _registry.PlayerAction:
-    return _registry.PlayerAction(by=game.active_player, due_to_timeout=True, rng_=rng)
+    return _registry.PlayerAction.model_construct(
+        by=game.active_player, due_to_timeout=True, rng_=rng
+    )
 
 
 def timeout_first_placement(
@@ -54,7 +58,7 @@ def timeout_move_conquistator(
         if nick != game.active_player and sum(player_state.resources.values()) > 0
     ]
     from_player = rng.choice(victims) if victims else None
-    return _move_conquistator.MoveConquistatorAction(
+    return _move_conquistator.MoveConquistatorAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         q=location.q,
@@ -70,7 +74,7 @@ def timeout_discard_resources(
     nick = next(iter(game.to_discard_resources))
     required = game.to_discard_resources[nick]
     count = _pick_discard(game.players[nick].resources, required, rng)
-    return _discard_resources.DiscardResourcesAction(
+    return _discard_resources.DiscardResourcesAction.model_construct(
         by=nick,
         due_to_timeout=True,
         count=count,
@@ -79,14 +83,14 @@ def timeout_discard_resources(
 
 
 def timeout_lobby(game: entities.Game, rng: random.Random) -> _registry.PlayerAction:
-    return _registry.PlayerAction(by="", due_to_timeout=True, rng_=rng)
+    return _registry.PlayerAction.model_construct(by="", due_to_timeout=True, rng_=rng)
 
 
 def timeout_play_mamo(
     game: entities.Game, rng: random.Random
 ) -> _play_mamo.PlayMamoAction:
     resource = rng.choice(list(entities.ResourceCard))
-    return _play_mamo.PlayMamoAction(
+    return _play_mamo.PlayMamoAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         resource=resource,
@@ -107,7 +111,7 @@ def timeout_play_blessed(
     else:
         resources = list(entities.ResourceCard)
         first, second = resources[0], resources[1]
-    return _play_blessed.PlayBlessedAction(
+    return _play_blessed.PlayBlessedAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         resources=(first, second),
@@ -147,7 +151,7 @@ def timeout_play_pathfinder(
             free_vertices=game.free_verticies,
         ):
             chosen.append(edge)
-    return _play_pathfinder.PlayPathfinderAction(
+    return _play_pathfinder.PlayPathfinderAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         paths=tuple(chosen),
@@ -186,7 +190,7 @@ def _pick_free_placement(
         if not legal_paths:
             continue
         path = rng.choice(legal_paths)
-        return _first_placement.FreePlacementAction(
+        return _first_placement.FreePlacementAction.model_construct(
             by=game.active_player,
             due_to_timeout=True,
             terrace=terrace,

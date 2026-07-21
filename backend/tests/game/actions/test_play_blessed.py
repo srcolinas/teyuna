@@ -2,31 +2,29 @@ from src.game import actions, entities
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
+    other = game.turn_order[1]
     result = actions.handle_dice_play_blessed(
         game,
         actions.PlayBlessedAction(
-            by=game.turn_order[1],
+            by=other,
             resources=(entities.ResourceCard.WOOD, entities.ResourceCard.STONE),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.resources is None
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> None:
+    other = game.turn_order[1]
     result = actions.handle_trade_and_build_play_blessed(
         game,
         actions.PlayBlessedAction(
-            by=game.turn_order[1],
+            by=other,
             resources=(entities.ResourceCard.WOOD, entities.ResourceCard.STONE),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.resources is None
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_raises_when_supply_lacks_requested_resource(
@@ -42,10 +40,8 @@ def test_raises_when_supply_lacks_requested_resource(
             resources=(entities.ResourceCard.WOOD, entities.ResourceCard.STONE),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "Not enough wood in the supply"
     assert result.resources is None
-    assert result.error is not None
-    assert type(result.error) is actions.InsufficientResourceSupplyError
 
 
 def test_raises_when_supply_lacks_duplicate_resource(
@@ -61,10 +57,8 @@ def test_raises_when_supply_lacks_duplicate_resource(
             resources=(entities.ResourceCard.WOOD, entities.ResourceCard.WOOD),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "Not enough wood in the supply"
     assert result.resources is None
-    assert result.error is not None
-    assert type(result.error) is actions.InsufficientResourceSupplyError
 
 
 def test_takes_from_supply_and_returns_to_dice_roll(
@@ -83,9 +77,8 @@ def test_takes_from_supply_and_returns_to_dice_roll(
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.DICE_ROLL
+    assert result.next_phase is entities.GamePhaseName.DICE_ROLL
     assert result.resources == resources
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 1
     assert game.players[player].resources[entities.ResourceCard.STONE] == 1
@@ -109,9 +102,8 @@ def test_takes_from_supply_and_returns_to_trade_and_build(
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.resources == resources
     assert game.players[player].resources[entities.ResourceCard.WOOD] == 1
     assert game.players[player].resources[entities.ResourceCard.STONE] == 1

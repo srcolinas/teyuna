@@ -6,19 +6,19 @@ from src.game import actions, entities
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
+    other = game.turn_order[1]
     result = actions.handle_dice_roll(
         game,
         actions.PlayerAction(
-            by=game.turn_order[1],
+            by=other,
             rng_=FixedRandom([1, 1]),
         ),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.die_1 == -1
     assert result.die_2 == -1
     assert result.to_discard == {}
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
+    assert result.produced == {}
 
 
 def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
@@ -32,12 +32,12 @@ def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
         actions.PlayerAction(by=player, rng_=FixedRandom([3, 4])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.MOVE_CONQUISTATOR
+    assert result.next_phase is entities.GamePhaseName.MOVE_CONQUISTATOR
     assert result.die_1 == 3
     assert result.die_2 == 4
     assert result.to_discard == {}
+    assert result.produced == {}
     assert game.to_discard_resources == {}
     assert game.player_idx == 0
     assert game.active_player == player
@@ -62,12 +62,12 @@ def test_rolls_seven_with_players_over_seven_moves_to_discard_resources(
         actions.PlayerAction(by=player, rng_=FixedRandom([3, 4])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.DISCARD_RESOURCES
+    assert result.next_phase is entities.GamePhaseName.DISCARD_RESOURCES
     assert result.die_1 == 3
     assert result.die_2 == 4
     assert result.to_discard == {over_limit: 4}
+    assert result.produced == {}
     assert game.to_discard_resources == {over_limit: 4}
 
 
@@ -82,12 +82,12 @@ def test_rolls_non_seven_moves_to_trade_and_build(
         actions.PlayerAction(by=player, rng_=FixedRandom([2, 3])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 2
     assert result.die_2 == 3
     assert result.to_discard == {}
+    assert result.produced == {}
     assert game.player_idx == 0
     assert game.active_player == player
 
@@ -108,12 +108,12 @@ def test_produces_one_resource_from_terrace() -> None:
         actions.PlayerAction(by=active, rng_=FixedRandom([3, 5])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
+    assert result.produced == {active: {entities.ResourceCard.GOLD: 1}}
     assert game.players[active].resources[entities.ResourceCard.GOLD] == 1
     assert game.players[other].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 18
@@ -138,12 +138,12 @@ def test_produces_two_resources_from_great_terrace() -> None:
         actions.PlayerAction(by=active, rng_=FixedRandom([3, 5])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
+    assert result.produced == {active: {entities.ResourceCard.GOLD: 2}}
     assert game.players[active].resources[entities.ResourceCard.GOLD] == 2
     assert game.resource_supply[entities.ResourceCard.GOLD] == 17
 
@@ -164,12 +164,12 @@ def test_does_not_grant_when_supply_is_empty() -> None:
         actions.PlayerAction(by=active, rng_=FixedRandom([3, 5])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
+    assert result.produced == {}
     assert game.players[active].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 0
 
@@ -194,12 +194,12 @@ def test_grants_partial_when_supply_has_less_than_requested() -> None:
         actions.PlayerAction(by=active, rng_=FixedRandom([3, 5])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
+    assert result.produced == {active: {entities.ResourceCard.GOLD: 1}}
     assert game.players[active].resources[entities.ResourceCard.GOLD] == 1
     assert game.resource_supply[entities.ResourceCard.GOLD] == 0
 
@@ -224,12 +224,12 @@ def test_turn_order_gets_remaining_supply_first() -> None:
         actions.PlayerAction(by=active, rng_=FixedRandom([3, 5])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
+    assert result.produced == {active: {entities.ResourceCard.GOLD: 1}}
     assert game.players[active].resources[entities.ResourceCard.GOLD] == 1
     assert game.players[next_in_order].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 0
@@ -251,12 +251,12 @@ def test_does_not_produce_from_conquistator_hex() -> None:
         actions.PlayerAction(by=active, rng_=FixedRandom([3, 5])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
+    assert result.produced == {}
     assert game.players[active].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 19
 
@@ -289,12 +289,12 @@ def test_does_not_produce_from_desert_or_non_matching_roll() -> None:
         actions.PlayerAction(by=active, rng_=FixedRandom([2, 3])),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 2
     assert result.die_2 == 3
     assert result.to_discard == {}
+    assert result.produced == {}
     assert game.players[active].resources[entities.ResourceCard.GOLD] == 0
     assert game.resource_supply[entities.ResourceCard.GOLD] == 19
 

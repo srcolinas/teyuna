@@ -127,7 +127,7 @@ async def advance_or_phase(
         broker=broker,
     )
     http.raise_if_failed(result)
-    return result.phase, game.active_player
+    return result.next_phase, game.active_player
 
 
 # --- Conquistator ---
@@ -224,7 +224,7 @@ async def play_wisdom_card(
         broker=broker,
     )
     http.raise_if_failed(result)
-    return result.phase
+    return result.next_phase
 
 
 @router.post("/{game_id}/wisdom-cards/buy")
@@ -255,7 +255,7 @@ async def buy_wisdom_card(
         broker=broker,
     )
     http.raise_if_failed(result)
-    return result.phase
+    return result.next_phase
 
 
 # --- Trades ---
@@ -335,7 +335,7 @@ async def accept_trade(
         broker=broker,
     )
     http.raise_if_failed(result)
-    return result.phase
+    return result.next_phase
 
 
 class TradeWithSupplyPayload(pydantic.BaseModel):
@@ -378,7 +378,7 @@ async def trade_with_supply(
         broker=broker,
     )
     http.raise_if_failed(result)
-    return result.phase
+    return result.next_phase
 
 
 # --- Wisdom card resolutions ---

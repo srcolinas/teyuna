@@ -11,25 +11,24 @@ from .. import player
 from .. import entities
 
 
-class ActionExecutionResult(pydantic.BaseModel):
+class PlayerAction(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
-    succeeded: bool
-    phase: entities.GamePhaseName
     by: player.Nickname
     due_to_timeout: bool = False
-    error: Exception | None = None
+    rng_: Any = pydantic.Field(
+        default_factory=random.Random,
+        exclude=True,
+    )
 
-    @pydantic.field_serializer("error")
-    def _serialize_error(self, error: Exception | None) -> str | None:
-        return type(error).__name__ if error is not None else None
 
+class ActionExecutionResult(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(frozen=True)
 
-@dataclasses.dataclass(frozen=True, slots=True)
-class PlayerAction:
-    by: player.Nickname
-    due_to_timeout: bool = dataclasses.field(default=False, kw_only=True)
-    rng_: random.Random = dataclasses.field(default_factory=random.Random, kw_only=True)
+    previous_phase: entities.GamePhaseName
+    next_phase: entities.GamePhaseName
+    action: PlayerAction
+    error: str | None = None
 
 
 TimeoutFn = Callable[[entities.Game, random.Random], PlayerAction]

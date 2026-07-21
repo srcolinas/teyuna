@@ -6,7 +6,6 @@ import pydantic
 from ... import player
 from ... import entities
 from .. import _registry
-from . import _errors
 from ._play_card import PlayWisdomCardAction, PlayedWisdomCardResult, play_wisdom_card
 
 
@@ -14,22 +13,26 @@ class DiceRollResult(_registry.ActionExecutionResult):
     die_1: int = -1
     die_2: int = -1
     to_discard: dict[player.Nickname, int] = pydantic.Field(default_factory=dict)
+    produced: dict[player.Nickname, dict[entities.ResourceCard, int]] = pydantic.Field(
+        default_factory=dict
+    )
 
 
 def handle_dice_roll(
     game: entities.Game, action: _registry.PlayerAction
 ) -> DiceRollResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return DiceRollResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     dice_1, dice_2 = action.rng_.randint(1, 6), action.rng_.randint(1, 6)
     total = dice_1 + dice_2
+    produced: dict[player.Nickname, dict[entities.ResourceCard, int]] = {}
 
     if total == 7:
         game.to_discard_resources = {
@@ -42,18 +45,18 @@ def handle_dice_roll(
         else:
             phase = entities.GamePhaseName.MOVE_CONQUISTATOR
     else:
-        _produce_resources(game, roll=total)
+        produced = _produce_resources(game, roll=total)
         phase = entities.GamePhaseName.TRADE_AND_BUILD
 
     game.phase = phase
     return DiceRollResult(
-        succeeded=True,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
-        phase=game.phase,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         die_1=dice_1,
         die_2=dice_2,
         to_discard=dict(game.to_discard_resources),
+        produced=produced,
     )
 
 
@@ -77,7 +80,10 @@ _DICE_CARD_PHASES: Final[dict[entities.WisdomCard, entities.GamePhaseName]] = {
 }
 
 
-def _produce_resources(game: entities.Game, *, roll: int) -> None:
+def _produce_resources(
+    game: entities.Game, *, roll: int
+) -> dict[player.Nickname, dict[entities.ResourceCard, int]]:
+    produced: dict[player.Nickname, collections.Counter[entities.ResourceCard]] = {}
     for hex_tile in game.map:
         if hex_tile.number != roll:
             continue
@@ -104,3 +110,7 @@ def _produce_resources(game: entities.Game, *, roll: int) -> None:
                     to=nickname,
                     amount=collections.Counter({resource: to_grant}),
                 )
+                produced.setdefault(nickname, collections.Counter())[resource] += (
+                    to_grant
+                )
+    return {nick: dict(counts) for nick, counts in produced.items()}

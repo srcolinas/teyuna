@@ -33,13 +33,12 @@ class GameRoute(APIRoute):
 
 
 def raise_if_failed(result: actions.ActionExecutionResult) -> None:
-    if result.succeeded:
+    if result.error is None:
         return
-    assert result.error is not None
-    status_code = _STATUS_BY_EXCEPTION.get(type(result.error))
-    if status_code is None:
-        raise result.error
-    raise fastapi.HTTPException(status_code=status_code, detail=str(result.error))
+    raise fastapi.HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=result.error,
+    )
 
 
 _STATUS_BY_EXCEPTION: Final[dict[type[BaseException], int]] = {
@@ -47,19 +46,6 @@ _STATUS_BY_EXCEPTION: Final[dict[type[BaseException], int]] = {
     services.GameAlreadyStartedError: status.HTTP_400_BAD_REQUEST,
     entities.GameAlreadyFullError: status.HTTP_400_BAD_REQUEST,
     entities.NicknameAlreadyTakenError: status.HTTP_400_BAD_REQUEST,
-    actions.PlayerNotInTurnError: status.HTTP_403_FORBIDDEN,
     actions.GamePhaseHanlderNotImplementedError: status.HTTP_501_NOT_IMPLEMENTED,
     actions.ActionNotAllowedError: status.HTTP_400_BAD_REQUEST,
-    actions.InvalidConquistatorLocation: status.HTTP_400_BAD_REQUEST,
-    actions.InvalidSettlementLocation: status.HTTP_400_BAD_REQUEST,
-    actions.InvalidPathLocation: status.HTTP_400_BAD_REQUEST,
-    actions.PlayerDoesNotHaveCardError: status.HTTP_400_BAD_REQUEST,
-    actions.InsufficientResourcesError: status.HTTP_400_BAD_REQUEST,
-    actions.InsufficientResourceSupplyError: status.HTTP_400_BAD_REQUEST,
-    actions.EmptyWisdomDeckError: status.HTTP_400_BAD_REQUEST,
-    actions.InvalidTradeTargets: status.HTTP_400_BAD_REQUEST,
-    actions.TradeProposalNotFound: status.HTTP_400_BAD_REQUEST,
-    actions.TradeNotAddressedToPlayerError: status.HTTP_400_BAD_REQUEST,
-    actions.PlayerNotRequiredToDiscardError: status.HTTP_400_BAD_REQUEST,
-    actions.InvalidDiscardCountError: status.HTTP_400_BAD_REQUEST,
 }

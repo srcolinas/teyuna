@@ -77,7 +77,7 @@ def test_returns_400_when_called_during_mamo_phase(
     assert response.status_code == 400, response.text
 
 
-def test_returns_403_when_player_not_in_turn(
+def test_returns_400_when_player_not_in_turn(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
@@ -94,7 +94,7 @@ def test_returns_403_when_player_not_in_turn(
         },
     )
 
-    assert response.status_code == 403, response.text
+    assert response.status_code == 400, response.text
 
 
 def test_returns_501_when_phase_not_implemented(

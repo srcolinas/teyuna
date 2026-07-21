@@ -6,24 +6,21 @@ from src.game import actions, entities
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
-    game.players[game.turn_order[1]].resources = collections.Counter(
-        {entities.ResourceCard.GOLD: 4}
-    )
+    other = game.turn_order[1]
+    game.players[other].resources = collections.Counter({entities.ResourceCard.GOLD: 4})
 
     result = actions.handle_trade_with_supply(
         game,
         actions.TradeWithSupplyAction(
-            by=game.turn_order[1],
+            by=other,
             offers=entities.ResourceCard.GOLD,
             requests=entities.ResourceCard.STONE,
         ),
     )
-    assert result.succeeded is False
+    assert result.error == f"Player {other} is not in turn"
     assert result.offers is None
     assert result.requests is None
     assert result.rate == -1
-    assert result.error is not None
-    assert type(result.error) is actions.PlayerNotInTurnError
 
 
 def test_cannot_trade_if_not_enough_resources_from_player(
@@ -37,12 +34,10 @@ def test_cannot_trade_if_not_enough_resources_from_player(
             requests=entities.ResourceCard.STONE,
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "You do not have enough gold to offer."
     assert result.offers is None
     assert result.requests is None
     assert result.rate == -1
-    assert result.error is not None
-    assert type(result.error) is actions.InsufficientResourcesError
 
 
 def test_cannot_trade_if_not_enough_resources_from_supply(
@@ -60,12 +55,10 @@ def test_cannot_trade_if_not_enough_resources_from_supply(
             requests=entities.ResourceCard.STONE,
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "The supply does not have enough stone to request."
     assert result.offers is None
     assert result.requests is None
     assert result.rate == -1
-    assert result.error is not None
-    assert type(result.error) is actions.InsufficientResourceSupplyError
 
 
 def test_default_rate_is_four_for_one(game: entities.Game) -> None:
@@ -85,9 +78,8 @@ def test_default_rate_is_four_for_one(game: entities.Game) -> None:
         ),
     )
 
-    assert result.succeeded is True
     assert result.error is None
-    assert result.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
     assert result.offers is entities.ResourceCard.GOLD
     assert result.requests is entities.ResourceCard.STONE
     assert result.rate == 4
@@ -118,7 +110,6 @@ def test_discounted_rate_if_player_has_generic_harbour(
             requests=entities.ResourceCard.STONE,
         ),
     )
-    assert result.succeeded is True
     assert result.error is None
     assert result.offers is entities.ResourceCard.GOLD
     assert result.requests is entities.ResourceCard.STONE
@@ -154,7 +145,6 @@ def test_discounted_rate_if_player_has_specific_harbour(
             requests=requests,
         ),
     )
-    assert result.succeeded is True
     assert result.error is None
     assert result.offers is resource
     assert result.requests is requests
@@ -186,9 +176,7 @@ def test_specific_harbour_does_not_apply_to_other_resources(
             requests=entities.ResourceCard.STONE,
         ),
     )
-    assert result.succeeded is False
+    assert result.error == "You do not have enough gold to offer."
     assert result.offers is None
     assert result.requests is None
     assert result.rate == -1
-    assert result.error is not None
-    assert type(result.error) is actions.InsufficientResourcesError

@@ -1,5 +1,4 @@
 import collections
-import dataclasses
 import uuid
 from typing import Final
 
@@ -7,17 +6,14 @@ import pydantic
 
 from ... import player, entities
 from .. import _registry
-from . import _errors
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class ProposeTradeAction(_registry.PlayerAction):
     offer: entities.ResourceCount
     request: entities.ResourceCount
     to: set[player.Nickname]
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class AcceptTradeAction(_registry.PlayerAction):
     id: uuid.UUID
 
@@ -34,7 +30,6 @@ class AcceptedTradeResult(_registry.ActionExecutionResult):
     request: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class TradeWithSupplyAction(_registry.PlayerAction):
     offers: entities.ResourceCard
     requests: entities.ResourceCard
@@ -49,13 +44,13 @@ class TradedWithSupplyResult(_registry.ActionExecutionResult):
 def handle_propose_trade(
     game: entities.Game, action: ProposeTradeAction
 ) -> ProposeTradeResult:
+    previous_phase = game.phase
     error = _validate_trade_targets(game, by=action.by, to=action.to)
     if error is not None:
         return ProposeTradeResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
     error = _ensure_resources(
@@ -65,10 +60,9 @@ def handle_propose_trade(
     )
     if error is not None:
         return ProposeTradeResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
 
@@ -81,10 +75,9 @@ def handle_propose_trade(
     )
     game.phase = entities.GamePhaseName.TRADE_AND_BUILD
     return ProposeTradeResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         proposal_id=proposal_id,
     )
 
@@ -92,27 +85,22 @@ def handle_propose_trade(
 def handle_accept_trade(
     game: entities.Game, action: AcceptTradeAction
 ) -> AcceptedTradeResult:
+    previous_phase = game.phase
     proposal = game.trade_proposals.get(action.id)
     if proposal is None:
         return AcceptedTradeResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.TradeProposalNotFound(
-                f"Trade proposal {action.id} not found."
-            ),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Trade proposal {action.id} not found.",
         )
 
     if action.by not in proposal.to:
         return AcceptedTradeResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.TradeNotAddressedToPlayerError(
-                f"Player {action.by} cannot accept this trade proposal"
-            ),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} cannot accept this trade proposal",
         )
 
     error = _ensure_resources(
@@ -122,10 +110,9 @@ def handle_accept_trade(
     )
     if error is not None:
         return AcceptedTradeResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
     error = _ensure_resources(
@@ -135,10 +122,9 @@ def handle_accept_trade(
     )
     if error is not None:
         return AcceptedTradeResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
 
@@ -150,10 +136,9 @@ def handle_accept_trade(
     del game.trade_proposals[action.id]
     game.phase = entities.GamePhaseName.TRADE_AND_BUILD
     return AcceptedTradeResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         proposal_id=action.id,
         proposer=proposer,
         acceptor=action.by,
@@ -165,13 +150,13 @@ def handle_accept_trade(
 def handle_trade_with_supply(
     game: entities.Game, action: TradeWithSupplyAction
 ) -> TradedWithSupplyResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return TradedWithSupplyResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     rate = _trade_rate(game, action.by, action.offers)
@@ -185,19 +170,17 @@ def handle_trade_with_supply(
     )
     if error is not None:
         return TradedWithSupplyResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
     if game.resource_supply[action.requests] < 1:
         return TradedWithSupplyResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.InsufficientResourceSupplyError(
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=(
                 f"The supply does not have enough {action.requests.value} to request."
             ),
         )
@@ -206,10 +189,9 @@ def handle_trade_with_supply(
     game.take_from_supply(to=action.by, amount=requested)
     game.phase = entities.GamePhaseName.TRADE_AND_BUILD
     return TradedWithSupplyResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         offers=action.offers,
         requests=action.requests,
         rate=rate,
@@ -238,20 +220,14 @@ def _validate_trade_targets(
     *,
     by: player.Nickname,
     to: set[player.Nickname],
-) -> Exception | None:
+) -> str | None:
     if not to:
-        return _errors.InvalidTradeTargets(
-            "Trade proposal must target at least one player."
-        )
+        return "Trade proposal must target at least one player."
     for target in to:
         if target == by:
-            return _errors.InvalidTradeTargets(
-                "Trade proposal cannot target the proposing player."
-            )
+            return "Trade proposal cannot target the proposing player."
         if target not in game.players:
-            return _errors.InvalidTradeTargets(
-                f"Trade proposal targets unknown player {target}."
-            )
+            return f"Trade proposal targets unknown player {target}."
     return None
 
 
@@ -260,12 +236,10 @@ def _ensure_resources(
     cost: entities.ResourceCount,
     *,
     reason: str,
-) -> Exception | None:
+) -> str | None:
     for resource, amount in cost.items():
         if resources[resource] < amount:
-            return _errors.InsufficientResourcesError(
-                f"You do not have enough {resource.value} {reason}."
-            )
+            return f"You do not have enough {resource.value} {reason}."
     return None
 
 

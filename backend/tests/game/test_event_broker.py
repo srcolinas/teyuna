@@ -110,10 +110,12 @@ async def test_disconnect_unregisters_subscriber() -> None:
 
 def _result(
     *,
-    succeeded: bool = True,
     phase: entities.GamePhaseName = entities.GamePhaseName.DICE_ROLL,
-    error: Exception | None = None,
+    error: str | None = None,
 ) -> actions.ActionExecutionResult:
     return actions.ActionExecutionResult(
-        succeeded=succeeded, phase=phase, by="player", error=error
+        previous_phase=phase,
+        next_phase=phase,
+        action=actions.PlayerAction.model_construct(by="player"),
+        error=error,
     )

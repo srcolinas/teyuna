@@ -1,15 +1,11 @@
-import dataclasses
-
 from ... import player
 from ... import entities
 from .. import _registry
-from . import _errors
 from ._victory import phase_after_victory_check
 
 _MIN_BIGGEST_ARMY: int = 3
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class PlayWisdomCardAction(_registry.PlayerAction):
     card: entities.WisdomCard
 
@@ -25,35 +21,32 @@ def play_wisdom_card(
     card_phases: dict[entities.WisdomCard, entities.GamePhaseName],
     phase_label: str,
 ) -> PlayedWisdomCardResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return PlayedWisdomCardResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     if game.players[action.by].cards[action.card] <= 0:
         return PlayedWisdomCardResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerDoesNotHaveCardError(
-                f"Player {action.by} does not have card {action.card.value}"
-            ),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} does not have card {action.card.value}",
         )
 
     next_phase = card_phases.get(action.card)
     if next_phase is None:
         return PlayedWisdomCardResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_registry.ActionNotAllowedError(
-                f"Card '{action.card.value}' cannot be played during the {phase_label} phase."
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=(
+                f"Card '{action.card.value}' cannot be played during the "
+                f"{phase_label} phase."
             ),
         )
 
@@ -63,18 +56,16 @@ def play_wisdom_card(
     if action.card is entities.WisdomCard.LEGACY_OF_THE_ELDERS:
         game.phase = phase_after_victory_check(game, action.by, next_phase)
         return PlayedWisdomCardResult(
-            succeeded=True,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             card=action.card,
         )
     game.phase = next_phase
     return PlayedWisdomCardResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         card=action.card,
     )
 

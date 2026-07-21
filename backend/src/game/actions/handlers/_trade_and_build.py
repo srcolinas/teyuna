@@ -1,22 +1,23 @@
 import collections
-import dataclasses
 from typing import Final
+
+import pydantic
 
 from ... import player
 from ... import entities
 from .. import _registry
-from . import _errors, _placement
+from . import _placement
 from ._longest_road import recompute_longest_road, update_longest_road
 from ._play_card import PlayWisdomCardAction, PlayedWisdomCardResult, play_wisdom_card
 from ._victory import phase_after_victory_check
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class BuildSettlementAction(_registry.PlayerAction):
     item: entities.SettlementType
     coordinate: entities.Coordinate
 
-    def __post_init__(self) -> None:
+    @pydantic.model_validator(mode="after")
+    def _canonicalize(self) -> "BuildSettlementAction":
         object.__setattr__(
             self,
             "coordinate",
@@ -24,6 +25,7 @@ class BuildSettlementAction(_registry.PlayerAction):
                 self.coordinate.q, self.coordinate.r, self.coordinate.d
             ),
         )
+        return self
 
 
 class BuiltSettlementResult(_registry.ActionExecutionResult):
@@ -31,11 +33,11 @@ class BuiltSettlementResult(_registry.ActionExecutionResult):
     coordinate: entities.Coordinate | None = None
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class BuildPathAction(_registry.PlayerAction):
     coordinate: entities.Coordinate
 
-    def __post_init__(self) -> None:
+    @pydantic.model_validator(mode="after")
+    def _canonicalize(self) -> "BuildPathAction":
         object.__setattr__(
             self,
             "coordinate",
@@ -43,6 +45,7 @@ class BuildPathAction(_registry.PlayerAction):
                 self.coordinate.q, self.coordinate.r, self.coordinate.d
             ),
         )
+        return self
 
 
 class BuiltPathResult(_registry.ActionExecutionResult):
@@ -53,7 +56,6 @@ class EndedTradeAndBuildResult(_registry.ActionExecutionResult):
     next_player: player.Nickname = ""
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
 class BuyWisdomCardAction(_registry.PlayerAction):
     pass
 
@@ -65,13 +67,13 @@ class BoughtWisdomCardResult(_registry.ActionExecutionResult):
 def handle_build_terrace(
     game: entities.Game, action: BuildSettlementAction
 ) -> BuiltSettlementResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return BuiltSettlementResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     if action.item is entities.SettlementType.TERRACE:
@@ -80,10 +82,9 @@ def handle_build_terrace(
         error = _build_great_terrace(game, action.by, action.coordinate)
     if error is not None:
         return BuiltSettlementResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
 
@@ -91,42 +92,39 @@ def handle_build_terrace(
         game, action.by, entities.GamePhaseName.TRADE_AND_BUILD
     )
     return BuiltSettlementResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         item=action.item,
         coordinate=action.coordinate,
     )
 
 
 def handle_build_path(game: entities.Game, action: BuildPathAction) -> BuiltPathResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return BuiltPathResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     error = _build_path(game, action.by, action.coordinate)
     if error is not None:
         return BuiltPathResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
     game.phase = phase_after_victory_check(
         game, action.by, entities.GamePhaseName.TRADE_AND_BUILD
     )
     return BuiltPathResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         coordinate=action.coordinate,
     )
 
@@ -134,13 +132,13 @@ def handle_build_path(game: entities.Game, action: BuildPathAction) -> BuiltPath
 def handle_end_trade_and_build(
     game: entities.Game, action: _registry.PlayerAction
 ) -> EndedTradeAndBuildResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return EndedTradeAndBuildResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     game.preserve_cards(action.by)
@@ -153,10 +151,9 @@ def handle_end_trade_and_build(
     game.phase = entities.GamePhaseName.DICE_ROLL
 
     return EndedTradeAndBuildResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         next_player=game.active_player,
     )
 
@@ -164,41 +161,38 @@ def handle_end_trade_and_build(
 def handle_buy_wisdom_card(
     game: entities.Game, action: BuyWisdomCardAction
 ) -> BoughtWisdomCardResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return BoughtWisdomCardResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     if not game.wisdom_deck:
         return BoughtWisdomCardResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.EmptyWisdomDeckError("Cannot buy more wisdom cards"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error="Cannot buy more wisdom cards",
         )
 
     error = _ensure_resources(game.players[action.by].resources, _WISDOM_CARD_COST)
     if error is not None:
         return BoughtWisdomCardResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
             error=error,
         )
     game.discard_resources(action.by, _WISDOM_CARD_COST)
     card = game.take_wisdom_card(action.by)
     game.phase = entities.GamePhaseName.TRADE_AND_BUILD
     return BoughtWisdomCardResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         card=card,
     )
 
@@ -216,7 +210,7 @@ def handle_trade_and_build_play_wisdom_card(
 
 def _build_terrace(
     game: entities.Game, by: player.Nickname, coordinate: entities.Coordinate
-) -> Exception | None:
+) -> str | None:
     player_state = game.players[by]
     error = _ensure_resources(player_state.resources, _TERRACE_COST)
     if error is not None:
@@ -225,7 +219,7 @@ def _build_terrace(
         player_state.settlements.count(entities.SettlementType.TERRACE)
         >= entities.MAX_TERRACES
     ):
-        return _errors.InsufficientResourcesError("No terraces remaining")
+        return "No terraces remaining"
 
     can = _placement.can_build_terrace_at(
         free_verticies=game.free_verticies,
@@ -234,7 +228,7 @@ def _build_terrace(
         target=coordinate,
     )
     if not can:
-        return _errors.InvalidSettlementLocation(
+        return _placement.format_invalid_settlement_location(
             target=coordinate,
             player=by,
             free_vertices=game.free_verticies,
@@ -250,7 +244,7 @@ def _build_terrace(
 
 def _build_great_terrace(
     game: entities.Game, by: player.Nickname, coordinate: entities.Coordinate
-) -> Exception | None:
+) -> str | None:
     player_state = game.players[by]
     error = _ensure_resources(player_state.resources, _GREAT_TERRACE_COST)
     if error is not None:
@@ -259,11 +253,11 @@ def _build_great_terrace(
         player_state.settlements.count(entities.SettlementType.GREAT_TERRACE)
         >= entities.MAX_GREAT_TERRACES
     ):
-        return _errors.InsufficientResourcesError("No great terraces remaining")
+        return "No great terraces remaining"
 
     settlements = player_state.settlements
     if coordinate not in settlements:
-        return _errors.InvalidSettlementLocation(
+        return _placement.format_invalid_settlement_location(
             target=coordinate,
             player=by,
             free_vertices=game.free_verticies,
@@ -273,7 +267,7 @@ def _build_great_terrace(
             reason="You must first build a terrace at specified location.",
         )
     if settlements[coordinate] is entities.SettlementType.GREAT_TERRACE:
-        return _errors.InvalidSettlementLocation(
+        return _placement.format_invalid_settlement_location(
             target=coordinate,
             player=by,
             free_vertices=game.free_verticies,
@@ -290,10 +284,10 @@ def _build_great_terrace(
 
 def _build_path(
     game: entities.Game, by: player.Nickname, coordinate: entities.Coordinate
-) -> Exception | None:
+) -> str | None:
     player_state = game.players[by]
     if len(player_state.paths) >= entities.MAX_PATHS:
-        return _errors.InsufficientResourcesError("No paths remaining")
+        return "No paths remaining"
     error = _ensure_resources(player_state.resources, _PATH_COST)
     if error is not None:
         return error
@@ -306,7 +300,7 @@ def _build_path(
         free_vertices=game.free_verticies,
     )
     if not can:
-        return _errors.InvalidPathLocation(
+        return _placement.format_invalid_path_location(
             target=coordinate,
             player=by,
             existing_settlements=player_state.settlements.locations(),
@@ -322,12 +316,10 @@ def _build_path(
 
 def _ensure_resources(
     resources: entities.ResourceCount, cost: entities.ResourceCount
-) -> Exception | None:
+) -> str | None:
     for resource, amount in cost.items():
         if resources[resource] < amount:
-            return _errors.InsufficientResourcesError(
-                f"Insufficient {resource.value} to build"
-            )
+            return f"Insufficient {resource.value} to build"
     return None
 
 

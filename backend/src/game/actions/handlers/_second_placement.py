@@ -2,19 +2,19 @@ import collections
 
 from ... import player
 from ... import entities
-from . import _errors, _first_placement, _placement
+from . import _first_placement, _placement
 
 
 def handle_second_placement(
     game: entities.Game, action: _first_placement.FreePlacementAction
 ) -> _first_placement.PlacedBuildingsResult:
+    previous_phase = game.phase
     if game.active_player != action.by:
         return _first_placement.PlacedBuildingsResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.PlayerNotInTurnError(f"Player {action.by} is not in turn"),
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=f"Player {action.by} is not in turn",
         )
 
     can = _placement.can_add_free_terrace_at(
@@ -24,11 +24,10 @@ def handle_second_placement(
     )
     if not can:
         return _first_placement.PlacedBuildingsResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.InvalidSettlementLocation(
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=_placement.format_invalid_settlement_location(
                 target=action.terrace,
                 player=action.by,
                 free_vertices=game.free_verticies,
@@ -47,11 +46,10 @@ def handle_second_placement(
     )
     if not can:
         return _first_placement.PlacedBuildingsResult(
-            succeeded=False,
-            phase=game.phase,
-            by=action.by,
-            due_to_timeout=action.due_to_timeout,
-            error=_errors.InvalidPathLocation(
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error=_placement.format_invalid_path_location(
                 target=action.path,
                 player=action.by,
                 existing_settlements=player_state.settlements.locations(),
@@ -70,12 +68,12 @@ def handle_second_placement(
         game.player_idx -= 1
         game.phase = entities.GamePhaseName.SECOND_PLACEMENT
     return _first_placement.PlacedBuildingsResult(
-        succeeded=True,
-        phase=game.phase,
-        by=action.by,
-        due_to_timeout=action.due_to_timeout,
+        previous_phase=previous_phase,
+        next_phase=game.phase,
+        action=action,
         settlement=action.terrace,
         path=action.path,
+        next_player=game.active_player,
     )
 
 
