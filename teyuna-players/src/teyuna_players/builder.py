@@ -1,4 +1,10 @@
-class BuilderPlayer:
+import asyncio
+from typing import Awaitable
+
+from . import events
+
+
+def build(queue: asyncio.Queue[events.ActionExecutionResult], token: str) -> Awaitable[None]:
     """
     A player who will build the best possible structures
     given its current resources. This player can win the game
@@ -7,4 +13,4 @@ class BuilderPlayer:
     desired goal of 10 points.
     """
 
-    raise NotImplementedError
+    async def helper() -> None: ...
