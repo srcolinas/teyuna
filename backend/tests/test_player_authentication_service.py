@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from src import player
+from src.game import player
 
 
 def test_tokens_are_unique(service: player.PlayerAuthenticationService) -> None:

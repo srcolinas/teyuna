@@ -7,8 +7,8 @@ from typing import TypeVar
 
 import fastapi
 
-from . import active, proposed, settings
-from .active import repository as repository_module, services
+from . import game, settings
+from .game import services
 
 T = TypeVar("T")
 
@@ -37,8 +37,7 @@ def create_app() -> fastapi.FastAPI:
     print(f"Setting log level to: {settings_.loglevel} ({loglevel})")
     logging.basicConfig(level=loglevel)
 
-    app.include_router(proposed.router)
-    app.include_router(active.routes.router)
+    app.include_router(game.routes.router)
 
     return app
 
@@ -61,19 +60,16 @@ def _resolve(app: fastapi.FastAPI, dependency: Callable[[], T]) -> T:
 
 
 async def _apply_due_timeouts(*, app: fastapi.FastAPI, rng: random.Random) -> None:
-    repository = _resolve(app, active.dependencies.get_repository)
-    registry = _resolve(app, active.dependencies.get_actions_registry)
-    game_locks = _resolve(app, active.dependencies.get_game_locks)
-    broker = _resolve(app, active.dependencies.get_event_broker)
-    for game_id, _stored in repository.items():
-        try:
-            await services.apply_timeout_if_due(
-                game_id,
-                repository=repository,
-                registry=registry,
-                game_locks=game_locks,
-                broker=broker,
-                rng=rng,
-            )
-        except repository_module.ActiveGameDoesNotExistError:
-            continue
+    repository = _resolve(app, game.dependencies.get_repository)
+    registry = _resolve(app, game.dependencies.get_actions_registry)
+    game_locks = _resolve(app, game.dependencies.get_game_locks)
+    broker = _resolve(app, game.dependencies.get_event_broker)
+    for game_id, _ in repository.items():
+        await services.apply_timeout_if_due(
+            game_id,
+            repository=repository,
+            registry=registry,
+            game_locks=game_locks,
+            broker=broker,
+            rng=rng,
+        )
