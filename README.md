@@ -24,7 +24,14 @@ From the server point of view, there is no difference between a human player and
 
 ## Playing the game
 
-[PENDING]
+Assuming you have Docker installed, you can run the game server with:
+
+```bash
+docker compose up -d backend
+```
+This will start the game server.
+
+You can then play against some dummy players or your own AI agents using the `teyuna-simulate` CLI (see below).
 
 ## Python SDK
 
