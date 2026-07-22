@@ -8,38 +8,48 @@ all: check
 
 # Clean cache files and artifacts
 clean:
-	cd backend && make clean
-	cd teyuna-players && make clean
+	rm -rf .venv
+	cd packages/shared-core && make clean
+	cd packages/backend && make clean
+	cd packages/sdk-python && make clean
 
-# Install all dependencies
+# Install all workspace dependencies
 setup:
-	cd backend && make setup
-	cd teyuna-players && make setup
+	uv sync --all-packages --dev
+	uv run pre-commit install
 
 # Format all code
 format:
-	cd backend && make format
-	cd teyuna-players && make format
+	cd packages/shared-core && make format
+	cd packages/backend && make format
+	cd packages/sdk-python && make format
 
 # Lint all code
 lint:
-	cd backend && make lint
-	cd teyuna-players && make lint
+	cd packages/shared-core && make lint
+	cd packages/backend && make lint
+	cd packages/sdk-python && make lint
 
 # Run all tests
 test:
-	cd backend && make test
-	cd teyuna-players && make test
+	cd packages/shared-core && make test
+	cd packages/backend && make test
+	cd packages/sdk-python && make test
 
 # Run all checks
 check:
-	cd backend && make check
-	cd teyuna-players && make check
+	cd packages/shared-core && make check
+	cd packages/backend && make check
+	cd packages/sdk-python && make check
 
 # Run with Docker/Podman Compose
+# Usage: make run
+#        make run NUM_PLAYERS=4
+NUM_PLAYERS ?= 3
+
 run:
 	mkdir -p logs
-	docker compose up --build --detach
+	NUM_PLAYERS=$(NUM_PLAYERS) docker compose up --build --detach
 
 # Stop Docker/Podman services
 stop:

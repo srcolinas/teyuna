@@ -1,73 +1,34 @@
-# 🚀 Quick Start Guide - Teyuna Frontend
+# Teyuna observer quick start
 
-Get the game running in 5 minutes!
+## Terminal 1: backend
 
-## Prerequisites
-- Python 3.10+ 
-- Node.js 18+
-- Terminal with bash/zsh
-
-## Terminal 1: Start Backend
+From the repository root:
 
 ```bash
-cd /Users/elizabethgranda/Documents/teyuna/backend
-pip install fastapi uvicorn  # if needed
-python -m uvicorn src.main:create_app --port 8000 --reload
+docker compose up -d backend
 ```
 
-✅ You should see: `Uvicorn running on http://0.0.0.0:8000`
+The API is available at `http://localhost:8000`.
 
-## Terminal 2: Create Game & Players
+## Terminal 2: agent simulation
 
 ```bash
-# Create a 3-player game
-curl -X POST http://localhost:8000/proposed-games \
-  -H "Content-Type: application/json" \
-  -d '{"players_count": 3}'
-
-# Get the game ID from response, then add players:
-
-curl -X POST http://localhost:8000/proposed-games/{GAME_ID}/players \
-  -H "Content-Type: application/json" \
-  -d '{"nickname": "Alice"}'
-
-curl -X POST http://localhost:8000/proposed-games/{GAME_ID}/players \
-  -H "Content-Type: application/json" \
-  -d '{"nickname": "Bob"}'
-
-curl -X POST http://localhost:8000/proposed-games/{GAME_ID}/players \
-  -H "Content-Type: application/json" \
-  -d '{"nickname": "Charlie"}'
+uv run teyuna-simulate stochastic:Alice stochastic:Bob stochastic:Charlie
 ```
 
-Save the `active_game_id` from responses!
+Copy the game ID printed by the simulator. The stochastic agents make legal
+placements, trades, builds, wisdom-card plays, and other game actions.
 
-## Terminal 3: Start Frontend
+## Terminal 3: observer frontend
 
 ```bash
-cd /Users/elizabethgranda/Documents/teyuna/frontend
+cd apps/frontend
 npm install
 npm run dev
 ```
 
-✅ You should see: `Local: http://localhost:5173/`
+Open `http://localhost:5173/?gameId=YOUR_GAME_ID`.
 
-## Step 4: Open in Browser
-
-```
-http://localhost:5173/?gameId=YOUR_ACTIVE_GAME_ID
-```
-
-**Done!** 🎉 Game board should appear with hexagons, player info, and controls.
-
----
-
-## Testing
-
-- **Roll Dice**: Click 🎲 button (as active player)
-- **End Turn**: Click ➡️ button to pass to next player
-- **Watch Updates**: Frontend auto-updates every 2 seconds
-
----
-
-For detailed setup: [SETUP_GUIDE.md](SETUP_GUIDE.md)
+The frontend is an observer: it renders the public board, players, scores, and
+live events. A player's exact hand remains private unless that player's session
+token is supplied in the optional token field.

@@ -14,16 +14,21 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# Dependency manifests first for layer caching.
-COPY teyuna-players/pyproject.toml teyuna-players/uv.lock teyuna-players/README.md ./
+# Workspace manifests first for layer caching.
+COPY pyproject.toml uv.lock ./
+COPY packages/backend/pyproject.toml packages/backend/
+COPY packages/sdk-python/pyproject.toml packages/sdk-python/README.md packages/sdk-python/LICENSE packages/sdk-python/
+COPY packages/shared-core/pyproject.toml packages/shared-core/README.md packages/shared-core/
+# Path dependency must be buildable during the first sync.
+COPY packages/shared-core/src/ ./packages/shared-core/src/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-install-project --no-dev --no-editable
+    uv sync --package teyuna-sdk --no-install-project --no-dev --no-editable
 
-COPY teyuna-players/src/ ./src/
+COPY packages/sdk-python/src/ ./packages/sdk-python/src/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-editable
+    uv sync --package teyuna-sdk --no-dev --no-editable
 
 # ============================================
 # Stage: Runtime — minimal production image
@@ -43,7 +48,7 @@ RUN groupadd --gid 1000 appuser && \
     chown appuser:appuser /var/log/teyuna
 
 COPY --from=builder --chown=appuser:appuser /app /app
-COPY --chown=appuser:appuser teyuna-players/docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY --chown=appuser:appuser packages/sdk-python/docker-entrypoint.sh /app/docker-entrypoint.sh
 
 RUN chmod +x /app/docker-entrypoint.sh
 
