@@ -1,97 +1,39 @@
-import collections
 from typing import Final
 
-import pydantic
+import teyuna_shared
 
-from ... import player
 from ... import entities
-from .. import _registry
-from . import _placement
-from ._longest_road import recompute_longest_road, update_longest_road
-from ._play_card import PlayWisdomCardAction, PlayedWisdomCardResult, play_wisdom_card
-from ._victory import phase_after_victory_check
-
-
-class BuildSettlementAction(_registry.PlayerAction):
-    item: entities.SettlementType
-    coordinate: entities.Coordinate
-
-    @pydantic.model_validator(mode="after")
-    def _canonicalize(self) -> "BuildSettlementAction":
-        object.__setattr__(
-            self,
-            "coordinate",
-            entities.canonical_vertex(
-                self.coordinate.q, self.coordinate.r, self.coordinate.d
-            ),
-        )
-        return self
-
-
-class BuiltSettlementResult(_registry.ActionExecutionResult):
-    item: entities.SettlementType | None = None
-    coordinate: entities.Coordinate | None = None
-
-
-class BuildPathAction(_registry.PlayerAction):
-    coordinate: entities.Coordinate
-
-    @pydantic.model_validator(mode="after")
-    def _canonicalize(self) -> "BuildPathAction":
-        object.__setattr__(
-            self,
-            "coordinate",
-            entities.canonical_edge(
-                self.coordinate.q, self.coordinate.r, self.coordinate.d
-            ),
-        )
-        return self
-
-
-class BuiltPathResult(_registry.ActionExecutionResult):
-    coordinate: entities.Coordinate | None = None
-
-
-class EndedTradeAndBuildResult(_registry.ActionExecutionResult):
-    next_player: player.Nickname = ""
-
-
-class BuyWisdomCardAction(_registry.PlayerAction):
-    pass
-
-
-class BoughtWisdomCardResult(_registry.ActionExecutionResult):
-    card: entities.WisdomCard | None = None
+from . import _placement, _longest_road, _victory, _play_card
 
 
 def handle_build_terrace(
-    game: entities.Game, action: BuildSettlementAction
-) -> BuiltSettlementResult:
+    game: entities.Game, action: teyuna_shared.BuildSettlementAction
+) -> teyuna_shared.BuiltSettlementResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return BuiltSettlementResult(
+        return teyuna_shared.BuiltSettlementResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=f"Player {action.by} is not in turn",
         )
 
-    if action.item is entities.SettlementType.TERRACE:
+    if action.item is teyuna_shared.SettlementType.TERRACE:
         error = _build_terrace(game, action.by, action.coordinate)
     else:
         error = _build_great_terrace(game, action.by, action.coordinate)
     if error is not None:
-        return BuiltSettlementResult(
+        return teyuna_shared.BuiltSettlementResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
 
-    game.phase = phase_after_victory_check(
-        game, action.by, entities.GamePhaseName.TRADE_AND_BUILD
+    game.phase = _victory.phase_after_victory_check(
+        game, action.by, teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     )
-    return BuiltSettlementResult(
+    return teyuna_shared.BuiltSettlementResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -100,10 +42,12 @@ def handle_build_terrace(
     )
 
 
-def handle_build_path(game: entities.Game, action: BuildPathAction) -> BuiltPathResult:
+def handle_build_path(
+    game: entities.Game, action: teyuna_shared.BuildPathAction
+) -> teyuna_shared.BuiltPathResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return BuiltPathResult(
+        return teyuna_shared.BuiltPathResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -112,16 +56,16 @@ def handle_build_path(game: entities.Game, action: BuildPathAction) -> BuiltPath
 
     error = _build_path(game, action.by, action.coordinate)
     if error is not None:
-        return BuiltPathResult(
+        return teyuna_shared.BuiltPathResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.phase = phase_after_victory_check(
-        game, action.by, entities.GamePhaseName.TRADE_AND_BUILD
+    game.phase = _victory.phase_after_victory_check(
+        game, action.by, teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     )
-    return BuiltPathResult(
+    return teyuna_shared.BuiltPathResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -130,11 +74,11 @@ def handle_build_path(game: entities.Game, action: BuildPathAction) -> BuiltPath
 
 
 def handle_end_trade_and_build(
-    game: entities.Game, action: _registry.PlayerAction
-) -> EndedTradeAndBuildResult:
+    game: entities.Game, action: teyuna_shared.PlayerAction
+) -> teyuna_shared.EndedTradeAndBuildResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return EndedTradeAndBuildResult(
+        return teyuna_shared.EndedTradeAndBuildResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -148,9 +92,9 @@ def handle_end_trade_and_build(
         game.player_idx += 1
     else:
         game.player_idx = 0
-    game.phase = entities.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
 
-    return EndedTradeAndBuildResult(
+    return teyuna_shared.EndedTradeAndBuildResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -159,11 +103,11 @@ def handle_end_trade_and_build(
 
 
 def handle_buy_wisdom_card(
-    game: entities.Game, action: BuyWisdomCardAction
-) -> BoughtWisdomCardResult:
+    game: entities.Game, action: teyuna_shared.BuyWisdomCardAction
+) -> teyuna_shared.BoughtWisdomCardResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return BoughtWisdomCardResult(
+        return teyuna_shared.BoughtWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -171,25 +115,27 @@ def handle_buy_wisdom_card(
         )
 
     if not game.wisdom_deck:
-        return BoughtWisdomCardResult(
+        return teyuna_shared.BoughtWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error="Cannot buy more wisdom cards",
         )
 
-    error = _ensure_resources(game.players[action.by].resources, _WISDOM_CARD_COST)
+    error = _ensure_resources(
+        game.players[action.by].resources, teyuna_shared.WISDOM_CARD_COST
+    )
     if error is not None:
-        return BoughtWisdomCardResult(
+        return teyuna_shared.BoughtWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.discard_resources(action.by, _WISDOM_CARD_COST)
+    game.discard_resources(action.by, teyuna_shared.WISDOM_CARD_COST)
     card = game.take_wisdom_card(action.by)
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
-    return BoughtWisdomCardResult(
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    return teyuna_shared.BoughtWisdomCardResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -198,9 +144,9 @@ def handle_buy_wisdom_card(
 
 
 def handle_trade_and_build_play_wisdom_card(
-    game: entities.Game, action: PlayWisdomCardAction
-) -> PlayedWisdomCardResult:
-    return play_wisdom_card(
+    game: entities.Game, action: teyuna_shared.PlayWisdomCardAction
+) -> teyuna_shared.PlayedWisdomCardResult:
+    return _play_card.play_wisdom_card(
         game,
         action,
         card_phases=_TRADE_AND_BUILD_CARD_PHASES,
@@ -209,15 +155,15 @@ def handle_trade_and_build_play_wisdom_card(
 
 
 def _build_terrace(
-    game: entities.Game, by: player.Nickname, coordinate: entities.Coordinate
+    game: entities.Game, by: str, coordinate: teyuna_shared.Coordinate
 ) -> str | None:
     player_state = game.players[by]
-    error = _ensure_resources(player_state.resources, _TERRACE_COST)
+    error = _ensure_resources(player_state.resources, teyuna_shared.TERRACE_COST)
     if error is not None:
         return error
     if (
-        player_state.settlements.count(entities.SettlementType.TERRACE)
-        >= entities.MAX_TERRACES
+        player_state.settlements.count(teyuna_shared.SettlementType.TERRACE)
+        >= teyuna_shared.MAX_TERRACES
     ):
         return "No terraces remaining"
 
@@ -236,22 +182,22 @@ def _build_terrace(
             existing_paths=player_state.paths,
         )
 
-    game.use_vertex(by, coordinate, entities.SettlementType.TERRACE)
-    game.discard_resources(by, _TERRACE_COST)
-    recompute_longest_road(game, by, vertex=coordinate)
+    game.use_vertex(by, coordinate, teyuna_shared.SettlementType.TERRACE)
+    game.discard_resources(by, teyuna_shared.TERRACE_COST)
+    _longest_road.recompute_longest_road(game, by, vertex=coordinate)
     return None
 
 
 def _build_great_terrace(
-    game: entities.Game, by: player.Nickname, coordinate: entities.Coordinate
+    game: entities.Game, by: str, coordinate: teyuna_shared.Coordinate
 ) -> str | None:
     player_state = game.players[by]
-    error = _ensure_resources(player_state.resources, _GREAT_TERRACE_COST)
+    error = _ensure_resources(player_state.resources, teyuna_shared.GREAT_TERRACE_COST)
     if error is not None:
         return error
     if (
-        player_state.settlements.count(entities.SettlementType.GREAT_TERRACE)
-        >= entities.MAX_GREAT_TERRACES
+        player_state.settlements.count(teyuna_shared.SettlementType.GREAT_TERRACE)
+        >= teyuna_shared.MAX_GREAT_TERRACES
     ):
         return "No great terraces remaining"
 
@@ -266,7 +212,7 @@ def _build_great_terrace(
             existing_settlements=dict(settlements.items()),
             reason="You must first build a terrace at specified location.",
         )
-    if settlements[coordinate] is entities.SettlementType.GREAT_TERRACE:
+    if settlements[coordinate] is teyuna_shared.SettlementType.GREAT_TERRACE:
         return _placement.format_invalid_settlement_location(
             target=coordinate,
             player=by,
@@ -277,18 +223,18 @@ def _build_great_terrace(
             reason="You have already built a great terrace at specified location.",
         )
 
-    settlements[coordinate] = entities.SettlementType.GREAT_TERRACE
-    game.discard_resources(by, _GREAT_TERRACE_COST)
+    settlements[coordinate] = teyuna_shared.SettlementType.GREAT_TERRACE
+    game.discard_resources(by, teyuna_shared.GREAT_TERRACE_COST)
     return None
 
 
 def _build_path(
-    game: entities.Game, by: player.Nickname, coordinate: entities.Coordinate
+    game: entities.Game, by: str, coordinate: teyuna_shared.Coordinate
 ) -> str | None:
     player_state = game.players[by]
-    if len(player_state.paths) >= entities.MAX_PATHS:
+    if len(player_state.paths) >= teyuna_shared.MAX_PATHS:
         return "No paths remaining"
-    error = _ensure_resources(player_state.resources, _PATH_COST)
+    error = _ensure_resources(player_state.resources, teyuna_shared.PATH_COST)
     if error is not None:
         return error
 
@@ -309,13 +255,13 @@ def _build_path(
         )
 
     game.use_edge(by, coordinate)
-    game.discard_resources(by, _PATH_COST)
-    update_longest_road(game, by, edge=coordinate)
+    game.discard_resources(by, teyuna_shared.PATH_COST)
+    _longest_road.update_longest_road(game, by, edge=coordinate)
     return None
 
 
 def _ensure_resources(
-    resources: entities.ResourceCount, cost: entities.ResourceCount
+    resources: teyuna_shared.ResourceCount, cost: teyuna_shared.ResourceCount
 ) -> str | None:
     for resource, amount in cost.items():
         if resources[resource] < amount:
@@ -324,44 +270,15 @@ def _ensure_resources(
 
 
 _TRADE_AND_BUILD_CARD_PHASES: Final[
-    dict[entities.WisdomCard, entities.GamePhaseName]
+    dict[teyuna_shared.WisdomCard, teyuna_shared.GamePhaseName]
 ] = {
-    entities.WisdomCard.WARRIOR: entities.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
-    entities.WisdomCard.WINDOM_OF_MAMO: entities.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
-    entities.WisdomCard.BLESSING_OF_ALUNA: (
-        entities.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
+    teyuna_shared.WisdomCard.WARRIOR: teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+    teyuna_shared.WisdomCard.WINDOM_OF_MAMO: teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+    teyuna_shared.WisdomCard.BLESSING_OF_ALUNA: (
+        teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
     ),
-    entities.WisdomCard.PATHFINDER: (
-        entities.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER
+    teyuna_shared.WisdomCard.PATHFINDER: (
+        teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER
     ),
-    entities.WisdomCard.LEGACY_OF_THE_ELDERS: entities.GamePhaseName.TRADE_AND_BUILD,
+    teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS: teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
 }
-
-
-_TERRACE_COST: Final[entities.ResourceCount] = collections.Counter(
-    {
-        entities.ResourceCard.STONE: 1,
-        entities.ResourceCard.WOOD: 1,
-        entities.ResourceCard.COTTON: 1,
-        entities.ResourceCard.MAIZE: 1,
-    }
-)
-_GREAT_TERRACE_COST: Final[entities.ResourceCount] = collections.Counter(
-    {
-        entities.ResourceCard.GOLD: 3,
-        entities.ResourceCard.MAIZE: 2,
-    }
-)
-_PATH_COST: Final[entities.ResourceCount] = collections.Counter(
-    {
-        entities.ResourceCard.STONE: 1,
-        entities.ResourceCard.WOOD: 1,
-    }
-)
-_WISDOM_CARD_COST: Final[entities.ResourceCount] = collections.Counter(
-    {
-        entities.ResourceCard.GOLD: 1,
-        entities.ResourceCard.COTTON: 1,
-        entities.ResourceCard.MAIZE: 1,
-    }
-)

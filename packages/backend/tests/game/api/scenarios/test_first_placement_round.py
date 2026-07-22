@@ -1,9 +1,9 @@
 import fastapi.testclient as testclient
 
-from src.game import entities
 
 from .. import utils
 from . import rounds, asserts
+import teyuna_shared
 
 
 def test_three_players_complete_first_placements(
@@ -32,27 +32,27 @@ def test_three_players_complete_first_placements(
         [
             (
                 first,
-                entities.SettlementType.TERRACE,
-                entities.canonical_vertex(-2, 0, 0),
+                teyuna_shared.SettlementType.TERRACE,
+                teyuna_shared.canonical_vertex(-2, 0, 0),
             ),
             (
                 second,
-                entities.SettlementType.TERRACE,
-                entities.canonical_vertex(-2, 0, 2),
+                teyuna_shared.SettlementType.TERRACE,
+                teyuna_shared.canonical_vertex(-2, 0, 2),
             ),
             (
                 third,
-                entities.SettlementType.TERRACE,
-                entities.canonical_vertex(-2, 0, 4),
+                teyuna_shared.SettlementType.TERRACE,
+                teyuna_shared.canonical_vertex(-2, 0, 4),
             ),
         ],
     )
     asserts.assert_paths(
         game["paths"],
         [
-            (first, entities.canonical_edge(-2, -1, 1)),
-            (second, entities.canonical_edge(-2, 0, 1)),
-            (third, entities.canonical_edge(-2, 0, 4)),
+            (first, teyuna_shared.canonical_edge(-2, -1, 1)),
+            (second, teyuna_shared.canonical_edge(-2, 0, 1)),
+            (third, teyuna_shared.canonical_edge(-2, 0, 4)),
         ],
     )
     asserts.assert_players_attributes_equal(

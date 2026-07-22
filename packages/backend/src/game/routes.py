@@ -11,13 +11,13 @@ from starlette import websockets
 
 from . import player
 from .. import settings
+import teyuna_shared
+
 from . import (
     dependencies,
     http,
-    ports,
     repository as repository_module,
     actions,
-    entities,
     locks,
     services,
     broker as broker_module,
@@ -28,13 +28,13 @@ router = fastapi.APIRouter(prefix="/games", route_class=http.GameRoute)
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_game(
-    payload: ports.CreateGameRequest,
+    payload: teyuna_shared.CreateGameRequest,
     repository_: Annotated[
         repository_module.InMemoryGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     settings_: Annotated[settings.Settings, fastapi.Depends(settings.get_settings)],
-) -> ports.Game:
+) -> teyuna_shared.Game:
     return services.create_game(
         params=payload,
         repository=repository_,
@@ -59,7 +59,7 @@ def join_game(
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
     settings_: Annotated[settings.Settings, fastapi.Depends(settings.get_settings)],
-) -> ports.Game:
+) -> teyuna_shared.Game:
     result, token = services.add_player(
         game_id=game_id,
         nickname=payload.nickname,
@@ -73,8 +73,8 @@ def join_game(
 
 @router.get("/{game_id}")
 def get_game(
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> ports.Game:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_shared.Game:
     return game
 
 
@@ -83,8 +83,8 @@ def get_game(
 
 @router.get("/{game_id}/map")
 def get_game_map(
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> tuple[ports.Hex, ...]:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> tuple[teyuna_shared.Hex, ...]:
     return game.map
 
 
@@ -93,7 +93,7 @@ def get_game_map(
 
 @router.get("/{game_id}/turn-order")
 def get_turn_order(
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
 ) -> tuple[player.Nickname, ...]:
     return game.turn_order
 
@@ -117,10 +117,10 @@ async def advance_or_phase(
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
     rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
-) -> tuple[entities.GamePhaseName, player.Nickname]:
+) -> tuple[teyuna_shared.GamePhaseName, player.Nickname]:
     result, game = await services.apply_player_action(
         game_id,
-        actions.PlayerAction(by=nickname, rng_=rng),
+        teyuna_shared.PlayerAction(by=nickname, rng_=rng),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -135,13 +135,13 @@ async def advance_or_phase(
 
 @router.get("/{game_id}/conquistator")
 def get_conquistator_location(
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> ports.HexCoordinate:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_shared.HexCoordinate:
     return game.conquistator_location
 
 
 class MoveConquistatorPayload(pydantic.BaseModel):
-    location: ports.HexCoordinate
+    location: teyuna_shared.HexCoordinate
     take_from: player.Nickname | None = None
 
     model_config = pydantic.ConfigDict(frozen=True)
@@ -166,10 +166,10 @@ async def move_conquistator(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> ports.HexCoordinate:
+) -> teyuna_shared.HexCoordinate:
     result, game = await services.apply_player_action(
         game_id,
-        actions.MoveConquistatorAction(
+        teyuna_shared.MoveConquistatorAction(
             by=nickname,
             q=payload.location.q,
             r=payload.location.r,
@@ -181,7 +181,7 @@ async def move_conquistator(
         broker=broker,
     )
     http.raise_if_failed(result)
-    return ports.HexCoordinate(
+    return teyuna_shared.HexCoordinate(
         q=game.conquistator_location.q, r=game.conquistator_location.r
     )
 
@@ -190,7 +190,7 @@ async def move_conquistator(
 
 
 class PlayWisdomCardPayload(pydantic.BaseModel):
-    card: entities.WisdomCard
+    card: teyuna_shared.WisdomCard
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -214,10 +214,10 @@ async def play_wisdom_card(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> entities.GamePhaseName:
+) -> teyuna_shared.GamePhaseName:
     result, _ = await services.apply_player_action(
         game_id,
-        actions.PlayWisdomCardAction(by=nickname, card=payload.card),
+        teyuna_shared.PlayWisdomCardAction(by=nickname, card=payload.card),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -245,10 +245,10 @@ async def buy_wisdom_card(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> entities.GamePhaseName:
+) -> teyuna_shared.GamePhaseName:
     result, _ = await services.apply_player_action(
         game_id,
-        actions.BuyWisdomCardAction(by=nickname),
+        teyuna_shared.BuyWisdomCardAction(by=nickname),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -262,8 +262,8 @@ async def buy_wisdom_card(
 
 
 class ProposeTradePayload(pydantic.BaseModel):
-    offer: dict[entities.ResourceCard, int]
-    request: dict[entities.ResourceCard, int]
+    offer: dict[teyuna_shared.ResourceCard, int]
+    request: dict[teyuna_shared.ResourceCard, int]
     to: set[player.Nickname]
 
     model_config = pydantic.ConfigDict(frozen=True)
@@ -291,7 +291,7 @@ async def propose_trade(
 ) -> None:
     result, game = await services.apply_player_action(
         game_id,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=nickname,
             offer=collections.Counter(payload.offer),
             request=collections.Counter(payload.request),
@@ -325,10 +325,10 @@ async def accept_trade(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> entities.GamePhaseName:
+) -> teyuna_shared.GamePhaseName:
     result, _ = await services.apply_player_action(
         game_id,
-        actions.AcceptTradeAction(by=nickname, id=proposal_id),
+        teyuna_shared.AcceptTradeAction(by=nickname, id=proposal_id),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -339,8 +339,8 @@ async def accept_trade(
 
 
 class TradeWithSupplyPayload(pydantic.BaseModel):
-    offers: entities.ResourceCard
-    requests: entities.ResourceCard
+    offers: teyuna_shared.ResourceCard
+    requests: teyuna_shared.ResourceCard
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -364,10 +364,10 @@ async def trade_with_supply(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> entities.GamePhaseName:
+) -> teyuna_shared.GamePhaseName:
     result, _ = await services.apply_player_action(
         game_id,
-        actions.TradeWithSupplyAction(
+        teyuna_shared.TradeWithSupplyAction(
             by=nickname,
             offers=payload.offers,
             requests=payload.requests,
@@ -385,7 +385,7 @@ async def trade_with_supply(
 
 
 class PlayMamoPayload(pydantic.BaseModel):
-    resource: entities.ResourceCard
+    resource: teyuna_shared.ResourceCard
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -409,10 +409,10 @@ async def play_mamo(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> dict[entities.ResourceCard, int]:
+) -> dict[teyuna_shared.ResourceCard, int]:
     result, game = await services.apply_player_action(
         game_id,
-        actions.PlayMamoAction(by=nickname, resource=payload.resource),
+        teyuna_shared.PlayMamoAction(by=nickname, resource=payload.resource),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -423,7 +423,7 @@ async def play_mamo(
 
 
 class PlayBlessingPayload(pydantic.BaseModel):
-    resources: tuple[entities.ResourceCard, entities.ResourceCard]
+    resources: tuple[teyuna_shared.ResourceCard, teyuna_shared.ResourceCard]
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -447,10 +447,10 @@ async def play_blessing(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> dict[entities.ResourceCard, int]:
+) -> dict[teyuna_shared.ResourceCard, int]:
     result, game = await services.apply_player_action(
         game_id,
-        actions.PlayBlessedAction(by=nickname, resources=payload.resources),
+        teyuna_shared.PlayBlessedAction(by=nickname, resources=payload.resources),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -462,7 +462,7 @@ async def play_blessing(
 
 class PlayPathfinderPayload(pydantic.BaseModel):
     paths: Annotated[
-        list[ports.EdgeCoordinate],
+        list[teyuna_shared.EdgeCoordinate],
         pydantic.Field(min_length=1, max_length=2),
     ]
 
@@ -488,11 +488,11 @@ async def play_pathfinder(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> list[ports.PlayedStonePath]:
-    action = actions.PlayPathfinderAction(
+) -> list[teyuna_shared.PlayedStonePath]:
+    action = teyuna_shared.PlayPathfinderAction(
         by=nickname,
         paths=tuple(
-            entities.Coordinate(
+            teyuna_shared.Coordinate(
                 q=path.hex_coord.q,
                 r=path.hex_coord.r,
                 d=path.direction,
@@ -512,10 +512,10 @@ async def play_pathfinder(
     http.raise_if_failed(result)
 
     return [
-        ports.PlayedStonePath(
+        teyuna_shared.PlayedStonePath(
             owner=nickname,
-            location=ports.EdgeCoordinate(
-                hex_coord=ports.HexCoordinate(q=coord.q, r=coord.r),
+            location=teyuna_shared.EdgeCoordinate(
+                hex_coord=teyuna_shared.HexCoordinate(q=coord.q, r=coord.r),
                 direction=coord.d,
             ),
         )
@@ -529,28 +529,40 @@ async def play_pathfinder(
 
 @router.get("/{game_id}/players")
 def list_players(
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> list[ports.Player]:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> list[teyuna_shared.Player]:
     return game.players
 
 
 @router.get("/{game_id}/players/{nickname}")
 def get_player(
     nickname: player.Nickname,
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> ports.Player:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_shared.Player:
     for p in game.players:
         if p.nickname == nickname:
             return p
     raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
+@router.get("/{game_id}/hand")
+def get_hand(
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    game_id: uuid.UUID,
+    repository: Annotated[
+        repository_module.InMemoryGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+) -> teyuna_shared.PlayerHand:
+    return services.retrieve_hand(game_id, nickname, repository=repository)
+
+
 # --- Initial placements ---
 
 
 class InitialPlacementPayload(pydantic.BaseModel):
-    terrace: ports.VertexCoordinate
-    path: ports.EdgeCoordinate
+    terrace: teyuna_shared.VertexCoordinate
+    path: teyuna_shared.EdgeCoordinate
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -574,17 +586,17 @@ async def add_initial_placements(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> tuple[ports.PlayedSettlement, ports.PlayedStonePath]:
+) -> tuple[teyuna_shared.PlayedSettlement, teyuna_shared.PlayedStonePath]:
     result, _ = await services.apply_player_action(
         game_id,
-        actions.FreePlacementAction(
+        teyuna_shared.FreePlacementAction(
             by=nickname,
-            terrace=entities.Coordinate(
+            terrace=teyuna_shared.Coordinate(
                 q=payload.terrace.hex_coord.q,
                 r=payload.terrace.hex_coord.r,
                 d=payload.terrace.direction,
             ),
-            path=entities.Coordinate(
+            path=teyuna_shared.Coordinate(
                 q=payload.path.hex_coord.q,
                 r=payload.path.hex_coord.r,
                 d=payload.path.direction,
@@ -596,11 +608,11 @@ async def add_initial_placements(
         broker=broker,
     )
     http.raise_if_failed(result)
-    return ports.PlayedSettlement(
+    return teyuna_shared.PlayedSettlement(
         location=payload.terrace,
-        type=entities.SettlementType.TERRACE,
+        type=teyuna_shared.SettlementType.TERRACE,
         owner=nickname,
-    ), ports.PlayedStonePath(
+    ), teyuna_shared.PlayedStonePath(
         location=payload.path,
         owner=nickname,
     )
@@ -611,8 +623,8 @@ async def add_initial_placements(
 
 @router.get("/{game_id}/settlements")
 def list_settlements(
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> list[ports.PlayedSettlement]:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> list[teyuna_shared.PlayedSettlement]:
     return game.settlements
 
 
@@ -621,8 +633,8 @@ def get_settlement(
     q: int,
     r: int,
     direction: int,
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> ports.PlayedSettlement | None:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_shared.PlayedSettlement | None:
     for s in game.settlements:
         if (
             s.location.hex_coord.q == q
@@ -634,8 +646,8 @@ def get_settlement(
 
 
 class BuildSettlementPayload(pydantic.BaseModel):
-    item: entities.SettlementType
-    location: ports.VertexCoordinate
+    item: teyuna_shared.SettlementType
+    location: teyuna_shared.VertexCoordinate
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -659,13 +671,13 @@ async def build_settlement(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> ports.PlayedSettlement:
+) -> teyuna_shared.PlayedSettlement:
     result, _ = await services.apply_player_action(
         game_id,
-        actions.BuildSettlementAction(
+        teyuna_shared.BuildSettlementAction(
             by=nickname,
             item=payload.item,
-            coordinate=entities.Coordinate(
+            coordinate=teyuna_shared.Coordinate(
                 q=payload.location.hex_coord.q,
                 r=payload.location.hex_coord.r,
                 d=payload.location.direction,
@@ -679,10 +691,10 @@ async def build_settlement(
 
     http.raise_if_failed(result)
 
-    return ports.PlayedSettlement(
+    return teyuna_shared.PlayedSettlement(
         owner=nickname,
-        location=ports.VertexCoordinate(
-            hex_coord=ports.HexCoordinate(
+        location=teyuna_shared.VertexCoordinate(
+            hex_coord=teyuna_shared.HexCoordinate(
                 q=payload.location.hex_coord.q, r=payload.location.hex_coord.r
             ),
             direction=payload.location.direction,
@@ -696,8 +708,8 @@ async def build_settlement(
 
 @router.get("/{game_id}/paths")
 def list_paths(
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> list[ports.PlayedStonePath]:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> list[teyuna_shared.PlayedStonePath]:
     return game.paths
 
 
@@ -708,8 +720,8 @@ def get_path(
     q: int,
     r: int,
     direction: int,
-    game: Annotated[ports.Game, fastapi.Depends(dependencies.get_game)],
-) -> ports.PlayedStonePath | None:
+    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_shared.PlayedStonePath | None:
     for p in game.paths:
         if (
             p.location.hex_coord.q == q
@@ -721,7 +733,7 @@ def get_path(
 
 
 class BuildPathPayload(pydantic.BaseModel):
-    location: ports.EdgeCoordinate
+    location: teyuna_shared.EdgeCoordinate
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -745,12 +757,12 @@ async def build_path(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> ports.PlayedStonePath:
+) -> teyuna_shared.PlayedStonePath:
     result, _ = await services.apply_player_action(
         game_id,
-        actions.BuildPathAction(
+        teyuna_shared.BuildPathAction(
             by=nickname,
-            coordinate=entities.Coordinate(
+            coordinate=teyuna_shared.Coordinate(
                 q=payload.location.hex_coord.q,
                 r=payload.location.hex_coord.r,
                 d=payload.location.direction,
@@ -764,10 +776,10 @@ async def build_path(
 
     http.raise_if_failed(result)
 
-    return ports.PlayedStonePath(
+    return teyuna_shared.PlayedStonePath(
         owner=nickname,
-        location=ports.EdgeCoordinate(
-            hex_coord=ports.HexCoordinate(
+        location=teyuna_shared.EdgeCoordinate(
+            hex_coord=teyuna_shared.HexCoordinate(
                 q=payload.location.hex_coord.q, r=payload.location.hex_coord.r
             ),
             direction=payload.location.direction,

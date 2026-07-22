@@ -1,14 +1,15 @@
 from src.game import actions, entities
+import teyuna_shared
 
 
 def test_terraces_and_great_terraces(game: entities.Game) -> None:
     by = game.active_player
     player = game.players[by]
-    player.settlements[entities.canonical_vertex(0, 0, 0)] = (
-        entities.SettlementType.TERRACE
+    player.settlements[teyuna_shared.canonical_vertex(0, 0, 0)] = (
+        teyuna_shared.SettlementType.TERRACE
     )
-    player.settlements[entities.canonical_vertex(0, 0, 2)] = (
-        entities.SettlementType.GREAT_TERRACE
+    player.settlements[teyuna_shared.canonical_vertex(0, 0, 2)] = (
+        teyuna_shared.SettlementType.GREAT_TERRACE
     )
 
     assert actions.victory_points(game, by) == 3
@@ -24,7 +25,7 @@ def test_longest_road_and_biggest_army_bonuses(game: entities.Game) -> None:
 
 def test_legacy_cards_count(game: entities.Game) -> None:
     by = game.active_player
-    game.players[by].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 2
+    game.players[by].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 2
 
     assert actions.victory_points(game, by) == 2
 
@@ -34,7 +35,7 @@ def test_bonuses_do_not_apply_for_other_players(game: entities.Game) -> None:
     other = game.turn_order[1]
     game.longest_road = (other, 5)
     game.biggest_army = (other, 3)
-    game.players[other].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
+    game.players[other].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
 
     assert actions.victory_points(game, by) == 0
 
@@ -43,13 +44,13 @@ def test_phase_after_victory_check_returns_end_game_when_at_least_ten(
     game: entities.Game,
 ) -> None:
     by = game.active_player
-    game.players[by].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 10
+    game.players[by].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 10
 
     assert (
         actions.phase_after_victory_check(
-            game, by, entities.GamePhaseName.TRADE_AND_BUILD
+            game, by, teyuna_shared.GamePhaseName.TRADE_AND_BUILD
         )
-        is entities.GamePhaseName.END_GAME
+        is teyuna_shared.GamePhaseName.END_GAME
     )
 
 
@@ -57,11 +58,11 @@ def test_phase_after_victory_check_returns_fallback_when_below_ten(
     game: entities.Game,
 ) -> None:
     by = game.active_player
-    game.players[by].played_cards[entities.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
+    game.players[by].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
 
     assert (
         actions.phase_after_victory_check(
-            game, by, entities.GamePhaseName.TRADE_AND_BUILD
+            game, by, teyuna_shared.GamePhaseName.TRADE_AND_BUILD
         )
-        is entities.GamePhaseName.TRADE_AND_BUILD
+        is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     )

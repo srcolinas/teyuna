@@ -4,6 +4,8 @@ import uuid
 import fastapi
 import fastapi.testclient as testclient
 
+import teyuna_shared
+
 from src.game import (
     entities,
     dependencies,
@@ -70,7 +72,7 @@ def test_returns_turn_order_clockwise_from_active_player(
     game.player_idx = 1
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
-    game.phase = entities.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -91,7 +93,7 @@ def test_returns_turn_order_counter_clockwise_during_second_placement(
     game.player_idx = 2
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
-    game.phase = entities.GamePhaseName.SECOND_PLACEMENT
+    game.phase = teyuna_shared.GamePhaseName.SECOND_PLACEMENT
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -110,7 +112,7 @@ def test_returns_400_when_action_not_allowed(
     game = _create_game()
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
-    game.phase = entities.GamePhaseName.DICE_PLAY_WARRIOR
+    game.phase = teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -130,7 +132,7 @@ def test_returns_501_when_phase_not_implemented(
     game = _create_game()
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
-    game.phase = entities.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -153,7 +155,7 @@ def test_returns_400_when_player_not_in_turn(
     game = _create_game()
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
-    game.phase = entities.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -174,7 +176,7 @@ def test_rolls_dice_and_advances_phase(
     game = _create_game()
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
-    game.phase = entities.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -187,8 +189,8 @@ def test_rolls_dice_and_advances_phase(
     assert response.status_code == 200, response.text
     phase, nickname = response.json()
     assert phase in {
-        entities.GamePhaseName.MOVE_CONQUISTATOR,
-        entities.GamePhaseName.TRADE_AND_BUILD,
+        teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR,
+        teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
     }
     assert nickname == active_player
     stored_phase = repository.retrieve(game_id).phase
@@ -204,7 +206,7 @@ def test_ends_trade_and_build_and_advances_player(
     game = _create_game()
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -217,19 +219,21 @@ def test_ends_trade_and_build_and_advances_player(
 
     assert response.status_code == 200, response.text
     phase, nickname = response.json()
-    assert phase == entities.GamePhaseName.DICE_ROLL
+    assert phase == teyuna_shared.GamePhaseName.DICE_ROLL
     assert nickname == next_player
     stored_phase = repository.retrieve(game_id).phase
-    assert stored_phase is entities.GamePhaseName.DICE_ROLL
+    assert stored_phase is teyuna_shared.GamePhaseName.DICE_ROLL
     assert game.active_player == next_player
 
 
 def _create_game() -> entities.Game:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=2)
+    mountains = teyuna_shared.MapHex(
+        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=2
+    )
     nicknames = ("srcolinas-0", "srcolinas-1", "srcolinas-2")
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

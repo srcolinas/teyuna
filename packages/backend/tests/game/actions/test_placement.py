@@ -1,11 +1,12 @@
 from src.game import entities
 from src.game.actions.handlers import _placement
+import teyuna_shared
 
 
 def test_free_path_returns_true_when_adjacent_to_owned_settlement() -> None:
-    terrace = entities.canonical_vertex(0, 0, 0)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
     path = next(
-        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
     assert (
@@ -21,9 +22,9 @@ def test_free_path_returns_true_when_adjacent_to_owned_settlement() -> None:
 
 
 def test_free_path_returns_false_when_path_not_free() -> None:
-    terrace = entities.canonical_vertex(0, 0, 0)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
     path = next(
-        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
     assert (
@@ -39,10 +40,10 @@ def test_free_path_returns_false_when_path_not_free() -> None:
 
 
 def test_free_path_returns_false_when_disconnected() -> None:
-    terrace = entities.canonical_vertex(0, 0, 0)
-    other = entities.canonical_vertex(1, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(other.q, other.r, other.d)))
-    assert terrace not in entities.vertices_of_edge(path)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    other = teyuna_shared.canonical_vertex(1, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(other.q, other.r, other.d)))
+    assert terrace not in teyuna_shared.vertices_of_edge(path)
 
     assert (
         _placement.can_add_free_path_at(
@@ -57,11 +58,11 @@ def test_free_path_returns_false_when_disconnected() -> None:
 
 
 def test_free_path_returns_true_when_adjacent_to_free_vertex_with_owned_path() -> None:
-    owned_path = entities.canonical_edge(0, 0, 0)
-    v0, v1 = entities.vertices_of_edge(owned_path)
+    owned_path = teyuna_shared.canonical_edge(0, 0, 0)
+    v0, v1 = teyuna_shared.vertices_of_edge(owned_path)
     adjacent = next(
         e
-        for e in entities.edges_adjacent_to_vertex(v1.q, v1.r, v1.d)
+        for e in teyuna_shared.edges_adjacent_to_vertex(v1.q, v1.r, v1.d)
         if e != owned_path
     )
 
@@ -78,9 +79,9 @@ def test_free_path_returns_true_when_adjacent_to_free_vertex_with_owned_path() -
 
 
 def test_free_path_returns_false_when_neighbor_settlement_not_owned() -> None:
-    terrace = entities.canonical_vertex(0, 0, 0)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
     path = next(
-        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
     assert (
@@ -96,9 +97,9 @@ def test_free_path_returns_false_when_neighbor_settlement_not_owned() -> None:
 
 
 def test_free_path_returns_true_when_adjacent_to_new_settlement() -> None:
-    terrace = entities.canonical_vertex(0, 0, 0)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
     path = next(
-        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
     assert (
@@ -115,14 +116,14 @@ def test_free_path_returns_true_when_adjacent_to_new_settlement() -> None:
 
 
 def test_free_path_accepts_settlements_collection_locations() -> None:
-    terrace = entities.canonical_vertex(0, 0, 0)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
     path = next(
-        iter(entities.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
     settlements = entities.SettlementsCollection()
-    settlements[terrace] = entities.SettlementType.TERRACE
+    settlements[terrace] = teyuna_shared.SettlementType.TERRACE
 
-    assert list(settlements.values()) == [entities.SettlementType.TERRACE]
+    assert list(settlements.values()) == [teyuna_shared.SettlementType.TERRACE]
     assert (
         _placement.can_add_free_path_at(
             target=path,
@@ -136,7 +137,7 @@ def test_free_path_accepts_settlements_collection_locations() -> None:
 
 
 def test_free_terrace_returns_true_when_target_is_free() -> None:
-    target = entities.canonical_vertex(0, 0, 0)
+    target = teyuna_shared.canonical_vertex(0, 0, 0)
 
     assert (
         _placement.can_add_free_terrace_at(
@@ -149,7 +150,7 @@ def test_free_terrace_returns_true_when_target_is_free() -> None:
 
 
 def test_free_terrace_returns_false_when_target_not_free() -> None:
-    target = entities.canonical_vertex(0, 0, 0)
+    target = teyuna_shared.canonical_vertex(0, 0, 0)
 
     assert (
         _placement.can_add_free_terrace_at(
@@ -162,7 +163,7 @@ def test_free_terrace_returns_false_when_target_not_free() -> None:
 
 
 def test_free_terrace_returns_false_when_target_is_restricted() -> None:
-    target = entities.canonical_vertex(0, 0, 0)
+    target = teyuna_shared.canonical_vertex(0, 0, 0)
 
     assert (
         _placement.can_add_free_terrace_at(
@@ -175,8 +176,10 @@ def test_free_terrace_returns_false_when_target_is_restricted() -> None:
 
 
 def test_build_terrace_returns_true_when_free_and_adjacent_to_owned_path() -> None:
-    target = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(target.q, target.r, target.d)))
+    target = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(teyuna_shared.edges_adjacent_to_vertex(target.q, target.r, target.d))
+    )
 
     assert (
         _placement.can_build_terrace_at(
@@ -190,7 +193,7 @@ def test_build_terrace_returns_true_when_free_and_adjacent_to_owned_path() -> No
 
 
 def test_build_terrace_returns_false_when_no_adjacent_owned_path() -> None:
-    target = entities.canonical_vertex(0, 0, 0)
+    target = teyuna_shared.canonical_vertex(0, 0, 0)
 
     assert (
         _placement.can_build_terrace_at(
@@ -204,8 +207,10 @@ def test_build_terrace_returns_false_when_no_adjacent_owned_path() -> None:
 
 
 def test_build_terrace_returns_false_when_target_is_restricted() -> None:
-    target = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(target.q, target.r, target.d)))
+    target = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(teyuna_shared.edges_adjacent_to_vertex(target.q, target.r, target.d))
+    )
 
     assert (
         _placement.can_build_terrace_at(
@@ -219,8 +224,10 @@ def test_build_terrace_returns_false_when_target_is_restricted() -> None:
 
 
 def test_build_terrace_returns_false_when_target_not_free() -> None:
-    target = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(target.q, target.r, target.d)))
+    target = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(
+        iter(teyuna_shared.edges_adjacent_to_vertex(target.q, target.r, target.d))
+    )
 
     assert (
         _placement.can_build_terrace_at(

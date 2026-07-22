@@ -3,8 +3,8 @@ import uuid
 import fastapi.testclient as testclient
 import pytest
 
-from src.game import entities
 from ... import utils
+import teyuna_shared
 
 
 @pytest.mark.parametrize("num_players,status", [(3, 201), (4, 201), (2, 422), (5, 422)])
@@ -39,12 +39,12 @@ def test_create_with_custom_map_and_conquistator(
             "map": [
                 {
                     "coordinate": {"q": 0, "r": 0},
-                    "type": entities.HexType.DESERT.value,
+                    "type": teyuna_shared.HexType.DESERT.value,
                     "number": 7,
                 },
                 {
                     "coordinate": {"q": 1, "r": 0},
-                    "type": entities.HexType.MOUNTAINS.value,
+                    "type": teyuna_shared.HexType.MOUNTAINS.value,
                     "number": 6,
                 },
             ],
@@ -55,4 +55,4 @@ def test_create_with_custom_map_and_conquistator(
     payload = response.json()
     assert payload["conquistator_location"] == {"q": 0, "r": 0}
     assert len(payload["map"]) == 2
-    assert payload["map"][0]["type"] == entities.HexType.DESERT.value
+    assert payload["map"][0]["type"] == teyuna_shared.HexType.DESERT.value

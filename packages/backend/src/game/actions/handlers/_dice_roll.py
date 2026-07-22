@@ -1,29 +1,18 @@
 import collections
 from typing import Final
 
-import pydantic
+import teyuna_shared
 
-from ... import player
-from ... import entities
-from .. import _registry
-from ._play_card import PlayWisdomCardAction, PlayedWisdomCardResult, play_wisdom_card
-
-
-class DiceRollResult(_registry.ActionExecutionResult):
-    die_1: int = -1
-    die_2: int = -1
-    to_discard: dict[player.Nickname, int] = pydantic.Field(default_factory=dict)
-    produced: dict[player.Nickname, dict[entities.ResourceCard, int]] = pydantic.Field(
-        default_factory=dict
-    )
+from ... import entities, player
+from . import _play_card
 
 
 def handle_dice_roll(
-    game: entities.Game, action: _registry.PlayerAction
-) -> DiceRollResult:
+    game: entities.Game, action: teyuna_shared.PlayerAction
+) -> teyuna_shared.DiceRollResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return DiceRollResult(
+        return teyuna_shared.DiceRollResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -32,7 +21,7 @@ def handle_dice_roll(
 
     dice_1, dice_2 = action.rng_.randint(1, 6), action.rng_.randint(1, 6)
     total = dice_1 + dice_2
-    produced: dict[player.Nickname, dict[entities.ResourceCard, int]] = {}
+    produced: dict[player.Nickname, dict[teyuna_shared.ResourceCard, int]] = {}
 
     if total == 7:
         game.to_discard_resources = {
@@ -41,15 +30,15 @@ def handle_dice_roll(
             if (total_resources := sum(p.resources.values())) > 7
         }
         if game.to_discard_resources:
-            phase = entities.GamePhaseName.DISCARD_RESOURCES
+            phase = teyuna_shared.GamePhaseName.DISCARD_RESOURCES
         else:
-            phase = entities.GamePhaseName.MOVE_CONQUISTATOR
+            phase = teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
     else:
         produced = _produce_resources(game, roll=total)
-        phase = entities.GamePhaseName.TRADE_AND_BUILD
+        phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
 
     game.phase = phase
-    return DiceRollResult(
+    return teyuna_shared.DiceRollResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -61,9 +50,9 @@ def handle_dice_roll(
 
 
 def handle_play_wisdom_card(
-    game: entities.Game, action: PlayWisdomCardAction
-) -> PlayedWisdomCardResult:
-    return play_wisdom_card(
+    game: entities.Game, action: teyuna_shared.PlayWisdomCardAction
+) -> teyuna_shared.PlayedWisdomCardResult:
+    return _play_card.play_wisdom_card(
         game,
         action,
         card_phases=_DICE_CARD_PHASES,
@@ -71,38 +60,42 @@ def handle_play_wisdom_card(
     )
 
 
-_DICE_CARD_PHASES: Final[dict[entities.WisdomCard, entities.GamePhaseName]] = {
-    entities.WisdomCard.WARRIOR: entities.GamePhaseName.DICE_PLAY_WARRIOR,
-    entities.WisdomCard.WINDOM_OF_MAMO: entities.GamePhaseName.DICE_PLAY_MAMO,
-    entities.WisdomCard.BLESSING_OF_ALUNA: entities.GamePhaseName.DICE_PLAY_BLESSED,
-    entities.WisdomCard.PATHFINDER: entities.GamePhaseName.DICE_PLAY_PATHFINDER,
-    entities.WisdomCard.LEGACY_OF_THE_ELDERS: entities.GamePhaseName.DICE_ROLL,
+_DICE_CARD_PHASES: Final[
+    dict[teyuna_shared.WisdomCard, teyuna_shared.GamePhaseName]
+] = {
+    teyuna_shared.WisdomCard.WARRIOR: teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR,
+    teyuna_shared.WisdomCard.WINDOM_OF_MAMO: teyuna_shared.GamePhaseName.DICE_PLAY_MAMO,
+    teyuna_shared.WisdomCard.BLESSING_OF_ALUNA: teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED,
+    teyuna_shared.WisdomCard.PATHFINDER: teyuna_shared.GamePhaseName.DICE_PLAY_PATHFINDER,
+    teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS: teyuna_shared.GamePhaseName.DICE_ROLL,
 }
 
 
 def _produce_resources(
     game: entities.Game, *, roll: int
-) -> dict[player.Nickname, dict[entities.ResourceCard, int]]:
-    produced: dict[player.Nickname, collections.Counter[entities.ResourceCard]] = {}
+) -> dict[str, dict[teyuna_shared.ResourceCard, int]]:
+    produced: dict[str, collections.Counter[teyuna_shared.ResourceCard]] = {}
     for hex_tile in game.map:
         if hex_tile.number != roll:
             continue
-        if hex_tile.type is entities.HexType.DESERT:
+        if hex_tile.type is teyuna_shared.HexType.DESERT:
             continue
         if (hex_tile.q, hex_tile.r) == (
             game.conquistator_location.q,
             game.conquistator_location.r,
         ):
             continue
-        resource = entities.HEX_TYPE_TO_RESOURCE[hex_tile.type]
+        resource = teyuna_shared.HEX_TYPE_TO_RESOURCE[hex_tile.type]
         for nickname in game.turn_order:
             settlements = game.players[nickname].settlements
             for direction in range(6):
-                coord = entities.canonical_vertex(hex_tile.q, hex_tile.r, direction)
+                coord = teyuna_shared.canonical_vertex(
+                    hex_tile.q, hex_tile.r, direction
+                )
                 if coord not in settlements:
                     continue
                 settlement = settlements[coord]
-                amount = 1 if settlement is entities.SettlementType.TERRACE else 2
+                amount = 1 if settlement is teyuna_shared.SettlementType.TERRACE else 2
                 to_grant = min(amount, game.resource_supply[resource])
                 if to_grant <= 0:
                     continue
@@ -110,7 +103,7 @@ def _produce_resources(
                     to=nickname,
                     amount=collections.Counter({resource: to_grant}),
                 )
-                produced.setdefault(nickname, collections.Counter())[resource] += (
-                    to_grant
-                )
+                produced.setdefault(
+                    nickname, collections.Counter[teyuna_shared.ResourceCard]()
+                )[resource] += to_grant
     return {nick: dict(counts) for nick, counts in produced.items()}

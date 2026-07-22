@@ -1,16 +1,17 @@
 import collections
 
-from ... import player
+import teyuna_shared
+
 from ... import entities
-from . import _first_placement, _placement
+from . import _placement
 
 
 def handle_second_placement(
-    game: entities.Game, action: _first_placement.FreePlacementAction
-) -> _first_placement.PlacedBuildingsResult:
+    game: entities.Game, action: teyuna_shared.FreePlacementAction
+) -> teyuna_shared.PlacedBuildingsResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return _first_placement.PlacedBuildingsResult(
+        return teyuna_shared.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -23,7 +24,7 @@ def handle_second_placement(
         target=action.terrace,
     )
     if not can:
-        return _first_placement.PlacedBuildingsResult(
+        return teyuna_shared.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -45,7 +46,7 @@ def handle_second_placement(
         new_settlement=action.terrace,
     )
     if not can:
-        return _first_placement.PlacedBuildingsResult(
+        return teyuna_shared.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -58,16 +59,16 @@ def handle_second_placement(
             ),
         )
 
-    game.use_vertex(action.by, action.terrace, entities.SettlementType.TERRACE)
+    game.use_vertex(action.by, action.terrace, teyuna_shared.SettlementType.TERRACE)
     game.use_edge(action.by, action.path)
     _grant_resources_for_terrace(game, by=action.by, terrace=action.terrace)
 
     if game.player_idx == 0:
-        game.phase = entities.GamePhaseName.DICE_ROLL
+        game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
     else:
         game.player_idx -= 1
-        game.phase = entities.GamePhaseName.SECOND_PLACEMENT
-    return _first_placement.PlacedBuildingsResult(
+        game.phase = teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+    return teyuna_shared.PlacedBuildingsResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -80,17 +81,17 @@ def handle_second_placement(
 def _grant_resources_for_terrace(
     game: entities.Game,
     *,
-    by: player.Nickname,
-    terrace: entities.Coordinate,
+    by: str,
+    terrace: teyuna_shared.Coordinate,
 ) -> None:
-    locs = entities.hex_locations_at_vertex(terrace.q, terrace.r, terrace.d)
-    amount: entities.ResourceCount = collections.Counter()
+    locs = teyuna_shared.hex_locations_at_vertex(terrace.q, terrace.r, terrace.d)
+    amount: collections.Counter[teyuna_shared.ResourceCard] = collections.Counter()
     for hex_tile in game.map:
-        if entities.HexLocation(q=hex_tile.q, r=hex_tile.r) not in locs:
+        if teyuna_shared.HexLocation(q=hex_tile.q, r=hex_tile.r) not in locs:
             continue
-        if hex_tile.type is entities.HexType.DESERT:
+        if hex_tile.type is teyuna_shared.HexType.DESERT:
             continue
-        resource = entities.HEX_TYPE_TO_RESOURCE[hex_tile.type]
+        resource = teyuna_shared.HEX_TYPE_TO_RESOURCE[hex_tile.type]
         amount[resource] += 1
     to_grant = collections.Counter(
         {

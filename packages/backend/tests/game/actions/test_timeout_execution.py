@@ -6,6 +6,8 @@ from collections.abc import Callable
 
 import pytest
 
+import teyuna_shared
+
 from src.game import (
     actions,
     broker,
@@ -23,7 +25,7 @@ NOW = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_first_placement() -> None:
     game_id, repository, registry = _create_stored_game(
-        phase=entities.GamePhaseName.FIRST_PLACEMENT
+        phase=teyuna_shared.GamePhaseName.FIRST_PLACEMENT
     )
     game = repository.retrieve(game_id)
     active = game.active_player
@@ -42,7 +44,7 @@ async def test_zero_timeout_executes_first_placement() -> None:
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_second_placement() -> None:
     game_id, repository, registry = _create_stored_game(
-        phase=entities.GamePhaseName.SECOND_PLACEMENT
+        phase=teyuna_shared.GamePhaseName.SECOND_PLACEMENT
     )
     game = repository.retrieve(game_id)
     active = game.active_player
@@ -61,7 +63,7 @@ async def test_zero_timeout_executes_second_placement() -> None:
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_dice_roll() -> None:
     game_id, repository, registry = _create_stored_game(
-        phase=entities.GamePhaseName.DICE_ROLL
+        phase=teyuna_shared.GamePhaseName.DICE_ROLL
     )
     event_broker = broker.EventBroker()
 
@@ -70,13 +72,15 @@ async def test_zero_timeout_executes_dice_roll() -> None:
     assert result is not None
     assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
-    assert repository.retrieve(game_id).phase is not entities.GamePhaseName.DICE_ROLL
+    assert (
+        repository.retrieve(game_id).phase is not teyuna_shared.GamePhaseName.DICE_ROLL
+    )
 
 
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_trade_and_build() -> None:
     game_id, repository, registry = _create_stored_game(
-        phase=entities.GamePhaseName.TRADE_AND_BUILD
+        phase=teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     )
     active = repository.retrieve(game_id).active_player
     event_broker = broker.EventBroker()
@@ -87,7 +91,7 @@ async def test_zero_timeout_executes_trade_and_build() -> None:
     assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
-    assert stored.phase is entities.GamePhaseName.DICE_ROLL
+    assert stored.phase is teyuna_shared.GamePhaseName.DICE_ROLL
     assert stored.active_player != active
 
 
@@ -97,14 +101,14 @@ async def test_zero_timeout_executes_discard_resources() -> None:
         nick = game.active_player
         game.players[nick].resources = collections.Counter(
             {
-                entities.ResourceCard.WOOD: 5,
-                entities.ResourceCard.GOLD: 4,
+                teyuna_shared.ResourceCard.WOOD: 5,
+                teyuna_shared.ResourceCard.GOLD: 4,
             }
         )
         game.to_discard_resources = {nick: 4}
 
     game_id, repository, registry = _create_stored_game(
-        phase=entities.GamePhaseName.DISCARD_RESOURCES,
+        phase=teyuna_shared.GamePhaseName.DISCARD_RESOURCES,
         setup=setup,
     )
     nick = repository.retrieve(game_id).active_player
@@ -117,13 +121,13 @@ async def test_zero_timeout_executes_discard_resources() -> None:
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
     assert nick not in stored.to_discard_resources
-    assert stored.phase is entities.GamePhaseName.MOVE_CONQUISTATOR
+    assert stored.phase is teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
 
 
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_move_conquistator() -> None:
     game_id, repository, registry = _create_stored_game(
-        phase=entities.GamePhaseName.MOVE_CONQUISTATOR
+        phase=teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
     )
     before = repository.retrieve(game_id).conquistator_location
     event_broker = broker.EventBroker()
@@ -134,24 +138,27 @@ async def test_zero_timeout_executes_move_conquistator() -> None:
     assert result.action.due_to_timeout is True
     assert event_broker._next_id[game_id] == 1
     stored = repository.retrieve(game_id)
-    assert stored.phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert stored.phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     assert stored.conquistator_location != before
 
 
 @pytest.mark.parametrize(
     ("phase", "expected_phase"),
     [
-        (entities.GamePhaseName.DICE_PLAY_WARRIOR, entities.GamePhaseName.DICE_ROLL),
         (
-            entities.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
-            entities.GamePhaseName.TRADE_AND_BUILD,
+            teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR,
+            teyuna_shared.GamePhaseName.DICE_ROLL,
+        ),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_play_warrior(
-    phase: entities.GamePhaseName,
-    expected_phase: entities.GamePhaseName,
+    phase: teyuna_shared.GamePhaseName,
+    expected_phase: teyuna_shared.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     before = repository.retrieve(game_id).conquistator_location
@@ -170,17 +177,20 @@ async def test_zero_timeout_executes_play_warrior(
 @pytest.mark.parametrize(
     ("phase", "expected_phase"),
     [
-        (entities.GamePhaseName.DICE_PLAY_MAMO, entities.GamePhaseName.DICE_ROLL),
         (
-            entities.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
-            entities.GamePhaseName.TRADE_AND_BUILD,
+            teyuna_shared.GamePhaseName.DICE_PLAY_MAMO,
+            teyuna_shared.GamePhaseName.DICE_ROLL,
+        ),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_play_mamo(
-    phase: entities.GamePhaseName,
-    expected_phase: entities.GamePhaseName,
+    phase: teyuna_shared.GamePhaseName,
+    expected_phase: teyuna_shared.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     event_broker = broker.EventBroker()
@@ -196,17 +206,20 @@ async def test_zero_timeout_executes_play_mamo(
 @pytest.mark.parametrize(
     ("phase", "expected_phase"),
     [
-        (entities.GamePhaseName.DICE_PLAY_BLESSED, entities.GamePhaseName.DICE_ROLL),
         (
-            entities.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
-            entities.GamePhaseName.TRADE_AND_BUILD,
+            teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED,
+            teyuna_shared.GamePhaseName.DICE_ROLL,
+        ),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_play_blessed(
-    phase: entities.GamePhaseName,
-    expected_phase: entities.GamePhaseName,
+    phase: teyuna_shared.GamePhaseName,
+    expected_phase: teyuna_shared.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     before_supply = sum(repository.retrieve(game_id).resource_supply.values())
@@ -225,17 +238,20 @@ async def test_zero_timeout_executes_play_blessed(
 @pytest.mark.parametrize(
     ("phase", "expected_phase"),
     [
-        (entities.GamePhaseName.DICE_PLAY_PATHFINDER, entities.GamePhaseName.DICE_ROLL),
         (
-            entities.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
-            entities.GamePhaseName.TRADE_AND_BUILD,
+            teyuna_shared.GamePhaseName.DICE_PLAY_PATHFINDER,
+            teyuna_shared.GamePhaseName.DICE_ROLL,
+        ),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_play_pathfinder(
-    phase: entities.GamePhaseName,
-    expected_phase: entities.GamePhaseName,
+    phase: teyuna_shared.GamePhaseName,
+    expected_phase: teyuna_shared.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     event_broker = broker.EventBroker()
@@ -250,71 +266,89 @@ async def test_zero_timeout_executes_play_pathfinder(
 
 def _zero_timeout_registry() -> actions.ActionsRegistry:
     registry = actions.ActionsRegistry()
-    registry.register(entities.GamePhaseName.FIRST_PLACEMENT)(
+    registry.register(teyuna_shared.GamePhaseName.FIRST_PLACEMENT)(
         actions.handle_first_placement
     )
-    registry.register(entities.GamePhaseName.SECOND_PLACEMENT)(
+    registry.register(teyuna_shared.GamePhaseName.SECOND_PLACEMENT)(
         actions.handle_second_placement
     )
-    registry.register(entities.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
-    registry.register(entities.GamePhaseName.DISCARD_RESOURCES)(
+    registry.register(teyuna_shared.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
+    registry.register(teyuna_shared.GamePhaseName.DISCARD_RESOURCES)(
         actions.handle_discard_resources
     )
-    registry.register(entities.GamePhaseName.DICE_PLAY_WARRIOR)(
+    registry.register(teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR)(
         actions.handle_dice_play_warrior
     )
-    registry.register(entities.GamePhaseName.DICE_PLAY_MAMO)(
+    registry.register(teyuna_shared.GamePhaseName.DICE_PLAY_MAMO)(
         actions.handle_dice_play_mamo
     )
-    registry.register(entities.GamePhaseName.DICE_PLAY_BLESSED)(
+    registry.register(teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED)(
         actions.handle_dice_play_blessed
     )
-    registry.register(entities.GamePhaseName.DICE_PLAY_PATHFINDER)(
+    registry.register(teyuna_shared.GamePhaseName.DICE_PLAY_PATHFINDER)(
         actions.handle_dice_play_pathfinder
     )
-    registry.register(entities.GamePhaseName.MOVE_CONQUISTATOR)(
+    registry.register(teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR)(
         actions.handle_move_conquistator
     )
-    registry.register(entities.GamePhaseName.TRADE_AND_BUILD)(
+    registry.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_end_trade_and_build
     )
-    registry.register(entities.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)(
+    registry.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)(
         actions.handle_move_conquistator
     )
-    registry.register(entities.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)(
+    registry.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)(
         actions.handle_trade_and_build_play_mamo
     )
-    registry.register(entities.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED)(
+    registry.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED)(
         actions.handle_trade_and_build_play_blessed
     )
-    registry.register(entities.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
+    registry.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
         actions.handle_trade_and_build_play_pathfinder
     )
 
     for phase, on_timeout in (
-        (entities.GamePhaseName.FIRST_PLACEMENT, timeouts.timeout_first_placement),
-        (entities.GamePhaseName.SECOND_PLACEMENT, timeouts.timeout_second_placement),
-        (entities.GamePhaseName.DICE_ROLL, timeouts.timeout_dice_roll),
-        (entities.GamePhaseName.DISCARD_RESOURCES, timeouts.timeout_discard_resources),
-        (entities.GamePhaseName.MOVE_CONQUISTATOR, timeouts.timeout_move_conquistator),
-        (entities.GamePhaseName.DICE_PLAY_WARRIOR, timeouts.timeout_move_conquistator),
+        (teyuna_shared.GamePhaseName.FIRST_PLACEMENT, timeouts.timeout_first_placement),
         (
-            entities.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+            teyuna_shared.GamePhaseName.SECOND_PLACEMENT,
+            timeouts.timeout_second_placement,
+        ),
+        (teyuna_shared.GamePhaseName.DICE_ROLL, timeouts.timeout_dice_roll),
+        (
+            teyuna_shared.GamePhaseName.DISCARD_RESOURCES,
+            timeouts.timeout_discard_resources,
+        ),
+        (
+            teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR,
             timeouts.timeout_move_conquistator,
         ),
-        (entities.GamePhaseName.DICE_PLAY_MAMO, timeouts.timeout_play_mamo),
-        (entities.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO, timeouts.timeout_play_mamo),
-        (entities.GamePhaseName.DICE_PLAY_BLESSED, timeouts.timeout_play_blessed),
         (
-            entities.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
+            teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR,
+            timeouts.timeout_move_conquistator,
+        ),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+            timeouts.timeout_move_conquistator,
+        ),
+        (teyuna_shared.GamePhaseName.DICE_PLAY_MAMO, timeouts.timeout_play_mamo),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+            timeouts.timeout_play_mamo,
+        ),
+        (teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED, timeouts.timeout_play_blessed),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
             timeouts.timeout_play_blessed,
         ),
-        (entities.GamePhaseName.DICE_PLAY_PATHFINDER, timeouts.timeout_play_pathfinder),
         (
-            entities.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
+            teyuna_shared.GamePhaseName.DICE_PLAY_PATHFINDER,
             timeouts.timeout_play_pathfinder,
         ),
-        (entities.GamePhaseName.TRADE_AND_BUILD, timeouts.timeout_trade_and_build),
+        (
+            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
+            timeouts.timeout_play_pathfinder,
+        ),
+        (teyuna_shared.GamePhaseName.TRADE_AND_BUILD, timeouts.timeout_trade_and_build),
     ):
         registry.set_timeout(phase, ZERO, on_timeout)
 
@@ -323,7 +357,7 @@ def _zero_timeout_registry() -> actions.ActionsRegistry:
 
 def _create_stored_game(
     *,
-    phase: entities.GamePhaseName,
+    phase: teyuna_shared.GamePhaseName,
     setup: Callable[[entities.Game], None] | None = None,
 ) -> tuple[
     uuid.UUID,
@@ -332,10 +366,10 @@ def _create_stored_game(
 ]:
     repository = repository_module.InMemoryGameRepository()
     board = services.generate_map()
-    desert = next(hex_ for hex_ in board if hex_.type is entities.HexType.DESERT)
+    desert = next(hex_ for hex_ in board if hex_.type is teyuna_shared.HexType.DESERT)
     game = entities.Game(
         map=board,
-        conquistator_location=entities.HexLocation(q=desert.q, r=desert.r),
+        conquistator_location=teyuna_shared.HexLocation(q=desert.q, r=desert.r),
         players={
             nickname: entities.Player()
             for nickname in ("player-0", "player-1", "player-2")
@@ -358,7 +392,7 @@ async def _apply_due(
     *,
     rng: random.Random | None = None,
     event_broker: broker.EventBroker | None = None,
-) -> actions.ActionExecutionResult | None:
+) -> teyuna_shared.ActionExecutionResult | None:
     return await services.apply_timeout_if_due(
         game_id,
         repository=repository,

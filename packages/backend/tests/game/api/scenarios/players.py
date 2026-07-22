@@ -5,6 +5,7 @@ import fastapi.testclient as testclient
 from src.game import entities
 
 from . import rounds
+import teyuna_shared
 
 
 class BasePlayer:
@@ -18,7 +19,9 @@ class BasePlayer:
         self._game_id = game_id
         self._token = token
 
-    def take_action(self, phase: entities.GamePhaseName, state: entities.Game) -> None:
+    def take_action(
+        self, phase: teyuna_shared.GamePhaseName, state: entities.Game
+    ) -> None:
         rounds.advance_phase(self._client, self._game_id, self._token)
 
 
@@ -31,11 +34,13 @@ class GreedyBuilder(BasePlayer):
     ) -> None:
         super().__init__(client, game_id, token)
 
-    def take_action(self, phase: entities.GamePhaseName, state: entities.Game) -> None:
+    def take_action(
+        self, phase: teyuna_shared.GamePhaseName, state: entities.Game
+    ) -> None:
         match phase:
-            case entities.GamePhaseName.DICE_ROLL:
+            case teyuna_shared.GamePhaseName.DICE_ROLL:
                 rounds.advance_phase(self._client, self._game_id, self._token)
-            case entities.GamePhaseName.TRADE_AND_BUILD:
+            case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
                 if self._try_build_great_terrace(state.players[state.active_player]):
                     return
                 if self._try_build_terrace(state):
@@ -49,12 +54,12 @@ class GreedyBuilder(BasePlayer):
             coordinates = next(
                 location
                 for location, settlement in state.settlements.items()
-                if settlement is entities.SettlementType.TERRACE
+                if settlement is teyuna_shared.SettlementType.TERRACE
             )
         except StopIteration:
             return False
         success, reason = self._post_settlement(
-            entities.SettlementType.GREAT_TERRACE, coordinates
+            teyuna_shared.SettlementType.GREAT_TERRACE, coordinates
         )
         if success:
             print(f"Built great terrace at {coordinates}")
@@ -66,12 +71,12 @@ class GreedyBuilder(BasePlayer):
         available = game.free_verticies - game.restricted_verticies
         paths = game.players[game.active_player].paths
         for location in available:
-            for edge in entities.edges_adjacent_to_vertex(
+            for edge in teyuna_shared.edges_adjacent_to_vertex(
                 location.q, location.r, location.d
             ):
                 if edge in paths:
                     success, reason = self._post_settlement(
-                        entities.SettlementType.TERRACE, location
+                        teyuna_shared.SettlementType.TERRACE, location
                     )
                     if success:
                         print(f"Built terrace at {location}")
@@ -84,9 +89,11 @@ class GreedyBuilder(BasePlayer):
         player_ = game.players[game.active_player]
         vertices = set(player_.settlements.locations())
         for path in player_.paths:
-            vertices.update(entities.vertices_of_edge(path))
+            vertices.update(teyuna_shared.vertices_of_edge(path))
         for vertex in vertices:
-            for edge in entities.edges_adjacent_to_vertex(vertex.q, vertex.r, vertex.d):
+            for edge in teyuna_shared.edges_adjacent_to_vertex(
+                vertex.q, vertex.r, vertex.d
+            ):
                 if edge not in player_.paths and edge in game.free_edges:
                     success, reason = self._post_path(edge)
                     if success:
@@ -97,8 +104,8 @@ class GreedyBuilder(BasePlayer):
 
     def _post_settlement(
         self,
-        item: entities.SettlementType,
-        location: entities.Coordinate,
+        item: teyuna_shared.SettlementType,
+        location: teyuna_shared.Coordinate,
     ) -> tuple[bool, str]:
         self._client.cookies["session-token"] = self._token
         response = self._client.post(
@@ -115,7 +122,7 @@ class GreedyBuilder(BasePlayer):
             return True, ""
         return False, response.text
 
-    def _post_path(self, location: entities.Coordinate) -> tuple[bool, str]:
+    def _post_path(self, location: teyuna_shared.Coordinate) -> tuple[bool, str]:
         self._client.cookies["session-token"] = self._token
         response = self._client.post(
             f"/games/{self._game_id}/paths",

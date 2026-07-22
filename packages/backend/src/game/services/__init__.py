@@ -1,4 +1,4 @@
-from ._retrieve import retrieve_game
+from ._retrieve import retrieve_game, retrieve_hand
 from ._create import (
     create_game,
     generate_map,
@@ -14,4 +14,5 @@ __all__ = [
     "create_game",
     "generate_map",
     "retrieve_game",
+    "retrieve_hand",
 ]

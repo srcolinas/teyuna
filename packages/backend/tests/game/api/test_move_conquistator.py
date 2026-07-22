@@ -10,6 +10,7 @@ from src.game import actions, repository as repository_module
 
 from . import utils
 import datetime
+import teyuna_shared
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -68,7 +69,7 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    game.phase = entities.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -89,8 +90,8 @@ def test_returns_501_when_phase_not_implemented(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    game.players[game.active_player].cards[entities.WisdomCard.WARRIOR] = 1
-    game.phase = entities.GamePhaseName.DICE_PLAY_WARRIOR
+    game.players[game.active_player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
+    game.phase = teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -114,8 +115,8 @@ def test_moves_conquistator_and_returns_location(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_warrior_phase(app)
     game = repository.retrieve(game_id)
-    game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    game.phase = entities.GamePhaseName.DICE_PLAY_WARRIOR
+    game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
+    game.phase = teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -130,10 +131,10 @@ def test_moves_conquistator_and_returns_location(
 
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is entities.GamePhaseName.DICE_ROLL
-    assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
-    assert game.players[other].resources[entities.ResourceCard.WOOD] == 1
-    assert game.players[active_player].resources[entities.ResourceCard.WOOD] == 1
+    assert phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert game.conquistator_location == teyuna_shared.HexLocation(q=1, r=-1)
+    assert game.players[other].resources[teyuna_shared.ResourceCard.WOOD] == 1
+    assert game.players[active_player].resources[teyuna_shared.ResourceCard.WOOD] == 1
 
 
 def test_moves_without_taking_resources_when_take_from_omitted(
@@ -142,8 +143,8 @@ def test_moves_without_taking_resources_when_take_from_omitted(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_warrior_phase(app)
     game = repository.retrieve(game_id)
-    game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    game.phase = entities.GamePhaseName.DICE_PLAY_WARRIOR
+    game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
+    game.phase = teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -156,8 +157,8 @@ def test_moves_without_taking_resources_when_take_from_omitted(
     assert response.status_code == 200, response.text
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is entities.GamePhaseName.DICE_ROLL
-    assert game.players[other].resources[entities.ResourceCard.WOOD] == 2
+    assert phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert game.players[other].resources[teyuna_shared.ResourceCard.WOOD] == 2
 
 
 def test_returns_400_when_location_is_unchanged(
@@ -185,8 +186,8 @@ def test_moves_conquistator_during_move_conquistator_phase(
         app
     )
     game = repository.retrieve(game_id)
-    game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    game.phase = entities.GamePhaseName.MOVE_CONQUISTATOR
+    game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
+    game.phase = teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -201,10 +202,10 @@ def test_moves_conquistator_during_move_conquistator_phase(
 
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is entities.GamePhaseName.TRADE_AND_BUILD
-    assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
-    assert game.players[other].resources[entities.ResourceCard.WOOD] == 1
-    assert game.players[active_player].resources[entities.ResourceCard.WOOD] == 1
+    assert phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert game.conquistator_location == teyuna_shared.HexLocation(q=1, r=-1)
+    assert game.players[other].resources[teyuna_shared.ResourceCard.WOOD] == 1
+    assert game.players[active_player].resources[teyuna_shared.ResourceCard.WOOD] == 1
 
 
 def test_moves_conquistator_during_trade_and_build_play_warrior(
@@ -212,11 +213,11 @@ def test_moves_conquistator_during_trade_and_build_play_warrior(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_phase(
-        app, entities.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
+        app, teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
     )
     game = repository.retrieve(game_id)
-    game.players[other].resources[entities.ResourceCard.WOOD] = 2
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
+    game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -231,10 +232,10 @@ def test_moves_conquistator_during_trade_and_build_play_warrior(
 
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is entities.GamePhaseName.TRADE_AND_BUILD
-    assert game.conquistator_location == entities.HexLocation(q=1, r=-1)
-    assert game.players[other].resources[entities.ResourceCard.WOOD] == 1
-    assert game.players[active_player].resources[entities.ResourceCard.WOOD] == 1
+    assert phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert game.conquistator_location == teyuna_shared.HexLocation(q=1, r=-1)
+    assert game.players[other].resources[teyuna_shared.ResourceCard.WOOD] == 1
+    assert game.players[active_player].resources[teyuna_shared.ResourceCard.WOOD] == 1
 
 
 def _setup_warrior_phase(
@@ -246,7 +247,7 @@ def _setup_warrior_phase(
     str,
     str,
 ]:
-    return _setup_phase(app, entities.GamePhaseName.DICE_PLAY_WARRIOR)
+    return _setup_phase(app, teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR)
 
 
 def _setup_move_conquistator_phase(
@@ -258,12 +259,12 @@ def _setup_move_conquistator_phase(
     str,
     str,
 ]:
-    return _setup_phase(app, entities.GamePhaseName.MOVE_CONQUISTATOR)
+    return _setup_phase(app, teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR)
 
 
 def _setup_phase(
     app: fastapi.FastAPI,
-    phase: entities.GamePhaseName,
+    phase: teyuna_shared.GamePhaseName,
 ) -> tuple[
     repository_module.InMemoryGameRepository,
     uuid.UUID,
@@ -275,7 +276,7 @@ def _setup_phase(
     game = _create_game()
     active_player = game.active_player
     other = game.turn_order[1]
-    game.players[active_player].cards[entities.WisdomCard.WARRIOR] = 1
+    game.players[active_player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     game.phase = phase
@@ -290,10 +291,12 @@ def _setup_phase(
 
 
 def _create_game() -> entities.Game:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=2)
+    mountains = teyuna_shared.MapHex(
+        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=2
+    )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

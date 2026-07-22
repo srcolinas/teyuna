@@ -3,6 +3,7 @@ import datetime
 import pytest
 
 from src.game import entities, player, repository as repository_module, services
+import teyuna_shared
 
 
 def test_add_player_adds_to_lobby_and_returns_token() -> None:
@@ -19,7 +20,7 @@ def test_add_player_adds_to_lobby_and_returns_token() -> None:
     )
 
     assert auth.retrieve(token) == "srcolinas"
-    assert game.phase is entities.GamePhaseName.LOBBY
+    assert game.phase is teyuna_shared.GamePhaseName.LOBBY
     assert game.available_slots == 2
     assert {p.nickname for p in game.players} == {"srcolinas"}
 
@@ -37,7 +38,7 @@ def test_add_player_starts_game_when_last_slot_filled() -> None:
         first_placement_timeout=datetime.timedelta(seconds=60),
     )
 
-    assert game.phase is entities.GamePhaseName.FIRST_PLACEMENT
+    assert game.phase is teyuna_shared.GamePhaseName.FIRST_PLACEMENT
     assert game.available_slots == 0
     assert game.turn_order == ("srcolinas",)
 
@@ -84,13 +85,13 @@ def test_add_player_raises_when_nickname_already_taken() -> None:
 
 def _lobby_game(*, available_slots: int) -> entities.Game:
     board = services.generate_map()
-    desert = next(h for h in board if h.type is entities.HexType.DESERT)
+    desert = next(h for h in board if h.type is teyuna_shared.HexType.DESERT)
     return entities.Game(
         map=board,
-        conquistator_location=entities.HexLocation(q=desert.q, r=desert.r),
+        conquistator_location=teyuna_shared.HexLocation(q=desert.q, r=desert.r),
         players={},
         available_slots=available_slots,
-        phase=entities.GamePhaseName.LOBBY,
+        phase=teyuna_shared.GamePhaseName.LOBBY,
         phase_deadline=datetime.datetime.now(datetime.UTC)
         + datetime.timedelta(minutes=10),
     )

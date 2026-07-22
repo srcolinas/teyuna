@@ -2,7 +2,9 @@ import datetime
 import uuid
 from typing import Protocol
 
-from .. import player, ports, entities
+import teyuna_shared
+
+from .. import player, entities
 from . import _retrieve
 
 
@@ -21,13 +23,13 @@ class GameAlreadyStartedError(Exception):
 def add_player(
     *,
     game_id: uuid.UUID,
-    nickname: player.Nickname,
+    nickname: str,
     repository: UpdateGameRepository,
     auth: player.PlayerAuthenticationService,
     first_placement_timeout: datetime.timedelta,
-) -> tuple[ports.Game, player.Token]:
+) -> tuple[teyuna_shared.Game, str]:
     game = repository.retrieve(game_id)
-    if game.phase is not entities.GamePhaseName.LOBBY:
+    if game.phase is not teyuna_shared.GamePhaseName.LOBBY:
         raise GameAlreadyStartedError("game already started")
     token = auth.add(nickname)
     game.add_player(nickname)

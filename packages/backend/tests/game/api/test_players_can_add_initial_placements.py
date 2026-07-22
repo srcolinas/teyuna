@@ -10,6 +10,7 @@ from src.game import actions, repository as repository_module
 
 from . import utils
 import datetime
+import teyuna_shared
 
 
 _VALID_TERRACE = (0, -1, 2)
@@ -118,10 +119,12 @@ def test_returns_400_for_invalid_terrace(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    target = entities.canonical_vertex(0, -1, 2)
-    adjacent_terrace = entities.canonical_vertex(target.q, target.r, (target.d + 1) % 6)
+    target = teyuna_shared.canonical_vertex(0, -1, 2)
+    adjacent_terrace = teyuna_shared.canonical_vertex(
+        target.q, target.r, (target.d + 1) % 6
+    )
     game.use_vertex(
-        game.active_player, adjacent_terrace, entities.SettlementType.TERRACE
+        game.active_player, adjacent_terrace, teyuna_shared.SettlementType.TERRACE
     )
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
@@ -198,7 +201,7 @@ def test_returns_501_when_phase_not_implemented(
     assert response.status_code == 501, response.text
 
 
-class _DummyAction(actions.PlayerAction):
+class _DummyAction(teyuna_shared.PlayerAction):
     pass
 
 
@@ -207,22 +210,24 @@ def _registry_with_wrong_action() -> actions.ActionsRegistry:
 
     def handle_dummy(
         game: entities.Game, action: _DummyAction
-    ) -> actions.ActionExecutionResult:
-        return actions.ActionExecutionResult(
+    ) -> teyuna_shared.ActionExecutionResult:
+        return teyuna_shared.ActionExecutionResult(
             previous_phase=game.phase,
-            next_phase=entities.GamePhaseName.DICE_ROLL,
+            next_phase=teyuna_shared.GamePhaseName.DICE_ROLL,
             action=action,
         )
 
-    registry.register(entities.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
+    registry.register(teyuna_shared.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
     return registry
 
 
 def _create_game() -> entities.Game:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
+    mountains = teyuna_shared.MapHex(
+        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

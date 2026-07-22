@@ -2,17 +2,18 @@ import datetime
 
 from src.game import actions, entities
 from src.game.actions.handlers import _placement
+import teyuna_shared
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     other = game.turn_order[0]
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=other, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=other, terrace=terrace, path=path),
     )
     assert result.error == f"Player {other} is not in turn"
     assert result.settlement is None
@@ -22,11 +23,11 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
 
 def test_raises_when_terrace_invalid(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
-    adjacent_terrace = entities.canonical_vertex(0, 0, 1)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
+    adjacent_terrace = teyuna_shared.canonical_vertex(0, 0, 1)
     game.use_vertex(
-        game.active_player, adjacent_terrace, entities.SettlementType.TERRACE
+        game.active_player, adjacent_terrace, teyuna_shared.SettlementType.TERRACE
     )
     player = game.active_player
     expected = _placement.format_invalid_settlement_location(
@@ -38,7 +39,7 @@ def test_raises_when_terrace_invalid(game: entities.Game) -> None:
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
     assert result.error == expected
     assert result.settlement is None
@@ -47,9 +48,9 @@ def test_raises_when_terrace_invalid(game: entities.Game) -> None:
 
 def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
-    game.use_vertex(game.turn_order[0], terrace, entities.SettlementType.TERRACE)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
+    game.use_vertex(game.turn_order[0], terrace, teyuna_shared.SettlementType.TERRACE)
     player = game.active_player
     expected = _placement.format_invalid_settlement_location(
         target=terrace,
@@ -60,7 +61,7 @@ def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
     assert result.error == expected
     assert result.settlement is None
@@ -69,9 +70,9 @@ def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
 
 def test_raises_when_path_invalid(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = entities.canonical_edge(1, 1, 1)
-    assert terrace not in entities.vertices_of_edge(path)
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = teyuna_shared.canonical_edge(1, 1, 1)
+    assert terrace not in teyuna_shared.vertices_of_edge(path)
     player = game.active_player
     player_state = game.players[player]
     expected = _placement.format_invalid_path_location(
@@ -84,7 +85,7 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
     assert result.error == expected
     assert result.settlement is None
@@ -93,8 +94,8 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
 
 def test_raises_when_path_already_taken(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     game.use_edge(game.turn_order[0], path)
     player = game.active_player
     player_state = game.players[player]
@@ -108,7 +109,7 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
     assert result.error == expected
     assert result.settlement is None
@@ -119,81 +120,90 @@ def test_decrements_player_idx_and_stays_in_second_placement(
     game: entities.Game,
 ) -> None:
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_phase is teyuna_shared.GamePhaseName.SECOND_PLACEMENT
     assert result.next_player == game.active_player
     assert result.settlement == terrace
     assert result.path == path
     assert game.player_idx == len(game.players) - 2
     assert terrace not in game.free_verticies
     assert path not in game.free_edges
-    assert game.players[player].settlements[terrace] is entities.SettlementType.TERRACE
+    assert (
+        game.players[player].settlements[terrace]
+        is teyuna_shared.SettlementType.TERRACE
+    )
     assert path in game.players[player].paths
-    assert game.players[player].resources[entities.ResourceCard.GOLD] == 1
-    assert game.resource_supply[entities.ResourceCard.GOLD] == 18
+    assert game.players[player].resources[teyuna_shared.ResourceCard.GOLD] == 1
+    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 18
 
 
 def test_returns_dice_roll_and_keeps_player_idx_after_first_player(
     game: entities.Game,
 ) -> None:
     game.player_idx = 0
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.DICE_ROLL
+    assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
     assert result.next_player == player
     assert result.settlement == terrace
     assert result.path == path
     assert game.player_idx == 0
-    assert game.players[player].resources[entities.ResourceCard.GOLD] == 1
-    assert game.resource_supply[entities.ResourceCard.GOLD] == 18
+    assert game.players[player].resources[teyuna_shared.ResourceCard.GOLD] == 1
+    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 18
 
 
 def test_increments_players_resources_after_turn(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_phase is teyuna_shared.GamePhaseName.SECOND_PLACEMENT
     assert result.next_player == game.active_player
     assert result.settlement == terrace
     assert result.path == path
-    assert game.players[player].resources[entities.ResourceCard.GOLD] == 1
-    assert game.resource_supply[entities.ResourceCard.GOLD] == 18
+    assert game.players[player].resources[teyuna_shared.ResourceCard.GOLD] == 1
+    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 18
 
 
 def test_grants_one_resource_per_adjacent_producing_hex() -> None:
     nicknames = ("player-0", "player-1", "player-2")
     game = entities.Game(
         map=(
-            entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=8),
-            entities.Hex(q=1, r=-1, type=entities.HexType.JUNGLE, number=5),
-            entities.Hex(q=0, r=-1, type=entities.HexType.DESERT, number=7),
+            teyuna_shared.MapHex(
+                q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=8
+            ),
+            teyuna_shared.MapHex(
+                q=1, r=-1, type=teyuna_shared.HexType.JUNGLE, number=5
+            ),
+            teyuna_shared.MapHex(
+                q=0, r=-1, type=teyuna_shared.HexType.DESERT, number=7
+            ),
         ),
-        conquistator_location=entities.HexLocation(q=0, r=-1),
+        conquistator_location=teyuna_shared.HexLocation(q=0, r=-1),
         players={
             nickname: entities.Player(
                 settlements=entities.SettlementsCollection(),
@@ -205,22 +215,22 @@ def test_grants_one_resource_per_adjacent_producing_hex() -> None:
     )
     game.start(datetime.timedelta(seconds=60))
     game.player_idx = len(game.players) - 1
-    terrace = entities.canonical_vertex(0, 0, 0)
-    path = next(iter(entities.edges_adjacent_to_vertex(0, 0, 0)))
+    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
     result = actions.handle_second_placement(
         game,
-        actions.FreePlacementAction(by=player, terrace=terrace, path=path),
+        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.SECOND_PLACEMENT
+    assert result.next_phase is teyuna_shared.GamePhaseName.SECOND_PLACEMENT
     assert result.next_player == game.active_player
     assert result.settlement == terrace
     assert result.path == path
-    assert game.players[player].resources[entities.ResourceCard.GOLD] == 1
-    assert game.players[player].resources[entities.ResourceCard.WOOD] == 1
+    assert game.players[player].resources[teyuna_shared.ResourceCard.GOLD] == 1
+    assert game.players[player].resources[teyuna_shared.ResourceCard.WOOD] == 1
     assert sum(game.players[player].resources.values()) == 2
-    assert game.resource_supply[entities.ResourceCard.GOLD] == 18
-    assert game.resource_supply[entities.ResourceCard.WOOD] == 18
+    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 18
+    assert game.resource_supply[teyuna_shared.ResourceCard.WOOD] == 18

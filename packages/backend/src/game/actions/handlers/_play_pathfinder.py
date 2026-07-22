@@ -1,45 +1,25 @@
-import pydantic
+import teyuna_shared
 
 from ... import entities
-from .. import _registry
 from . import _placement, _longest_road, _victory
 
 
-class PlayPathfinderAction(_registry.PlayerAction):
-    paths: tuple[entities.Coordinate, ...]
-
-    @pydantic.model_validator(mode="after")
-    def _canonicalize(self) -> "PlayPathfinderAction":
-        object.__setattr__(
-            self,
-            "paths",
-            tuple(
-                entities.canonical_edge(path.q, path.r, path.d) for path in self.paths
-            ),
-        )
-        return self
-
-
-class PlayedPathfinderResult(_registry.ActionExecutionResult):
-    paths: tuple[entities.Coordinate, ...] = ()
-
-
 def handle_dice_play_pathfinder(
-    game: entities.Game, action: PlayPathfinderAction
-) -> PlayedPathfinderResult:
+    game: entities.Game, action: teyuna_shared.PlayPathfinderAction
+) -> teyuna_shared.PlayedPathfinderResult:
     previous_phase = game.phase
     error, placed = _apply_pathfinder(game, action)
     if error is not None:
-        return PlayedPathfinderResult(
+        return teyuna_shared.PlayedPathfinderResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
     game.phase = _victory.phase_after_victory_check(
-        game, action.by, entities.GamePhaseName.DICE_ROLL
+        game, action.by, teyuna_shared.GamePhaseName.DICE_ROLL
     )
-    return PlayedPathfinderResult(
+    return teyuna_shared.PlayedPathfinderResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -48,21 +28,21 @@ def handle_dice_play_pathfinder(
 
 
 def handle_trade_and_build_play_pathfinder(
-    game: entities.Game, action: PlayPathfinderAction
-) -> PlayedPathfinderResult:
+    game: entities.Game, action: teyuna_shared.PlayPathfinderAction
+) -> teyuna_shared.PlayedPathfinderResult:
     previous_phase = game.phase
     error, placed = _apply_pathfinder(game, action)
     if error is not None:
-        return PlayedPathfinderResult(
+        return teyuna_shared.PlayedPathfinderResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
     game.phase = _victory.phase_after_victory_check(
-        game, action.by, entities.GamePhaseName.TRADE_AND_BUILD
+        game, action.by, teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     )
-    return PlayedPathfinderResult(
+    return teyuna_shared.PlayedPathfinderResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -71,15 +51,15 @@ def handle_trade_and_build_play_pathfinder(
 
 
 def _apply_pathfinder(
-    game: entities.Game, action: PlayPathfinderAction
-) -> tuple[str | None, tuple[entities.Coordinate, ...]]:
+    game: entities.Game, action: teyuna_shared.PlayPathfinderAction
+) -> tuple[str | None, tuple[teyuna_shared.Coordinate, ...]]:
     if game.active_player != action.by:
         return f"Player {action.by} is not in turn", ()
 
     player_state = game.players[action.by]
-    remaining = entities.MAX_PATHS - len(player_state.paths)
+    remaining = teyuna_shared.MAX_PATHS - len(player_state.paths)
     to_place = action.paths[:remaining]
-    placed: list[entities.Coordinate] = []
+    placed: list[teyuna_shared.Coordinate] = []
 
     for path in to_place:
         can = _placement.can_add_free_path_at(

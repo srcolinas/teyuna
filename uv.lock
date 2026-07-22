@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "backend",
     "teyuna-sdk",
+    "teyuna-shared-core",
 ]
 
 [[package]]
@@ -93,6 +94,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pytest-asyncio" },
+    { name = "teyuna-shared-core" },
     { name = "uvicorn" },
 ]
 
@@ -115,6 +117,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
+    { name = "teyuna-shared-core", editable = "packages/shared-core" },
     { name = "uvicorn", specifier = ">=0.51.0" },
 ]
 
@@ -681,6 +684,7 @@ source = { editable = "packages/sdk-python" }
 dependencies = [
     { name = "httpx2" },
     { name = "pydantic" },
+    { name = "teyuna-shared-core" },
 ]
 
 [package.dev-dependencies]
@@ -693,7 +697,31 @@ dev = [
 requires-dist = [
     { name = "httpx2", specifier = ">=2.5.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "teyuna-shared-core", editable = "packages/shared-core" },
 ]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=2.3.0" },
+    { name = "ruff", specifier = ">=0.15.22" },
+]
+
+[[package]]
+name = "teyuna-shared-core"
+version = "0.1.0"
+source = { editable = "packages/shared-core" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.12.5" }]
 
 [package.metadata.requires-dev]
 dev = [

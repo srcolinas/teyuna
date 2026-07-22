@@ -8,9 +8,10 @@ import fastapi.testclient as testclient
 import httpx2
 import uvicorn
 
-from src.game import entities, broker, dependencies
+from src.game import broker, dependencies
 
 from . import utils
+import teyuna_shared
 
 _VALID_TERRACE = (0, -1, 2)
 _VALID_PATH = (0, -1, 2)
@@ -45,8 +46,8 @@ def test_single_client_receives_action_event(
                 event = _read_first_data_event(lines)
 
     assert event["error"] is None
-    assert event["previous_phase"] == entities.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["next_phase"] == entities.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["by"] == active_player
     game_after = client.get(f"/games/{game_id}").json()
     assert event["next_player"] == game_after["turn_order"][0]
@@ -86,8 +87,8 @@ def test_disconnect_does_not_break_remaining_clients(
                     event = _read_first_data_event(remaining_lines)
 
     assert event["error"] is None
-    assert event["previous_phase"] == entities.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["next_phase"] == entities.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["by"] == active_player
 
 

@@ -1,24 +1,8 @@
-"""Hex board geometry helpers for placement decisions.
-
-Duplicated from the backend domain model so this package does not import it.
-Public Game DTOs do not expose free/restricted sets — those are derived here.
-"""
-
-from __future__ import annotations
-
 import itertools
 from typing import Final, NamedTuple
 
-from . import entities
+from . import constants, entities
 
-INVALID_HEX_COORDINATES: Final[set[tuple[int, int]]] = {
-    (-2, -2),
-    (-2, -1),
-    (-1, -2),
-    (1, 2),
-    (2, 1),
-    (2, 2),
-}
 
 _NEIGHBOR: Final[list[tuple[int, int]]] = [
     (1, -1),
@@ -31,17 +15,35 @@ _NEIGHBOR: Final[list[tuple[int, int]]] = [
 
 
 class Coordinate(NamedTuple):
+    """Coordinate for a vertex (corner) or edge of a hex.
+
+    A vertex or edge is identified by its adjacent hex and a direction (0-5).
+    Direction 0 is the top vertex, going clockwise.
+    """
+
     q: int
     r: int
     d: int
 
 
+class HexLocation(NamedTuple):
+    """Coordinates of a hex, not including any vertex or edge."""
+
+    q: int
+    r: int
+
+
 def delta_to_neighbor(d: int) -> tuple[int, int]:
-    return _NEIGHBOR[d]
+    dq, dr = _NEIGHBOR[d]
+    return dq, dr
 
 
 def _is_valid_hex(q: int, r: int) -> bool:
-    return -2 <= q <= 2 and -2 <= r <= 2 and (q, r) not in INVALID_HEX_COORDINATES
+    return (
+        -2 <= q <= 2
+        and -2 <= r <= 2
+        and (q, r) not in constants.INVALID_HEX_COORDINATES
+    )
 
 
 def _canonical_among(candidates: set[Coordinate]) -> Coordinate:
@@ -75,7 +77,9 @@ def canonical_edge(q: int, r: int, d: int) -> Coordinate:
     return _canonical_among({edge_alias(q, r, d), Coordinate(q=q, r=r, d=d)})
 
 
-def vertices_of_edge(edge: Coordinate) -> tuple[Coordinate, Coordinate]:
+def vertices_of_edge(
+    edge: Coordinate,
+) -> tuple[Coordinate, Coordinate]:
     q, r, d = edge
     return (
         canonical_vertex(q, r, d),
@@ -113,64 +117,55 @@ def restricted_vertices_for(target: Coordinate) -> set[Coordinate]:
     return blocked
 
 
-def from_vertex(location: entities.VertexCoordinate) -> Coordinate:
-    return canonical_vertex(
-        location.hex_coord.q, location.hex_coord.r, location.direction
-    )
+def hex_locations_at_vertex(q: int, r: int, d: int) -> set[HexLocation]:
+    """Return the valid board hexes that meet at the given vertex."""
+    locs = {HexLocation(q=q, r=r)}
+    for alias in vertex_aliases(q, r, d):
+        locs.add(HexLocation(q=alias.q, r=alias.r))
+    return {loc for loc in locs if _is_valid_hex(loc.q, loc.r)}
 
 
-def from_edge(location: entities.EdgeCoordinate) -> Coordinate:
-    return canonical_edge(
-        location.hex_coord.q, location.hex_coord.r, location.direction
-    )
-
-
-def to_vertex(coord: Coordinate) -> entities.VertexCoordinate:
-    return entities.VertexCoordinate(
-        hex_coord=entities.HexCoordinate(q=coord.q, r=coord.r),
-        direction=coord.d,
-    )
-
-
-def to_edge(coord: Coordinate) -> entities.EdgeCoordinate:
-    return entities.EdgeCoordinate(
-        hex_coord=entities.HexCoordinate(q=coord.q, r=coord.r),
-        direction=coord.d,
-    )
-
-
-def all_board_vertices() -> set[Coordinate]:
+def all_board_vertices(
+    invalid_hex_coordinates: set[tuple[int, int]] | None = None,
+) -> set[Coordinate]:
+    if invalid_hex_coordinates is None:
+        invalid_hex_coordinates = constants.INVALID_HEX_COORDINATES
     vertices: set[Coordinate] = set()
     for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
-        if (q, r) not in INVALID_HEX_COORDINATES:
+        if (q, r) not in invalid_hex_coordinates:
             vertices.add(canonical_vertex(q, r, d))
     return vertices
 
 
-def all_board_edges() -> set[Coordinate]:
+def all_board_edges(
+    invalid_hex_coordinates: set[tuple[int, int]] | None = None,
+) -> set[Coordinate]:
+    if invalid_hex_coordinates is None:
+        invalid_hex_coordinates = constants.INVALID_HEX_COORDINATES
     edges: set[Coordinate] = set()
     for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
-        if (q, r) not in INVALID_HEX_COORDINATES:
+        if (q, r) not in invalid_hex_coordinates:
             edges.add(canonical_edge(q, r, d))
     return edges
 
 
-def placement_sets(
-    game: entities.Game,
-) -> tuple[set[Coordinate], set[Coordinate]]:
-    """Return (buildable_vertices, free_edges).
-
-    buildable_vertices = free vertices minus restricted (adjacent to settlements).
-    free_edges = board edges without a path.
-    """
-    occupied_vertices = {from_vertex(s.location) for s in game.settlements}
-    occupied_edges = {from_edge(p.location) for p in game.paths}
-
-    restricted: set[Coordinate] = set()
-    for settlement in game.settlements:
-        restricted.update(restricted_vertices_for(from_vertex(settlement.location)))
-
-    free_vertices = all_board_vertices() - occupied_vertices
-    buildable = free_vertices - restricted
-    free_edges = all_board_edges() - occupied_edges
-    return buildable, free_edges
+HARBOUR_LOCATIONS: Final[dict[Coordinate, entities.ResourceCard | None]] = {
+    canonical_vertex(-1, -1, 4): entities.ResourceCard.WOOD,
+    canonical_vertex(-1, -1, 5): entities.ResourceCard.WOOD,
+    canonical_vertex(0, -2, 0): None,
+    canonical_vertex(0, -2, 5): None,
+    canonical_vertex(1, -2, 0): entities.ResourceCard.MAIZE,
+    canonical_vertex(1, -2, 1): entities.ResourceCard.MAIZE,
+    canonical_vertex(2, -1, 0): entities.ResourceCard.STONE,
+    canonical_vertex(2, -1, 1): entities.ResourceCard.STONE,
+    canonical_vertex(2, 0, 1): None,
+    canonical_vertex(2, 0, 2): None,
+    canonical_vertex(1, 1, 2): entities.ResourceCard.COTTON,
+    canonical_vertex(1, 1, 3): entities.ResourceCard.COTTON,
+    canonical_vertex(-1, 2, 2): None,
+    canonical_vertex(-1, 2, 3): None,
+    canonical_vertex(-2, 2, 3): None,
+    canonical_vertex(-2, 2, 4): None,
+    canonical_vertex(-2, 1, 4): entities.ResourceCard.GOLD,
+    canonical_vertex(-2, 1, 5): entities.ResourceCard.GOLD,
+}

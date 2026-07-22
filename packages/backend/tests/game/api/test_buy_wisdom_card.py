@@ -4,6 +4,8 @@ import uuid
 import fastapi
 import fastapi.testclient as testclient
 
+import teyuna_shared
+
 from src.game import (
     entities,
     dependencies,
@@ -15,9 +17,9 @@ import datetime
 
 
 _WISDOM_CARD_COST = {
-    entities.ResourceCard.GOLD: 1,
-    entities.ResourceCard.COTTON: 1,
-    entities.ResourceCard.MAIZE: 1,
+    teyuna_shared.ResourceCard.GOLD: 1,
+    teyuna_shared.ResourceCard.COTTON: 1,
+    teyuna_shared.ResourceCard.MAIZE: 1,
 }
 
 
@@ -38,7 +40,7 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository, game_id, tokens, active_player, _, _ = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
-    game.phase = entities.GamePhaseName.FIRST_PLACEMENT
+    game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -85,12 +87,12 @@ def test_returns_400_when_insufficient_resources(
     game = repository.retrieve(game_id)
     game.players[active_player].resources.update(
         {
-            entities.ResourceCard.GOLD: 1,
-            entities.ResourceCard.COTTON: 0,
-            entities.ResourceCard.MAIZE: 1,
+            teyuna_shared.ResourceCard.GOLD: 1,
+            teyuna_shared.ResourceCard.COTTON: 0,
+            teyuna_shared.ResourceCard.MAIZE: 1,
         }
     )
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -107,7 +109,7 @@ def test_returns_400_when_deck_is_empty(
     repository, game_id, tokens, active_player, _, _ = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
     game.wisdom_deck = []
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -128,10 +130,10 @@ def test_buys_wisdom_card(
     response = client.post(f"/games/{game_id}/wisdom-cards/buy")
 
     assert response.status_code == 200, response.text
-    assert response.json() == entities.GamePhaseName.TRADE_AND_BUILD.value
+    assert response.json() == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     assert game.wisdom_deck == []
     assert game.players[active_player].cards_bought_this_turn[card] == 1
     assert game.players[active_player].cards[card] == 0
@@ -149,16 +151,16 @@ def _setup_trade_and_build(
     dict[str, str],
     str,
     str,
-    entities.WisdomCard,
+    teyuna_shared.WisdomCard,
 ]:
     repository = repository_module.InMemoryGameRepository()
-    card = entities.WisdomCard.WARRIOR
+    card = teyuna_shared.WisdomCard.WARRIOR
     game = _create_game(card)
     active_player = game.active_player
     other = game.turn_order[1]
     if grant_cost:
         game.players[active_player].resources.update(_WISDOM_CARD_COST)
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
@@ -166,11 +168,13 @@ def _setup_trade_and_build(
     return repository, game_id, tokens, active_player, other, card
 
 
-def _create_game(top_card: entities.WisdomCard) -> entities.Game:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
+def _create_game(top_card: teyuna_shared.WisdomCard) -> entities.Game:
+    mountains = teyuna_shared.MapHex(
+        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

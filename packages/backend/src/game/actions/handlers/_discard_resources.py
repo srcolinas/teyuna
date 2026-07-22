@@ -1,24 +1,15 @@
-import pydantic
+import teyuna_shared
 
 from ... import entities
-from .. import _registry
-
-
-class DiscardResourcesAction(_registry.PlayerAction):
-    count: entities.ResourceCount
-
-
-class DiscardedResourcesResult(_registry.ActionExecutionResult):
-    count: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
 
 
 def handle_discard_resources(
-    game: entities.Game, action: DiscardResourcesAction
-) -> DiscardedResourcesResult:
+    game: entities.Game, action: teyuna_shared.DiscardResourcesAction
+) -> teyuna_shared.DiscardedResourcesResult:
     previous_phase = game.phase
     required = game.to_discard_resources.get(action.by)
     if required is None:
-        return DiscardedResourcesResult(
+        return teyuna_shared.DiscardedResourcesResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -26,7 +17,7 @@ def handle_discard_resources(
         )
 
     if sum(action.count.values()) != required:
-        return DiscardedResourcesResult(
+        return teyuna_shared.DiscardedResourcesResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -36,7 +27,7 @@ def handle_discard_resources(
     player_resources = game.players[action.by].resources
     for resource, amount in action.count.items():
         if player_resources[resource] < amount:
-            return DiscardedResourcesResult(
+            return teyuna_shared.DiscardedResourcesResult(
                 previous_phase=previous_phase,
                 next_phase=game.phase,
                 action=action,
@@ -47,10 +38,10 @@ def handle_discard_resources(
     del game.to_discard_resources[action.by]
 
     if game.to_discard_resources:
-        game.phase = entities.GamePhaseName.DISCARD_RESOURCES
+        game.phase = teyuna_shared.GamePhaseName.DISCARD_RESOURCES
     else:
-        game.phase = entities.GamePhaseName.MOVE_CONQUISTATOR
-    return DiscardedResourcesResult(
+        game.phase = teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
+    return teyuna_shared.DiscardedResourcesResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,

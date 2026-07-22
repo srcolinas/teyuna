@@ -1,29 +1,21 @@
-from ... import player
+import teyuna_shared
+
 from ... import entities
-from .. import _registry
-from ._victory import phase_after_victory_check
+from . import _victory
 
 _MIN_BIGGEST_ARMY: int = 3
 
 
-class PlayWisdomCardAction(_registry.PlayerAction):
-    card: entities.WisdomCard
-
-
-class PlayedWisdomCardResult(_registry.ActionExecutionResult):
-    card: entities.WisdomCard | None = None
-
-
 def play_wisdom_card(
     game: entities.Game,
-    action: PlayWisdomCardAction,
+    action: teyuna_shared.PlayWisdomCardAction,
     *,
-    card_phases: dict[entities.WisdomCard, entities.GamePhaseName],
+    card_phases: dict[teyuna_shared.WisdomCard, teyuna_shared.GamePhaseName],
     phase_label: str,
-) -> PlayedWisdomCardResult:
+) -> teyuna_shared.PlayedWisdomCardResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return PlayedWisdomCardResult(
+        return teyuna_shared.PlayedWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -31,7 +23,7 @@ def play_wisdom_card(
         )
 
     if game.players[action.by].cards[action.card] <= 0:
-        return PlayedWisdomCardResult(
+        return teyuna_shared.PlayedWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -40,7 +32,7 @@ def play_wisdom_card(
 
     next_phase = card_phases.get(action.card)
     if next_phase is None:
-        return PlayedWisdomCardResult(
+        return teyuna_shared.PlayedWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -51,18 +43,18 @@ def play_wisdom_card(
         )
 
     game.use_card(action.by, action.card)
-    if action.card is entities.WisdomCard.WARRIOR:
+    if action.card is teyuna_shared.WisdomCard.WARRIOR:
         _update_biggest_army(game, action.by)
-    if action.card is entities.WisdomCard.LEGACY_OF_THE_ELDERS:
-        game.phase = phase_after_victory_check(game, action.by, next_phase)
-        return PlayedWisdomCardResult(
+    if action.card is teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS:
+        game.phase = _victory.phase_after_victory_check(game, action.by, next_phase)
+        return teyuna_shared.PlayedWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             card=action.card,
         )
     game.phase = next_phase
-    return PlayedWisdomCardResult(
+    return teyuna_shared.PlayedWisdomCardResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -72,11 +64,11 @@ def play_wisdom_card(
 
 def _update_biggest_army(
     game: entities.Game,
-    by: player.Nickname,
+    by: str,
     /,
 ) -> None:
     """Update biggest army after ``by`` plays a warrior."""
-    count = game.players[by].played_cards[entities.WisdomCard.WARRIOR]
+    count = game.players[by].played_cards[teyuna_shared.WisdomCard.WARRIOR]
     if count < _MIN_BIGGEST_ARMY:
         return
 

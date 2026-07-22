@@ -3,9 +3,10 @@ import uuid
 
 import fastapi.testclient as testclient
 
-from src.game import entities, player
+from src.game import player
 
 from .. import utils
+import teyuna_shared
 
 
 type VertrexCoordinate = tuple[int, int, int]
@@ -32,7 +33,7 @@ def advance_phase(
     client: testclient.TestClient,
     game_id: uuid.UUID,
     token: Token,
-) -> tuple[entities.GamePhaseName, player.Nickname]:
+) -> tuple[teyuna_shared.GamePhaseName, player.Nickname]:
     client.cookies["session-token"] = token
     response = client.post(f"/games/{game_id}/turn-order")
     assert response.status_code == 200, pprint.pformat(response.text)

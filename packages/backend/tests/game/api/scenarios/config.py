@@ -1,20 +1,22 @@
 from typing import Iterable
 
-from src.game import entities
+import teyuna_shared
 
 
 def overwrite_map(
     *,
-    source: Iterable[entities.Hex],
-    overwrites: dict[entities.HexLocation, tuple[entities.HexType, int]],
-) -> tuple[entities.Hex, ...]:
-    result: list[entities.Hex] = []
+    source: Iterable[teyuna_shared.MapHex],
+    overwrites: dict[teyuna_shared.HexLocation, tuple[teyuna_shared.HexType, int]],
+) -> tuple[teyuna_shared.MapHex, ...]:
+    result: list[teyuna_shared.MapHex] = []
     for hex_tile in source:
-        key = entities.HexLocation(q=hex_tile.q, r=hex_tile.r)
+        key = teyuna_shared.HexLocation(q=hex_tile.q, r=hex_tile.r)
         if key in overwrites:
             hex_type, number = overwrites[key]
             result.append(
-                entities.Hex(q=hex_tile.q, r=hex_tile.r, type=hex_type, number=number)
+                teyuna_shared.MapHex(
+                    q=hex_tile.q, r=hex_tile.r, type=hex_type, number=number
+                )
             )
         else:
             result.append(hex_tile)

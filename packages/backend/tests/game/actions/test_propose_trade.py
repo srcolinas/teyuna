@@ -1,20 +1,21 @@
 import collections
 
 from src.game import actions, entities
+import teyuna_shared
 
 
 def test_propose_trade_stores_proposal(game: entities.Game) -> None:
     proposer = game.active_player
     target = game.turn_order[1]
     game.players[proposer].resources = collections.Counter(
-        {entities.ResourceCard.GOLD: 2}
+        {teyuna_shared.ResourceCard.GOLD: 2}
     )
-    offer = collections.Counter({entities.ResourceCard.GOLD: 2})
-    request = collections.Counter({entities.ResourceCard.STONE: 1})
+    offer = collections.Counter({teyuna_shared.ResourceCard.GOLD: 2})
+    request = collections.Counter({teyuna_shared.ResourceCard.STONE: 1})
 
     result = actions.handle_propose_trade(
         game,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=proposer,
             offer=offer,
             request=request,
@@ -23,10 +24,10 @@ def test_propose_trade_stores_proposal(game: entities.Game) -> None:
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     assert len(game.trade_proposals) == 1
     assert result.proposal_id in game.trade_proposals
-    assert game.trade_proposals[result.proposal_id] == entities.TradeProposal(
+    assert game.trade_proposals[result.proposal_id] == teyuna_shared.TradeProposal(
         by=proposer,
         offer=offer,
         request=request,
@@ -38,21 +39,21 @@ def test_non_active_player_can_propose(game: entities.Game) -> None:
     proposer = game.turn_order[1]
     target = game.active_player
     game.players[proposer].resources = collections.Counter(
-        {entities.ResourceCard.GOLD: 2}
+        {teyuna_shared.ResourceCard.GOLD: 2}
     )
 
     result = actions.handle_propose_trade(
         game,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=proposer,
-            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 2}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
             to={target},
         ),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     assert result.proposal_id in game.trade_proposals
     proposal = game.trade_proposals[result.proposal_id]
     assert proposal.by == proposer
@@ -62,10 +63,10 @@ def test_non_active_player_can_propose(game: entities.Game) -> None:
 def test_cannot_propose_if_not_enough_resources(game: entities.Game) -> None:
     result = actions.handle_propose_trade(
         game,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=game.active_player,
-            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 2}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
             to={game.turn_order[1]},
         ),
     )
@@ -75,14 +76,14 @@ def test_cannot_propose_if_not_enough_resources(game: entities.Game) -> None:
 
 def test_cannot_propose_with_empty_targets(game: entities.Game) -> None:
     game.players[game.active_player].resources = collections.Counter(
-        {entities.ResourceCard.GOLD: 2}
+        {teyuna_shared.ResourceCard.GOLD: 2}
     )
     result = actions.handle_propose_trade(
         game,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=game.active_player,
-            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 2}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
             to=set(),
         ),
     )
@@ -93,14 +94,14 @@ def test_cannot_propose_with_empty_targets(game: entities.Game) -> None:
 def test_cannot_propose_to_self(game: entities.Game) -> None:
     proposer = game.active_player
     game.players[proposer].resources = collections.Counter(
-        {entities.ResourceCard.GOLD: 2}
+        {teyuna_shared.ResourceCard.GOLD: 2}
     )
     result = actions.handle_propose_trade(
         game,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=proposer,
-            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 2}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
             to={proposer},
         ),
     )
@@ -110,14 +111,14 @@ def test_cannot_propose_to_self(game: entities.Game) -> None:
 
 def test_cannot_propose_to_unknown_player(game: entities.Game) -> None:
     game.players[game.active_player].resources = collections.Counter(
-        {entities.ResourceCard.GOLD: 2}
+        {teyuna_shared.ResourceCard.GOLD: 2}
     )
     result = actions.handle_propose_trade(
         game,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=game.active_player,
-            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 2}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
             to={"not-a-player"},
         ),
     )
@@ -128,20 +129,20 @@ def test_cannot_propose_to_unknown_player(game: entities.Game) -> None:
 def test_propose_does_not_move_resources(game: entities.Game) -> None:
     proposer = game.active_player
     game.players[proposer].resources = collections.Counter(
-        {entities.ResourceCard.GOLD: 2}
+        {teyuna_shared.ResourceCard.GOLD: 2}
     )
 
     result = actions.handle_propose_trade(
         game,
-        actions.ProposeTradeAction(
+        teyuna_shared.ProposeTradeAction(
             by=proposer,
-            offer=collections.Counter({entities.ResourceCard.GOLD: 2}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 2}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
             to={game.turn_order[1]},
         ),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     assert result.proposal_id in game.trade_proposals
-    assert game.players[proposer].resources[entities.ResourceCard.GOLD] == 2
+    assert game.players[proposer].resources[teyuna_shared.ResourceCard.GOLD] == 2

@@ -1,39 +1,26 @@
 import collections
 import random
 
-from ... import player
+import teyuna_shared
+
 from ... import entities
-from .. import _registry
 from . import _placement
 
 
-class MoveConquistatorAction(_registry.PlayerAction):
-    q: int
-    r: int
-    from_player: player.Nickname | None = None
-
-
-class MovedConquistatorResult(_registry.ActionExecutionResult):
-    q: int = -1
-    r: int = -1
-    from_player: player.Nickname | None = None
-    stolen: entities.ResourceCard | None = None
-
-
 def handle_dice_play_warrior(
-    game: entities.Game, action: MoveConquistatorAction
-) -> MovedConquistatorResult:
+    game: entities.Game, action: teyuna_shared.MoveConquistatorAction
+) -> teyuna_shared.MovedConquistatorResult:
     previous_phase = game.phase
     error, stolen = _apply_move_conquistator(game, action)
     if error is not None:
-        return MovedConquistatorResult(
+        return teyuna_shared.MovedConquistatorResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.phase = entities.GamePhaseName.DICE_ROLL
-    return MovedConquistatorResult(
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    return teyuna_shared.MovedConquistatorResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -45,19 +32,19 @@ def handle_dice_play_warrior(
 
 
 def handle_move_conquistator(
-    game: entities.Game, action: MoveConquistatorAction
-) -> MovedConquistatorResult:
+    game: entities.Game, action: teyuna_shared.MoveConquistatorAction
+) -> teyuna_shared.MovedConquistatorResult:
     previous_phase = game.phase
     error, stolen = _apply_move_conquistator(game, action)
     if error is not None:
-        return MovedConquistatorResult(
+        return teyuna_shared.MovedConquistatorResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
-    return MovedConquistatorResult(
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    return teyuna_shared.MovedConquistatorResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -69,12 +56,12 @@ def handle_move_conquistator(
 
 
 def _apply_move_conquistator(
-    game: entities.Game, action: MoveConquistatorAction
-) -> tuple[str | None, entities.ResourceCard | None]:
+    game: entities.Game, action: teyuna_shared.MoveConquistatorAction
+) -> tuple[str | None, teyuna_shared.ResourceCard | None]:
     if game.active_player != action.by:
         return f"Player {action.by} is not in turn", None
 
-    location = entities.HexLocation(q=action.q, r=action.r)
+    location = teyuna_shared.HexLocation(q=action.q, r=action.r)
     if location == game.conquistator_location:
         return (
             _placement.format_invalid_conquistator_location(
@@ -87,7 +74,7 @@ def _apply_move_conquistator(
 
     game.conquistator_location = location
 
-    stolen: entities.ResourceCard | None = None
+    stolen: teyuna_shared.ResourceCard | None = None
     if action.from_player is not None:
         victim_resources = game.players[action.from_player].resources
         available = [card for card, count in victim_resources.items() if count > 0]

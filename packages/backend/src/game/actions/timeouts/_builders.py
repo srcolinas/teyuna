@@ -1,54 +1,47 @@
 import collections
 import random
 
+import teyuna_shared
+
 from ... import entities
-from .. import _registry
-from ..handlers import (
-    _first_placement,
-    _discard_resources,
-    _move_conquistator,
-    _placement,
-    _play_blessed,
-    _play_mamo,
-    _play_pathfinder,
-)
+from ..handlers import _placement
 
 
 def timeout_dice_roll(
     game: entities.Game, rng: random.Random
-) -> _registry.PlayerAction:
-    return _registry.PlayerAction.model_construct(
+) -> teyuna_shared.PlayerAction:
+    return teyuna_shared.PlayerAction.model_construct(
         by=game.active_player, due_to_timeout=True, rng_=rng
     )
 
 
 def timeout_trade_and_build(
     game: entities.Game, rng: random.Random
-) -> _registry.PlayerAction:
-    return _registry.PlayerAction.model_construct(
+) -> teyuna_shared.PlayerAction:
+    return teyuna_shared.PlayerAction.model_construct(
         by=game.active_player, due_to_timeout=True, rng_=rng
     )
 
 
 def timeout_first_placement(
     game: entities.Game, rng: random.Random
-) -> _first_placement.FreePlacementAction:
+) -> teyuna_shared.FreePlacementAction:
     return _pick_free_placement(game, rng)
 
 
 def timeout_second_placement(
     game: entities.Game, rng: random.Random
-) -> _first_placement.FreePlacementAction:
+) -> teyuna_shared.FreePlacementAction:
     return _pick_free_placement(game, rng)
 
 
 def timeout_move_conquistator(
     game: entities.Game, rng: random.Random
-) -> _move_conquistator.MoveConquistatorAction:
+) -> teyuna_shared.MoveConquistatorAction:
     candidates = [
-        entities.HexLocation(q=hex_tile.q, r=hex_tile.r)
+        teyuna_shared.HexLocation(q=hex_tile.q, r=hex_tile.r)
         for hex_tile in game.map
-        if entities.HexLocation(q=hex_tile.q, r=hex_tile.r)
+        if teyuna_shared.HexLocation(q=hex_tile.q, r=hex_tile.r)
         != game.conquistator_location
     ]
     location = rng.choice(candidates)
@@ -58,7 +51,7 @@ def timeout_move_conquistator(
         if nick != game.active_player and sum(player_state.resources.values()) > 0
     ]
     from_player = rng.choice(victims) if victims else None
-    return _move_conquistator.MoveConquistatorAction.model_construct(
+    return teyuna_shared.MoveConquistatorAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         q=location.q,
@@ -70,11 +63,11 @@ def timeout_move_conquistator(
 
 def timeout_discard_resources(
     game: entities.Game, rng: random.Random
-) -> _discard_resources.DiscardResourcesAction:
+) -> teyuna_shared.DiscardResourcesAction:
     nick = next(iter(game.to_discard_resources))
     required = game.to_discard_resources[nick]
     count = _pick_discard(game.players[nick].resources, required, rng)
-    return _discard_resources.DiscardResourcesAction.model_construct(
+    return teyuna_shared.DiscardResourcesAction.model_construct(
         by=nick,
         due_to_timeout=True,
         count=count,
@@ -82,15 +75,19 @@ def timeout_discard_resources(
     )
 
 
-def timeout_lobby(game: entities.Game, rng: random.Random) -> _registry.PlayerAction:
-    return _registry.PlayerAction.model_construct(by="", due_to_timeout=True, rng_=rng)
+def timeout_lobby(
+    game: entities.Game, rng: random.Random
+) -> teyuna_shared.PlayerAction:
+    return teyuna_shared.PlayerAction.model_construct(
+        by="", due_to_timeout=True, rng_=rng
+    )
 
 
 def timeout_play_mamo(
     game: entities.Game, rng: random.Random
-) -> _play_mamo.PlayMamoAction:
-    resource = rng.choice(list(entities.ResourceCard))
-    return _play_mamo.PlayMamoAction.model_construct(
+) -> teyuna_shared.PlayMamoAction:
+    resource = rng.choice(list(teyuna_shared.ResourceCard))
+    return teyuna_shared.PlayMamoAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         resource=resource,
@@ -100,18 +97,18 @@ def timeout_play_mamo(
 
 def timeout_play_blessed(
     game: entities.Game, rng: random.Random
-) -> _play_blessed.PlayBlessedAction:
-    pool: list[entities.ResourceCard] = [
+) -> teyuna_shared.PlayBlessedAction:
+    pool: list[teyuna_shared.ResourceCard] = [
         resource
-        for resource in entities.ResourceCard
+        for resource in teyuna_shared.ResourceCard
         for _ in range(game.resource_supply[resource])
     ]
     if len(pool) >= 2:
         first, second = rng.sample(pool, 2)
     else:
-        resources = list(entities.ResourceCard)
+        resources = list(teyuna_shared.ResourceCard)
         first, second = resources[0], resources[1]
-    return _play_blessed.PlayBlessedAction.model_construct(
+    return teyuna_shared.PlayBlessedAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         resources=(first, second),
@@ -121,10 +118,10 @@ def timeout_play_blessed(
 
 def timeout_play_pathfinder(
     game: entities.Game, rng: random.Random
-) -> _play_pathfinder.PlayPathfinderAction:
+) -> teyuna_shared.PlayPathfinderAction:
     player_state = game.players[game.active_player]
-    remaining = entities.MAX_PATHS - len(player_state.paths)
-    legal: list[entities.Coordinate] = [
+    remaining = teyuna_shared.MAX_PATHS - len(player_state.paths)
+    legal: list[teyuna_shared.Coordinate] = [
         edge
         for edge in game.free_edges
         if _placement.can_add_free_path_at(
@@ -136,12 +133,11 @@ def timeout_play_pathfinder(
         )
     ]
     rng.shuffle(legal)
-    chosen: list[entities.Coordinate] = []
+    chosen: list[teyuna_shared.Coordinate] = []
     owned_paths = set(player_state.paths)
     for edge in legal:
         if len(chosen) >= min(2, remaining):
             break
-        # Re-check with paths already chosen in this timeout action.
         provisional = owned_paths | set(chosen)
         if _placement.can_add_free_path_at(
             target=edge,
@@ -151,7 +147,7 @@ def timeout_play_pathfinder(
             free_vertices=game.free_verticies,
         ):
             chosen.append(edge)
-    return _play_pathfinder.PlayPathfinderAction.model_construct(
+    return teyuna_shared.PlayPathfinderAction.model_construct(
         by=game.active_player,
         due_to_timeout=True,
         paths=tuple(chosen),
@@ -161,7 +157,7 @@ def timeout_play_pathfinder(
 
 def _pick_free_placement(
     game: entities.Game, rng: random.Random
-) -> _first_placement.FreePlacementAction:
+) -> teyuna_shared.FreePlacementAction:
     legal_terraces = [
         vertex
         for vertex in game.free_verticies
@@ -190,7 +186,7 @@ def _pick_free_placement(
         if not legal_paths:
             continue
         path = rng.choice(legal_paths)
-        return _first_placement.FreePlacementAction.model_construct(
+        return teyuna_shared.FreePlacementAction.model_construct(
             by=game.active_player,
             due_to_timeout=True,
             terrace=terrace,
@@ -201,15 +197,15 @@ def _pick_free_placement(
 
 
 def _pick_discard(
-    resources: entities.ResourceCount,
+    resources: teyuna_shared.ResourceCount,
     required: int,
     rng: random.Random,
-) -> entities.ResourceCount:
-    pool: list[entities.ResourceCard] = [
+) -> dict[teyuna_shared.ResourceCard, int]:
+    pool: list[teyuna_shared.ResourceCard] = [
         resource for resource, amount in resources.items() for _ in range(amount)
     ]
     rng.shuffle(pool)
-    count: entities.ResourceCount = collections.Counter()
+    count: collections.Counter[teyuna_shared.ResourceCard] = collections.Counter()
     for resource in pool[:required]:
         count[resource] += 1
-    return count
+    return dict(count)

@@ -1,42 +1,15 @@
-import pydantic
+import teyuna_shared
 
-from ... import player
 from ... import entities
-from .. import _registry
 from . import _placement
 
 
-class FreePlacementAction(_registry.PlayerAction):
-    terrace: entities.Coordinate
-    path: entities.Coordinate
-
-    @pydantic.model_validator(mode="after")
-    def _canonicalize(self) -> "FreePlacementAction":
-        object.__setattr__(
-            self,
-            "terrace",
-            entities.canonical_vertex(self.terrace.q, self.terrace.r, self.terrace.d),
-        )
-        object.__setattr__(
-            self,
-            "path",
-            entities.canonical_edge(self.path.q, self.path.r, self.path.d),
-        )
-        return self
-
-
-class PlacedBuildingsResult(_registry.ActionExecutionResult):
-    settlement: entities.Coordinate | None = None
-    path: entities.Coordinate | None = None
-    next_player: player.Nickname = ""
-
-
 def handle_first_placement(
-    game: entities.Game, action: FreePlacementAction
-) -> PlacedBuildingsResult:
+    game: entities.Game, action: teyuna_shared.FreePlacementAction
+) -> teyuna_shared.PlacedBuildingsResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return PlacedBuildingsResult(
+        return teyuna_shared.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -49,7 +22,7 @@ def handle_first_placement(
         target=action.terrace,
     )
     if not can:
-        return PlacedBuildingsResult(
+        return teyuna_shared.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -71,7 +44,7 @@ def handle_first_placement(
         new_settlement=action.terrace,
     )
     if not can:
-        return PlacedBuildingsResult(
+        return teyuna_shared.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -84,15 +57,15 @@ def handle_first_placement(
             ),
         )
 
-    game.use_vertex(action.by, action.terrace, entities.SettlementType.TERRACE)
+    game.use_vertex(action.by, action.terrace, teyuna_shared.SettlementType.TERRACE)
     game.use_edge(action.by, action.path)
 
     if game.player_idx < len(game.players) - 1:
         game.player_idx += 1
-        game.phase = entities.GamePhaseName.FIRST_PLACEMENT
+        game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
     else:
-        game.phase = entities.GamePhaseName.SECOND_PLACEMENT
-    return PlacedBuildingsResult(
+        game.phase = teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+    return teyuna_shared.PlacedBuildingsResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,

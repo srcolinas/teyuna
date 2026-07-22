@@ -5,33 +5,11 @@ import random
 from collections.abc import Callable
 from typing import Any
 
-import pydantic
+import teyuna_shared
 
-from .. import player
 from .. import entities
 
-
-class PlayerAction(pydantic.BaseModel):
-    model_config = pydantic.ConfigDict(frozen=True, arbitrary_types_allowed=True)
-
-    by: player.Nickname
-    due_to_timeout: bool = False
-    rng_: Any = pydantic.Field(
-        default_factory=random.Random,
-        exclude=True,
-    )
-
-
-class ActionExecutionResult(pydantic.BaseModel):
-    model_config = pydantic.ConfigDict(frozen=True)
-
-    previous_phase: entities.GamePhaseName
-    next_phase: entities.GamePhaseName
-    action: PlayerAction
-    error: str | None = None
-
-
-TimeoutFn = Callable[[entities.Game, random.Random], PlayerAction]
+TimeoutFn = Callable[[entities.Game, random.Random], teyuna_shared.PlayerAction]
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -54,24 +32,26 @@ class ActionNotAllowedError(Exception):
 class ActionsRegistry:
     def __init__(self) -> None:
         self._registry: dict[
-            entities.GamePhaseName,
+            teyuna_shared.GamePhaseName,
             dict[
-                type[PlayerAction],
-                Callable[[entities.Game, Any], ActionExecutionResult],
+                type[teyuna_shared.PlayerAction],
+                Callable[[entities.Game, Any], teyuna_shared.ActionExecutionResult],
             ],
         ] = {}
-        self._timeouts: dict[entities.GamePhaseName, PhaseTimeout] = {}
+        self._timeouts: dict[teyuna_shared.GamePhaseName, PhaseTimeout] = {}
 
-    def register[ActionT: PlayerAction](
+    def register[ActionT: teyuna_shared.PlayerAction](
         self,
-        phase: entities.GamePhaseName,
+        phase: teyuna_shared.GamePhaseName,
     ) -> Callable[
-        [Callable[[entities.Game, ActionT], ActionExecutionResult]],
-        Callable[[entities.Game, ActionT], ActionExecutionResult],
+        [Callable[[entities.Game, ActionT], teyuna_shared.ActionExecutionResult]],
+        Callable[[entities.Game, ActionT], teyuna_shared.ActionExecutionResult],
     ]:
         def decorator(
-            handler: Callable[[entities.Game, ActionT], ActionExecutionResult],
-        ) -> Callable[[entities.Game, ActionT], ActionExecutionResult]:
+            handler: Callable[
+                [entities.Game, ActionT], teyuna_shared.ActionExecutionResult
+            ],
+        ) -> Callable[[entities.Game, ActionT], teyuna_shared.ActionExecutionResult]:
             sig = inspect.signature(handler)
             params = list(sig.parameters.values())
 
@@ -86,7 +66,7 @@ class ActionsRegistry:
             action_type = annotations.get(action_param_name)
 
             if not isinstance(action_type, type) or not issubclass(
-                action_type, PlayerAction
+                action_type, teyuna_shared.PlayerAction
             ):
                 raise TypeError(
                     f"The second parameter '{action_param_name}' of handler '{handler.__name__}' "
@@ -104,13 +84,13 @@ class ActionsRegistry:
 
     def set_timeout(
         self,
-        phase: entities.GamePhaseName,
+        phase: teyuna_shared.GamePhaseName,
         duration: datetime.timedelta,
         on_timeout: TimeoutFn,
     ) -> None:
         self._timeouts[phase] = PhaseTimeout(duration=duration, on_timeout=on_timeout)
 
-    def timeout_for(self, phase: entities.GamePhaseName) -> PhaseTimeout:
+    def timeout_for(self, phase: teyuna_shared.GamePhaseName) -> PhaseTimeout:
         try:
             return self._timeouts[phase]
         except KeyError:
@@ -119,8 +99,8 @@ class ActionsRegistry:
             ) from None
 
     def execute(
-        self, game: entities.Game, action: PlayerAction
-    ) -> ActionExecutionResult:
+        self, game: entities.Game, action: teyuna_shared.PlayerAction
+    ) -> teyuna_shared.ActionExecutionResult:
         phase_handlers = self._registry.get(game.phase)
         if not phase_handlers:
             raise GamePhaseHanlderNotImplementedError(

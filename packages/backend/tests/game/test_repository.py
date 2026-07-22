@@ -3,6 +3,7 @@ import uuid
 import pytest
 
 from src.game import entities, repository as repository_module
+import teyuna_shared
 
 
 def test_items_returns_all_stored_games() -> None:
@@ -41,6 +42,6 @@ def _empty_game() -> entities.Game:
     return entities.Game(
         map=(),
         players={},
-        conquistator_location=entities.HexLocation(q=0, r=0),
+        conquistator_location=teyuna_shared.HexLocation(q=0, r=0),
         available_slots=3,
     )

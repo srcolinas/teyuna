@@ -18,6 +18,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY packages/backend/pyproject.toml packages/backend/
 COPY packages/sdk-python/pyproject.toml packages/sdk-python/README.md packages/sdk-python/LICENSE packages/sdk-python/
+COPY packages/shared-core/pyproject.toml packages/shared-core/README.md packages/shared-core/
+# Path dependency must be buildable during the first sync.
+COPY packages/shared-core/src/ ./packages/shared-core/src/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --package teyuna-sdk --no-install-project --no-dev --no-editable

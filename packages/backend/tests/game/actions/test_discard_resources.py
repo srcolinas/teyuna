@@ -1,6 +1,7 @@
 import collections
 
 from src.game import actions, entities
+import teyuna_shared
 
 
 def test_raises_when_player_not_required_to_discard(
@@ -11,9 +12,9 @@ def test_raises_when_player_not_required_to_discard(
 
     result = actions.handle_discard_resources(
         game,
-        actions.DiscardResourcesAction(
+        teyuna_shared.DiscardResourcesAction(
             by=player,
-            count=collections.Counter({entities.ResourceCard.WOOD: 4}),
+            count=collections.Counter({teyuna_shared.ResourceCard.WOOD: 4}),
         ),
     )
     assert result.error == f"Player {player} is not required to discard resources"
@@ -24,14 +25,14 @@ def test_raises_when_discard_count_is_wrong(game: entities.Game) -> None:
     player = game.turn_order[0]
     game.to_discard_resources = {player: 4}
     game.players[player].resources = collections.Counter(
-        {entities.ResourceCard.WOOD: 9}
+        {teyuna_shared.ResourceCard.WOOD: 9}
     )
 
     result = actions.handle_discard_resources(
         game,
-        actions.DiscardResourcesAction(
+        teyuna_shared.DiscardResourcesAction(
             by=player,
-            count=collections.Counter({entities.ResourceCard.WOOD: 5}),
+            count=collections.Counter({teyuna_shared.ResourceCard.WOOD: 5}),
         ),
     )
     assert result.error == f"Player {player} must discard 4 resources"
@@ -45,16 +46,16 @@ def test_raises_when_insufficient_resources_of_type(
     game.to_discard_resources = {player: 4}
     game.players[player].resources = collections.Counter(
         {
-            entities.ResourceCard.WOOD: 6,
-            entities.ResourceCard.GOLD: 2,
+            teyuna_shared.ResourceCard.WOOD: 6,
+            teyuna_shared.ResourceCard.GOLD: 2,
         }
     )
 
     result = actions.handle_discard_resources(
         game,
-        actions.DiscardResourcesAction(
+        teyuna_shared.DiscardResourcesAction(
             by=player,
-            count=collections.Counter({entities.ResourceCard.GOLD: 4}),
+            count=collections.Counter({teyuna_shared.ResourceCard.GOLD: 4}),
         ),
     )
     assert result.error == "Insufficient gold to discard"
@@ -68,25 +69,25 @@ def test_discard_removes_player_and_stays_in_phase_when_others_remain(
     other = game.turn_order[1]
     game.to_discard_resources = {player: 4, other: 5}
     game.players[player].resources = collections.Counter(
-        {entities.ResourceCard.WOOD: 8}
+        {teyuna_shared.ResourceCard.WOOD: 8}
     )
-    supply_before = game.resource_supply[entities.ResourceCard.WOOD]
+    supply_before = game.resource_supply[teyuna_shared.ResourceCard.WOOD]
 
-    count = collections.Counter({entities.ResourceCard.WOOD: 4})
+    count = collections.Counter({teyuna_shared.ResourceCard.WOOD: 4})
     result = actions.handle_discard_resources(
         game,
-        actions.DiscardResourcesAction(
+        teyuna_shared.DiscardResourcesAction(
             by=player,
             count=count,
         ),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.DISCARD_RESOURCES
+    assert result.next_phase is teyuna_shared.GamePhaseName.DISCARD_RESOURCES
     assert result.count == count
     assert game.to_discard_resources == {other: 5}
-    assert game.players[player].resources[entities.ResourceCard.WOOD] == 4
-    assert game.resource_supply[entities.ResourceCard.WOOD] == supply_before + 4
+    assert game.players[player].resources[teyuna_shared.ResourceCard.WOOD] == 4
+    assert game.resource_supply[teyuna_shared.ResourceCard.WOOD] == supply_before + 4
 
 
 def test_last_discard_moves_to_move_conquistator(
@@ -96,27 +97,27 @@ def test_last_discard_moves_to_move_conquistator(
     game.to_discard_resources = {player: 4}
     game.players[player].resources = collections.Counter(
         {
-            entities.ResourceCard.WOOD: 5,
-            entities.ResourceCard.GOLD: 4,
+            teyuna_shared.ResourceCard.WOOD: 5,
+            teyuna_shared.ResourceCard.GOLD: 4,
         }
     )
 
     count = collections.Counter(
         {
-            entities.ResourceCard.WOOD: 2,
-            entities.ResourceCard.GOLD: 2,
+            teyuna_shared.ResourceCard.WOOD: 2,
+            teyuna_shared.ResourceCard.GOLD: 2,
         }
     )
     result = actions.handle_discard_resources(
         game,
-        actions.DiscardResourcesAction(
+        teyuna_shared.DiscardResourcesAction(
             by=player,
             count=count,
         ),
     )
 
     assert result.error is None
-    assert result.next_phase is entities.GamePhaseName.MOVE_CONQUISTATOR
+    assert result.next_phase is teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
     assert result.count == count
     assert game.to_discard_resources == {}
     assert sum(game.players[player].resources.values()) == 5

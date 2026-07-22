@@ -8,6 +8,7 @@ from src.game import entities, dependencies as game_dependencies
 from src.game import player
 from src.game import actions, repository as repository_module
 import datetime
+import teyuna_shared
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -34,7 +35,7 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
-    game.phase = entities.GamePhaseName.FIRST_PLACEMENT
+    game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -119,8 +120,8 @@ def test_non_active_player_can_propose(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
-    game.players[other].resources.update({entities.ResourceCard.GOLD: 1})
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
+    game.players[other].resources.update({teyuna_shared.ResourceCard.GOLD: 1})
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -137,13 +138,13 @@ def test_non_active_player_can_propose(
     assert response.status_code == 200, response.text
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase == entities.GamePhaseName.TRADE_AND_BUILD
+    assert phase == teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     assert (
-        entities.TradeProposal(
+        teyuna_shared.TradeProposal(
             by=other,
             to={active_player},
-            offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 1}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
         )
         in game.trade_proposals.values()
     )
@@ -167,11 +168,11 @@ def test_proposes_trade(
 
     assert response.status_code == 200, response.text
     assert (
-        entities.TradeProposal(
+        teyuna_shared.TradeProposal(
             by=active_player,
             to={other},
-            offer=collections.Counter({entities.ResourceCard.GOLD: 1}),
-            request=collections.Counter({entities.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 1}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
         )
         in repository.retrieve(game_id).trade_proposals.values()
     )
@@ -193,8 +194,10 @@ def _setup_trade_and_build(
     active_player = game.active_player
     other = game.turn_order[1]
     if grant_offer:
-        game.players[active_player].resources.update({entities.ResourceCard.GOLD: 1})
-    game.phase = entities.GamePhaseName.TRADE_AND_BUILD
+        game.players[active_player].resources.update(
+            {teyuna_shared.ResourceCard.GOLD: 1}
+        )
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -203,10 +206,12 @@ def _setup_trade_and_build(
 
 
 def _create_game() -> entities.Game:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
+    mountains = teyuna_shared.MapHex(
+        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),
