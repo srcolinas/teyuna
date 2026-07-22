@@ -19,33 +19,25 @@ async def build(
     logger = logging.getLogger(logging_config.agent_logger_name(context.nickname))
     sleep_time = 2
     while True:
-        await _tick(context, logger, sleep_time)
-
-
-async def _tick(
-    context: entities.PlayerContext,
-    logger: logging.Logger,
-    sleep_time: float,
-) -> None:
-    game = await context.client.get_game(context.client.game_id)
-    turn_order = game.turn_order
-    if not turn_order or turn_order[0] != context.nickname:
-        await asyncio.sleep(sleep_time)
-        return
-
-    match game.phase:
-        case (
-            teyuna_shared.GamePhaseName.FIRST_PLACEMENT
-            | teyuna_shared.GamePhaseName.SECOND_PLACEMENT
-        ):
-            await _initial_placement(context, logger, game)
-        case teyuna_shared.GamePhaseName.DICE_ROLL:
-            logger.info("%s advancing turn (dice roll)", context.nickname)
-            await context.client.advance_turn()
-        case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
-            await _trade_and_build(context, logger, sleep_time)
-        case _:
+        game = await context.client.get_game(context.client.game_id)
+        turn_order = game.turn_order
+        if not turn_order or turn_order[0] != context.nickname:
             await asyncio.sleep(sleep_time)
+            continue
+
+        match game.phase:
+            case (
+                teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+                | teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+            ):
+                await _initial_placement(context, logger, game)
+            case teyuna_shared.GamePhaseName.DICE_ROLL:
+                logger.info("%s advancing turn (dice roll)", context.nickname)
+                await context.client.advance_turn()
+            case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
+                await _trade_and_build(context, logger, sleep_time)
+            case _:
+                await asyncio.sleep(sleep_time)
 
 
 async def _initial_placement(
