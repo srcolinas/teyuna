@@ -38,7 +38,6 @@ def handle_propose_trade(
         request=collections.Counter(action.request),
         to=set(action.to),
     )
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     return teyuna_shared.ProposeTradeResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
@@ -193,6 +192,11 @@ def _validate_trade_targets(
             return "Trade proposal cannot target the proposing player."
         if target not in game.players:
             return f"Trade proposal targets unknown player {target}."
+    if by != game.active_player:
+        if to != {game.active_player}:
+            return "Non-active players may only propose trades to the active player."
+    elif game.phase is not teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
+        return f"Active player cannot propose trades during the '{game.phase.value}' phase."
     return None
 
 

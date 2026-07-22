@@ -74,6 +74,7 @@ from .entities import (
     WisdomCard,
 )
 from .ports import (
+    ActiveTradeProposal,
     CreateGameRequest,
     EdgeCoordinate,
     Game,
@@ -90,6 +91,7 @@ __all__ = [
     "AcceptTradeAction",
     "AcceptedTradeResult",
     "ActionExecutionResult",
+    "ActiveTradeProposal",
     "BoughtWisdomCardResult",
     "BuildPathAction",
     "BuildSettlementAction",

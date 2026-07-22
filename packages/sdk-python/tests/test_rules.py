@@ -1,3 +1,4 @@
+import random
 import uuid
 
 import teyuna_shared
@@ -109,3 +110,15 @@ def test_edges_for_free_placement_returns_adjacent_free_edges() -> None:
 
     assert set(edges) == expected
     assert edges
+
+
+def test_pick_discard_selects_exact_count() -> None:
+    resources = {
+        teyuna_shared.ResourceCard.WOOD: 5,
+        teyuna_shared.ResourceCard.GOLD: 3,
+    }
+    count = rules.pick_discard(resources, required=4, rng=random.Random(0))
+
+    assert sum(count.values()) == 4
+    assert count.get(teyuna_shared.ResourceCard.WOOD, 0) <= 5
+    assert count.get(teyuna_shared.ResourceCard.GOLD, 0) <= 3

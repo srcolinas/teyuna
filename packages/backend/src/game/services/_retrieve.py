@@ -63,6 +63,17 @@ def retrieve_game(
         phase=game.phase,
         phase_deadline=game.phase_deadline,
         available_slots=game.available_slots,
+        trade_proposals=[
+            teyuna_shared.ActiveTradeProposal(
+                id=proposal_id,
+                by=proposal.by,
+                offer=dict(proposal.offer),
+                request=dict(proposal.request),
+                to=sorted(proposal.to),
+            )
+            for proposal_id, proposal in game.trade_proposals.items()
+        ],
+        to_discard_resources=dict(game.to_discard_resources),
     )
 
 

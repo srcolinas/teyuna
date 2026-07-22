@@ -102,6 +102,16 @@ class PlayerHand(pydantic.BaseModel):
     wisdom_cards: list[entities.WisdomCard]
 
 
+class ActiveTradeProposal(pydantic.BaseModel):
+    id: uuid.UUID
+    by: str
+    offer: dict[entities.ResourceCard, int]
+    request: dict[entities.ResourceCard, int]
+    to: list[str]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
 class Game(pydantic.BaseModel):
     id: uuid.UUID
     map: tuple[Hex, ...]
@@ -122,6 +132,8 @@ class Game(pydantic.BaseModel):
     phase: entities.GamePhaseName
     phase_deadline: datetime.datetime | None
     available_slots: Annotated[int, pydantic.Field(ge=0, le=4)]
+    trade_proposals: list[ActiveTradeProposal] = []
+    to_discard_resources: dict[str, int] = pydantic.Field(default_factory=dict)
 
 
 class CreateGameRequest(pydantic.BaseModel):

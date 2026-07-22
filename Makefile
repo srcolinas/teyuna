@@ -43,9 +43,13 @@ check:
 	cd packages/sdk-python && make check
 
 # Run with Docker/Podman Compose
+# Usage: make run
+#        make run NUM_PLAYERS=4
+NUM_PLAYERS ?= 3
+
 run:
 	mkdir -p logs
-	docker compose up --build --detach
+	NUM_PLAYERS=$(NUM_PLAYERS) docker compose up --build --detach
 
 # Stop Docker/Podman services
 stop:

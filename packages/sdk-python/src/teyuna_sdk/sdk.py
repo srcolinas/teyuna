@@ -162,6 +162,17 @@ class AuthenticatedPlayerClient(GameClient):
         _raise_for_status(response)
         return teyuna_shared.HexCoordinate.model_validate(response.json())
 
+    async def discard_resources(
+        self, count: dict[teyuna_shared.ResourceCard, int]
+    ) -> teyuna_shared.GamePhaseName:
+        response = await _http_client.post(
+            f"{self._base_url}/games/{self._game_id}/discard",
+            cookies=self._cookies,
+            json={"count": {k.value: v for k, v in count.items()}},
+        )
+        _raise_for_status(response)
+        return teyuna_shared.GamePhaseName(response.json())
+
     async def play_wisdom_card(
         self, card: teyuna_shared.WisdomCard
     ) -> teyuna_shared.GamePhaseName:

@@ -15,7 +15,7 @@ case "$NUM_PLAYERS" in
     set -- builder:builder sleepy:sleepy skipper:skipper
     ;;
   4)
-    set -- builder:builder sleepy:sleepy skipper:skipper builder:builder-1
+    set -- builder:builder sleepy:sleepy skipper:skipper stochastic:stochastic
     ;;
   *)
     echo "NUM_PLAYERS must be 3 or 4, got: $NUM_PLAYERS" >&2

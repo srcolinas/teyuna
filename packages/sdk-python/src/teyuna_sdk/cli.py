@@ -3,7 +3,7 @@ import asyncio
 import logging
 import uuid
 
-from . import builder, entities, loop, skipper, sleepy
+from . import builder, entities, loop, skipper, sleepy, stochastic
 from .logging_config import (
     configure_logging,
     ensure_agent_logger,
@@ -97,6 +97,7 @@ _BUILDERS: dict[str, entities.PlayerBuilder] = {
     "sleepy": sleepy.build,
     "skipper": skipper.build,
     "builder": builder.build,
+    "stochastic": stochastic.build,
 }
 
 

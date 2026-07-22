@@ -114,6 +114,44 @@ def test_returns_400_when_targets_are_empty(
     assert response.status_code == 400, response.text
 
 
+def test_proposes_trade(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
+
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/games/{game_id}/trades",
+        json={
+            "offer": {"gold": 1},
+            "request": {"stone": 1},
+            "to": [other],
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert (
+        teyuna_shared.TradeProposal(
+            by=active_player,
+            to={other},
+            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 1}),
+            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
+        )
+        in repository.retrieve(game_id).trade_proposals.values()
+    )
+
+    response = client.get(f"/games/{game_id}")
+    assert response.status_code == 200, response.text
+    proposals = response.json()["trade_proposals"]
+    assert len(proposals) == 1
+    assert proposals[0]["by"] == active_player
+    assert proposals[0]["to"] == [other]
+    assert proposals[0]["offer"] == {"gold": 1}
+    assert proposals[0]["request"] == {"stone": 1}
+    assert uuid.UUID(proposals[0]["id"]) in repository.retrieve(game_id).trade_proposals
+
+
 def test_non_active_player_can_propose(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
@@ -149,33 +187,72 @@ def test_non_active_player_can_propose(
         in game.trade_proposals.values()
     )
 
+    response = client.get(f"/games/{game_id}")
+    assert response.status_code == 200, response.text
+    proposals = response.json()["trade_proposals"]
+    assert len(proposals) == 1
+    assert proposals[0]["by"] == other
+    assert proposals[0]["to"] == [active_player]
 
-def test_proposes_trade(
+
+def test_non_active_player_can_propose_during_dice_roll(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
+    game = repository.retrieve(game_id)
+    game.players[other].resources.update({teyuna_shared.ResourceCard.GOLD: 1})
+    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
+    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
             "offer": {"gold": 1},
             "request": {"stone": 1},
-            "to": [other],
+            "to": [active_player],
         },
     )
 
     assert response.status_code == 200, response.text
+    game = repository.retrieve(game_id)
+    assert game.phase is teyuna_shared.GamePhaseName.DICE_ROLL
     assert (
         teyuna_shared.TradeProposal(
-            by=active_player,
-            to={other},
+            by=other,
+            to={active_player},
             offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 1}),
             request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
         )
-        in repository.retrieve(game_id).trade_proposals.values()
+        in game.trade_proposals.values()
     )
+
+
+def test_non_active_player_cannot_propose_to_non_active(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, _, other = _setup_trade_and_build(app)
+    game = repository.retrieve(game_id)
+    third = game.turn_order[2]
+    game.players[other].resources.update({teyuna_shared.ResourceCard.GOLD: 1})
+    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    repository.update(game_id, game)
+
+    client.cookies.set("session-token", tokens[other])
+    response = client.post(
+        f"/games/{game_id}/trades",
+        json={
+            "offer": {"gold": 1},
+            "request": {"stone": 1},
+            "to": [third],
+        },
+    )
+
+    assert response.status_code == 400, response.text
 
 
 def _setup_trade_and_build(
@@ -207,7 +284,7 @@ def _setup_trade_and_build(
 
 def _create_game() -> entities.Game:
     mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=8
     )
     game = entities.Game(
         map=(mountains,),

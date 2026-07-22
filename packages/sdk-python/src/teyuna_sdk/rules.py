@@ -1,4 +1,6 @@
 from collections.abc import Mapping
+import collections
+import random
 
 import teyuna_shared
 
@@ -160,3 +162,18 @@ def can_afford(
         if resources.get(resource, 0) < amount:
             return False
     return True
+
+
+def pick_discard(
+    resources: Mapping[teyuna_shared.ResourceCard, int],
+    required: int,
+    rng: random.Random,
+) -> dict[teyuna_shared.ResourceCard, int]:
+    pool: list[teyuna_shared.ResourceCard] = [
+        resource for resource, amount in resources.items() for _ in range(amount)
+    ]
+    rng.shuffle(pool)
+    count: collections.Counter[teyuna_shared.ResourceCard] = collections.Counter()
+    for resource in pool[:required]:
+        count[resource] += 1
+    return dict(count)

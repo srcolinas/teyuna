@@ -186,6 +186,50 @@ async def move_conquistator(
     )
 
 
+# --- Discard ---
+
+
+class DiscardResourcesPayload(pydantic.BaseModel):
+    count: dict[teyuna_shared.ResourceCard, int]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/discard")
+async def discard_resources(
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
+    game_id: uuid.UUID,
+    payload: DiscardResourcesPayload,
+    repository: Annotated[
+        repository_module.InMemoryGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
+) -> teyuna_shared.GamePhaseName:
+    result, _ = await services.apply_player_action(
+        game_id,
+        teyuna_shared.DiscardResourcesAction(
+            by=nickname,
+            count=collections.Counter(payload.count),
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+        broker=broker,
+    )
+    http.raise_if_failed(result)
+    return result.next_phase
+
+
 # --- Wisdom cards ---
 
 
