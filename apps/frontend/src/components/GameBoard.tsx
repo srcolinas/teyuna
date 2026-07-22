@@ -165,7 +165,8 @@ export default function GameBoard({
           const middle = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }
           const distance = Math.hypot(middle.x, middle.y) || 1
           const label = harbour.resource ? `⛵ 2:1 ${harbour.resource}` : '⛵ 3:1 any'
-          const labelX = middle.x + (middle.x / distance) * 78 + offset.offsetX
+          const labelOffsetX = harbour.resource === 'gold' ? -34 : 0
+          const labelX = middle.x + (middle.x / distance) * 78 + offset.offsetX + labelOffsetX
           const labelY = middle.y + (middle.y / distance) * 78 + offset.offsetY
           return (
             <g key={`harbour-${harbour.vertices[0].join('-')}`}>
