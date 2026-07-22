@@ -5,6 +5,8 @@ import itertools
 import random
 import uuid
 from collections.abc import ItemsView, KeysView, Set, ValuesView
+from types import MappingProxyType
+
 import teyuna_shared
 
 
@@ -168,6 +170,15 @@ class Game:
         return self._turn_order[self.player_idx]
 
     @property
+    def victory_points(self) -> MappingProxyType[str, int]:
+        return MappingProxyType(
+            {
+                nickname: victory_points(self, nickname)
+                for nickname in self.players.keys()
+            }
+        )
+
+    @property
     def free_verticies(self) -> Set[teyuna_shared.Coordinate]:
         """
         Returns all vertices that don't have a settlement on them,
@@ -278,3 +289,17 @@ class Game:
         self.player_idx = 0
         self.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
         self.phase_deadline = datetime.datetime.now(datetime.UTC) + timeout_in
+
+
+def victory_points(game: Game, by: str, /) -> int:
+    player_state = game.players[by]
+    settlements = player_state.settlements
+    points = settlements.count(
+        teyuna_shared.SettlementType.TERRACE
+    ) + 2 * settlements.count(teyuna_shared.SettlementType.GREAT_TERRACE)
+    if game.longest_road[0] == by:
+        points += 2
+    if game.biggest_army[0] == by:
+        points += 2
+    points += player_state.played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS]
+    return points

@@ -171,3 +171,46 @@ def test_add_player_raises_when_no_slots_available() -> None:
 
     with pytest.raises(entities.GameAlreadyFullError):
         game.add_player("new-player")
+
+
+def test_victory_points_calculates_correctly() -> None:
+    game = entities.Game(
+        map=(),
+        players={
+            # 2 great terraces (4) + longest road (2) + 1 legacy card (1) = 7
+            "player-a": entities.Player(
+                settlements=entities.SettlementsCollection(
+                    {
+                        teyuna_shared.canonical_vertex(0, 0, 0): (
+                            teyuna_shared.SettlementType.GREAT_TERRACE
+                        ),
+                        teyuna_shared.canonical_vertex(1, 0, 0): (
+                            teyuna_shared.SettlementType.GREAT_TERRACE
+                        ),
+                    }
+                ),
+                played_cards=collections.Counter(
+                    {teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS: 1}
+                ),
+            ),
+            # 1 great terrace (2) + 1 terrace (1) + biggest army (2) = 5
+            "player-b": entities.Player(
+                settlements=entities.SettlementsCollection(
+                    {
+                        teyuna_shared.canonical_vertex(-1, 0, 0): (
+                            teyuna_shared.SettlementType.GREAT_TERRACE
+                        ),
+                        teyuna_shared.canonical_vertex(2, 0, 0): (
+                            teyuna_shared.SettlementType.TERRACE
+                        ),
+                    }
+                ),
+            ),
+        },
+        conquistator_location=teyuna_shared.HexLocation(q=0, r=0),
+        available_slots=0,
+        longest_road=("player-a", 5),
+        biggest_army=("player-b", 3),
+    )
+    game.start(datetime.timedelta(seconds=60))
+    assert game.victory_points == {"player-a": 7, "player-b": 5}

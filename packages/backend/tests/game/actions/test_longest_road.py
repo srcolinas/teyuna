@@ -302,7 +302,7 @@ def test_handle_build_path_can_end_game_via_longest_road(
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
     assert result.coordinate == fifth
     assert game.longest_road == (player, 5)
-    assert actions.victory_points(game, player) == 10
+    assert entities.victory_points(game, player) == 10
 
 
 def test_handle_build_terrace_clears_longest_road_when_breaking_holder(

@@ -14,9 +14,12 @@ def retrieve_game(
     id: uuid.UUID, /, *, repository: RetrieveGameRepository
 ) -> teyuna_shared.Game:
     game = repository.retrieve(id)
+    victory_points = game.victory_points
     players, settlements, paths = [], [], []
     for nickname, entity_player in game.players.items():
-        players.append(_to_port_player(nickname, entity_player))
+        players.append(
+            _to_port_player(nickname, entity_player, victory_points[nickname])
+        )
         for location, type in entity_player.settlements.items():
             settlements.append(
                 teyuna_shared.PlayedSettlement(
@@ -40,7 +43,6 @@ def retrieve_game(
                     ),
                 )
             )
-
     return teyuna_shared.Game(
         id=id,
         map=tuple(
@@ -95,10 +97,11 @@ def _turn_order_from_active(
 
 
 def _to_port_player(
-    nickname: str, entity_player: entities.Player
+    nickname: str, entity_player: entities.Player, victory_points: int
 ) -> teyuna_shared.Player:
     counts = entity_player.settlements.counts
     return teyuna_shared.Player(
+        victory_points=victory_points,
         nickname=nickname,
         played_wisdom_cards=[
             card
