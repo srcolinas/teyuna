@@ -3,6 +3,7 @@ import collections
 import teyuna_shared
 
 from ... import entities
+from .. import timeouts
 from . import _placement
 
 
@@ -16,6 +17,22 @@ def handle_second_placement(
             next_phase=game.phase,
             action=action,
             error=f"Player {action.by} is not in turn",
+        )
+
+    action = timeouts.resolve_free_placement(
+        game,
+        action.rng_,
+        by=action.by,
+        terrace=action.terrace,
+        path=action.path,
+        due_to_timeout=action.due_to_timeout,
+    )
+    if action.terrace is None or action.path is None:
+        return teyuna_shared.PlacedBuildingsResult(
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+            error="Could not resolve a legal free placement",
         )
 
     can = _placement.can_add_free_terrace_at(

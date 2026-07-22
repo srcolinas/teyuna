@@ -52,8 +52,13 @@ Changelog = "https://github.com/srcolinas/teyuna/releases"
 requires = ["uv_build>=0.11.26,<0.12.0"]
 build-backend = "uv_build"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
 [dependency-groups]
 dev = [
     "mypy>=2.3.0",
+    "pytest>=9.0.2",
     "ruff>=0.15.22",
 ]

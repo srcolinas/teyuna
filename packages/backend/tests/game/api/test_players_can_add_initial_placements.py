@@ -156,6 +156,59 @@ def test_returns_400_for_invalid_path(client: testclient.TestClient) -> None:
     assert response.status_code == 400, response.text
 
 
+def test_returns_200_when_payload_is_empty(client: testclient.TestClient) -> None:
+    game_id, tokens = utils.create_active_game_with_tokens(client)
+    response = client.get(f"/games/{game_id}")
+    active_player = response.json()["turn_order"][0]
+
+    response = utils.post_initial_placements(
+        client,
+        game_id,
+        tokens[active_player],
+    )
+
+    assert response.status_code == 200, response.text
+    settlement, path = response.json()
+    assert settlement["owner"] == active_player
+    assert settlement["type"] == "terrace"
+    assert "location" in settlement
+    assert path["owner"] == active_player
+    assert "location" in path
+
+    response = client.get(f"/games/{game_id}/settlements")
+    assert response.status_code == 200, response.text
+    assert len(response.json()) == 1
+    assert response.json()[0]["owner"] == active_player
+
+    response = client.get(f"/games/{game_id}/paths")
+    assert response.status_code == 200, response.text
+    assert len(response.json()) == 1
+    assert response.json()[0]["owner"] == active_player
+
+
+def test_returns_200_when_only_terrace_provided(client: testclient.TestClient) -> None:
+    game_id, tokens = utils.create_active_game_with_tokens(client)
+    response = client.get(f"/games/{game_id}")
+    active_player = response.json()["turn_order"][0]
+
+    response = utils.post_initial_placements(
+        client,
+        game_id,
+        tokens[active_player],
+        utils.build_initial_placement_payload(terrace=_VALID_TERRACE),
+    )
+
+    assert response.status_code == 200, response.text
+    settlement, path = response.json()
+    assert settlement == {
+        "location": {"hex_coord": {"q": 0, "r": -1}, "direction": 2},
+        "type": "terrace",
+        "owner": active_player,
+    }
+    assert path["owner"] == active_player
+    assert "location" in path
+
+
 def test_returns_400_when_action_not_allowed(
     app: fastapi.FastAPI,
     client: testclient.TestClient,

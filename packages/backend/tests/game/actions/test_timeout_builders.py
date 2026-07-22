@@ -80,6 +80,57 @@ def test_timeout_second_placement_returns_explicit_free_placement(
     )
 
 
+def test_resolve_free_placement_fills_missing_path(
+    game: entities.Game,
+) -> None:
+    terrace = teyuna_shared.Coordinate(q=0, r=-1, d=2)
+    action = timeouts.resolve_free_placement(
+        game,
+        random.Random(0),
+        by=game.active_player,
+        terrace=terrace,
+    )
+
+    assert action.by == game.active_player
+    assert action.terrace == terrace
+    assert action.path is not None
+    assert action.due_to_timeout is False
+
+
+def test_resolve_free_placement_fills_missing_terrace(
+    game: entities.Game,
+) -> None:
+    path = teyuna_shared.Coordinate(q=0, r=-1, d=2)
+    action = timeouts.resolve_free_placement(
+        game,
+        random.Random(0),
+        by=game.active_player,
+        path=path,
+    )
+
+    assert action.by == game.active_player
+    assert action.path == path
+    assert action.terrace is not None
+    assert action.terrace in teyuna_shared.vertices_of_edge(path)
+
+
+def test_resolve_free_placement_keeps_both_when_provided(
+    game: entities.Game,
+) -> None:
+    terrace = teyuna_shared.Coordinate(q=0, r=-1, d=2)
+    path = teyuna_shared.Coordinate(q=0, r=-1, d=2)
+    action = timeouts.resolve_free_placement(
+        game,
+        random.Random(0),
+        by=game.active_player,
+        terrace=terrace,
+        path=path,
+    )
+
+    assert action.terrace == terrace
+    assert action.path == path
+
+
 def test_pick_free_placement_raises_when_no_legal_move_available(
     game: entities.Game,
 ) -> None:

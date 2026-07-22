@@ -1,7 +1,7 @@
 import collections
 import random
 import uuid
-from typing import Annotated, AsyncIterable
+from typing import Annotated, AsyncIterable, cast
 
 import fastapi
 import pydantic
@@ -561,8 +561,8 @@ def get_hand(
 
 
 class InitialPlacementPayload(pydantic.BaseModel):
-    terrace: teyuna_shared.VertexCoordinate
-    path: teyuna_shared.EdgeCoordinate
+    terrace: teyuna_shared.VertexCoordinate | None = None
+    path: teyuna_shared.EdgeCoordinate | None = None
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -572,7 +572,6 @@ async def add_initial_placements(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
     game_id: uuid.UUID,
-    payload: InitialPlacementPayload,
     repository: Annotated[
         repository_module.InMemoryGameRepository,
         fastapi.Depends(dependencies.get_repository),
@@ -586,17 +585,22 @@ async def add_initial_placements(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
+    payload: InitialPlacementPayload = InitialPlacementPayload(),
 ) -> tuple[teyuna_shared.PlayedSettlement, teyuna_shared.PlayedStonePath]:
     result, _ = await services.apply_player_action(
         game_id,
         teyuna_shared.FreePlacementAction(
             by=nickname,
-            terrace=teyuna_shared.Coordinate(
+            terrace=payload.terrace
+            if payload.terrace is None
+            else teyuna_shared.Coordinate(
                 q=payload.terrace.hex_coord.q,
                 r=payload.terrace.hex_coord.r,
                 d=payload.terrace.direction,
             ),
-            path=teyuna_shared.Coordinate(
+            path=payload.path
+            if payload.path is None
+            else teyuna_shared.Coordinate(
                 q=payload.path.hex_coord.q,
                 r=payload.path.hex_coord.r,
                 d=payload.path.direction,
@@ -607,13 +611,22 @@ async def add_initial_placements(
         game_locks=game_locks,
         broker=broker,
     )
+    result = cast(teyuna_shared.PlacedBuildingsResult, result)
+    settlement = cast(teyuna_shared.Coordinate, result.settlement)
+    path = cast(teyuna_shared.Coordinate, result.path)
     http.raise_if_failed(result)
     return teyuna_shared.PlayedSettlement(
-        location=payload.terrace,
+        location=teyuna_shared.VertexCoordinate(
+            hex_coord=teyuna_shared.HexCoordinate(q=settlement.q, r=settlement.r),
+            direction=settlement.d,
+        ),
         type=teyuna_shared.SettlementType.TERRACE,
         owner=nickname,
     ), teyuna_shared.PlayedStonePath(
-        location=payload.path,
+        location=teyuna_shared.EdgeCoordinate(
+            hex_coord=teyuna_shared.HexCoordinate(q=path.q, r=path.r),
+            direction=path.d,
+        ),
         owner=nickname,
     )
 

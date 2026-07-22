@@ -28,21 +28,23 @@ class ActionExecutionResult(pydantic.BaseModel):
 
 
 class FreePlacementAction(PlayerAction):
-    terrace: board.Coordinate
-    path: board.Coordinate
+    terrace: board.Coordinate | None = None
+    path: board.Coordinate | None = None
 
     @pydantic.model_validator(mode="after")
     def _canonicalize(self) -> "FreePlacementAction":
-        object.__setattr__(
-            self,
-            "terrace",
-            board.canonical_vertex(self.terrace.q, self.terrace.r, self.terrace.d),
-        )
-        object.__setattr__(
-            self,
-            "path",
-            board.canonical_edge(self.path.q, self.path.r, self.path.d),
-        )
+        if self.terrace is not None:
+            object.__setattr__(
+                self,
+                "terrace",
+                board.canonical_vertex(self.terrace.q, self.terrace.r, self.terrace.d),
+            )
+        if self.path is not None:
+            object.__setattr__(
+                self,
+                "path",
+                board.canonical_edge(self.path.q, self.path.r, self.path.d),
+            )
         return self
 
 

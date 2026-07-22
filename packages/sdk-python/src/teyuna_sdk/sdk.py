@@ -267,16 +267,18 @@ class AuthenticatedPlayerClient(GameClient):
     async def add_initial_placements(
         self,
         *,
-        terrace: teyuna_shared.VertexCoordinate,
-        path: teyuna_shared.EdgeCoordinate,
+        terrace: teyuna_shared.VertexCoordinate | None = None,
+        path: teyuna_shared.EdgeCoordinate | None = None,
     ) -> tuple[teyuna_shared.PlayedSettlement, teyuna_shared.PlayedStonePath]:
+        body: dict[str, object] = {}
+        if terrace is not None:
+            body["terrace"] = terrace.model_dump(mode="json")
+        if path is not None:
+            body["path"] = path.model_dump(mode="json")
         response = await _http_client.post(
             f"{self._base_url}/games/{self._game_id}/initial-placements",
             cookies=self._cookies,
-            json={
-                "terrace": terrace.model_dump(mode="json"),
-                "path": path.model_dump(mode="json"),
-            },
+            json=body,
         )
         _raise_for_status(response)
         settlement, stone_path = response.json()

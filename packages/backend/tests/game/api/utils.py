@@ -51,25 +51,27 @@ def create_active_game_with_tokens(
 
 
 def build_initial_placement_payload(
-    terrace: tuple[int, int, int],
-    path: tuple[int, int, int],
+    terrace: tuple[int, int, int] | None = None,
+    path: tuple[int, int, int] | None = None,
 ) -> InitialPlacementPayload:
-    tq, tr, td = terrace
-    pq, pr, pd = path
-    return {
-        "terrace": {"hex_coord": {"q": tq, "r": tr}, "direction": td},
-        "path": {"hex_coord": {"q": pq, "r": pr}, "direction": pd},
-    }
+    payload: InitialPlacementPayload = {}
+    if terrace is not None:
+        tq, tr, td = terrace
+        payload["terrace"] = {"hex_coord": {"q": tq, "r": tr}, "direction": td}
+    if path is not None:
+        pq, pr, pd = path
+        payload["path"] = {"hex_coord": {"q": pq, "r": pr}, "direction": pd}
+    return payload
 
 
 def post_initial_placements(
     client: testclient.TestClient,
     game_id: uuid.UUID,
     token: str,
-    payload: InitialPlacementPayload,
+    payload: InitialPlacementPayload | None = None,
 ) -> httpx2.Response:
     client.cookies.set("session-token", token)
     return client.post(
         f"/games/{game_id}/initial-placements",
-        json=payload,
+        json=payload if payload is not None else {},
     )

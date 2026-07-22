@@ -26,13 +26,23 @@ def timeout_trade_and_build(
 def timeout_first_placement(
     game: entities.Game, rng: random.Random
 ) -> teyuna_shared.FreePlacementAction:
-    return _pick_free_placement(game, rng)
+    return resolve_free_placement(
+        game,
+        rng,
+        by=game.active_player,
+        due_to_timeout=True,
+    )
 
 
 def timeout_second_placement(
     game: entities.Game, rng: random.Random
 ) -> teyuna_shared.FreePlacementAction:
-    return _pick_free_placement(game, rng)
+    return resolve_free_placement(
+        game,
+        rng,
+        by=game.active_player,
+        due_to_timeout=True,
+    )
 
 
 def timeout_move_conquistator(
@@ -155,9 +165,65 @@ def timeout_play_pathfinder(
     )
 
 
-def _pick_free_placement(
-    game: entities.Game, rng: random.Random
+def resolve_free_placement(
+    game: entities.Game,
+    rng: random.Random,
+    *,
+    by: str,
+    terrace: teyuna_shared.Coordinate | None = None,
+    path: teyuna_shared.Coordinate | None = None,
+    due_to_timeout: bool = False,
 ) -> teyuna_shared.FreePlacementAction:
+    if terrace is not None and path is not None:
+        return teyuna_shared.FreePlacementAction.model_construct(
+            by=by,
+            due_to_timeout=due_to_timeout,
+            terrace=terrace,
+            path=path,
+            rng_=rng,
+        )
+
+    player_state = game.players[by]
+    existing_settlements = set(player_state.settlements.locations())
+    existing_paths = player_state.paths
+
+    if terrace is None and path is not None:
+        legal_terraces = [
+            vertex
+            for vertex in teyuna_shared.vertices_of_edge(path)
+            if _placement.can_add_free_terrace_at(
+                free_verticies=game.free_verticies,
+                restricted_verticies=game.restricted_verticies,
+                target=vertex,
+            )
+        ]
+        if legal_terraces:
+            terrace = rng.choice(legal_terraces)
+        return teyuna_shared.FreePlacementAction.model_construct(
+            by=by,
+            due_to_timeout=due_to_timeout,
+            terrace=terrace,
+            path=path,
+            rng_=rng,
+        )
+
+    if terrace is not None and path is None:
+        legal_paths = _legal_paths_for_terrace(
+            game,
+            terrace=terrace,
+            existing_settlements=existing_settlements,
+            existing_paths=existing_paths,
+        )
+        if legal_paths:
+            path = rng.choice(legal_paths)
+        return teyuna_shared.FreePlacementAction.model_construct(
+            by=by,
+            due_to_timeout=due_to_timeout,
+            terrace=terrace,
+            path=path,
+            rng_=rng,
+        )
+
     legal_terraces = [
         vertex
         for vertex in game.free_verticies
@@ -168,32 +234,44 @@ def _pick_free_placement(
         )
     ]
     rng.shuffle(legal_terraces)
-    for terrace in legal_terraces:
-        legal_paths = [
-            edge
-            for edge in game.free_edges
-            if _placement.can_add_free_path_at(
-                target=edge,
-                free_edges=game.free_edges,
-                existing_settlements=game.players[
-                    game.active_player
-                ].settlements.locations(),
-                existing_paths=game.players[game.active_player].paths,
-                free_vertices=game.free_verticies,
-                new_settlement=terrace,
-            )
-        ]
+    for candidate in legal_terraces:
+        legal_paths = _legal_paths_for_terrace(
+            game,
+            terrace=candidate,
+            existing_settlements=existing_settlements,
+            existing_paths=existing_paths,
+        )
         if not legal_paths:
             continue
-        path = rng.choice(legal_paths)
         return teyuna_shared.FreePlacementAction.model_construct(
-            by=game.active_player,
-            due_to_timeout=True,
-            terrace=terrace,
-            path=path,
+            by=by,
+            due_to_timeout=due_to_timeout,
+            terrace=candidate,
+            path=rng.choice(legal_paths),
             rng_=rng,
         )
     raise RuntimeError("No legal free placement available for timeout")
+
+
+def _legal_paths_for_terrace(
+    game: entities.Game,
+    *,
+    terrace: teyuna_shared.Coordinate,
+    existing_settlements: set[teyuna_shared.Coordinate],
+    existing_paths: set[teyuna_shared.Coordinate],
+) -> list[teyuna_shared.Coordinate]:
+    return [
+        edge
+        for edge in game.free_edges
+        if _placement.can_add_free_path_at(
+            target=edge,
+            free_edges=game.free_edges,
+            existing_settlements=existing_settlements,
+            existing_paths=existing_paths,
+            free_vertices=game.free_verticies,
+            new_settlement=terrace,
+        )
+    ]
 
 
 def _pick_discard(

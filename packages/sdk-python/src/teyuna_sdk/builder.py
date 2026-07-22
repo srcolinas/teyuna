@@ -34,6 +34,11 @@ async def _tick(
         return
 
     match game.phase:
+        case (
+            teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+            | teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+        ):
+            await _initial_placement(context, logger, game)
         case teyuna_shared.GamePhaseName.DICE_ROLL:
             logger.info("%s advancing turn (dice roll)", context.nickname)
             await context.client.advance_turn()
@@ -41,6 +46,38 @@ async def _tick(
             await _trade_and_build(context, logger, sleep_time)
         case _:
             await asyncio.sleep(sleep_time)
+
+
+async def _initial_placement(
+    context: entities.PlayerContext,
+    logger: logging.Logger,
+    game: teyuna_shared.Game,
+) -> None:
+    vertices = rules.vertices_available_for_free_placement(game)
+    preferred = tuple(
+        vertex for vertex in vertices if not rules.vertex_touches_desert(game, vertex)
+    )
+    candidates = preferred or vertices
+    if not candidates:
+        logger.error("%s found no free placement vertices", context.nickname)
+        return
+
+    terrace = candidates[0]
+    edges = rules.edges_for_free_placement(game, terrace)
+    if not edges:
+        logger.error(
+            "%s found no free paths for terrace at %s", context.nickname, terrace
+        )
+        return
+
+    path = edges[0]
+    await context.client.add_initial_placements(terrace=terrace, path=path)
+    logger.info(
+        "%s placed initial terrace at %s and path at %s",
+        context.nickname,
+        terrace,
+        path,
+    )
 
 
 async def _trade_and_build(

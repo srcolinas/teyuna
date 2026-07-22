@@ -49,6 +49,38 @@ def edges_available_for_building(
     return tuple(available)
 
 
+def vertices_available_for_free_placement(
+    game: teyuna_shared.Game,
+) -> tuple[teyuna_shared.VertexCoordinate, ...]:
+    buildable, _ = placement_sets(game)
+    return tuple(to_vertex(vertex) for vertex in buildable)
+
+
+def edges_for_free_placement(
+    game: teyuna_shared.Game,
+    terrace: teyuna_shared.VertexCoordinate,
+) -> tuple[teyuna_shared.EdgeCoordinate, ...]:
+    _, free_edges = placement_sets(game)
+    coord = from_vertex(terrace)
+    adjacent = teyuna_shared.edges_adjacent_to_vertex(coord.q, coord.r, coord.d)
+    return tuple(to_edge(edge) for edge in adjacent if edge in free_edges)
+
+
+def vertex_touches_desert(
+    game: teyuna_shared.Game,
+    vertex: teyuna_shared.VertexCoordinate,
+) -> bool:
+    desert_hexes = {
+        teyuna_shared.HexLocation(q=hex_tile.coordinate.q, r=hex_tile.coordinate.r)
+        for hex_tile in game.map
+        if hex_tile.type is teyuna_shared.HexType.DESERT
+    }
+    coord = from_vertex(vertex)
+    return bool(
+        teyuna_shared.hex_locations_at_vertex(coord.q, coord.r, coord.d) & desert_hexes
+    )
+
+
 def from_vertex(location: teyuna_shared.VertexCoordinate) -> teyuna_shared.Coordinate:
     return teyuna_shared.canonical_vertex(
         location.hex_coord.q, location.hex_coord.r, location.direction
