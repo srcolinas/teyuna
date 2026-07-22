@@ -4,6 +4,7 @@ import logging
 import random
 from collections.abc import Awaitable, Callable, Mapping
 
+import httpx2
 import teyuna_shared
 
 from . import entities, logging_config, rules
@@ -112,11 +113,23 @@ async def _maybe_propose_off_turn_trade(
         [r for r in teyuna_shared.ResourceCard if r is not offer_resource]
     )
     active = game.turn_order[0]
-    await context.client.propose_trade(
-        offer={offer_resource: 1},
-        request={request_resource: 1},
-        to={active},
-    )
+    try:
+        await context.client.propose_trade(
+            offer={offer_resource: 1},
+            request={request_resource: 1},
+            to={active},
+        )
+    except httpx2.HTTPStatusError as error:
+        # Another concurrent agent may advance the turn after this agent reads
+        # the game. A phase-related rejection is expected in that race and
+        # must not terminate the entire simulation.
+        if error.response.status_code == 400:
+            logger.info(
+                "%s skipped a stale off-turn trade after the phase changed",
+                context.nickname,
+            )
+            return
+        raise
     logger.info(
         "%s proposed off-turn trade to %s: offer %s for %s",
         context.nickname,

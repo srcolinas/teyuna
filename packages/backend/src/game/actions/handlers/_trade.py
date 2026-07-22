@@ -43,6 +43,9 @@ def handle_propose_trade(
         next_phase=game.phase,
         action=action,
         proposal_id=proposal_id,
+        offer=dict(action.offer),
+        request=dict(action.request),
+        to=set(action.to),
     )
 
 

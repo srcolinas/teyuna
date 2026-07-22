@@ -42,11 +42,19 @@ export default function EventFeed({ events, connection }: EventFeedProps) {
 }
 
 function describeEvent(data: Record<string, unknown>): string {
-  const actor = typeof data.by === 'string' ? data.by : 'The game'
-  const automatic = data.due_to_timeout === true ? ' automatically (timeout)' : ''
-  if (data.succeeded === false) return `${actor}'s action failed: ${String(data.error ?? 'unknown error')}`
+  const action = isRecord(data.action) ? data.action : {}
+  const actor = typeof action.by === 'string'
+    ? action.by
+    : typeof data.by === 'string'
+      ? data.by
+      : 'The game'
+  const automatic = (action.due_to_timeout ?? data.due_to_timeout) === true
+    ? ' automatically (timeout)'
+    : ''
+  const nextPhase = String(data.next_phase ?? data.phase ?? 'unknown')
+  if (data.error) return `${actor}'s action failed: ${String(data.error)}`
   if (Array.isArray(data.settlement) && Array.isArray(data.path)) return `${actor} placed a terrace at ${coordinate(data.settlement)} and a path at ${coordinate(data.path)}${automatic}.`
-  if (typeof data.die_1 === 'number' && typeof data.die_2 === 'number') return `${actor} rolled ${data.die_1} + ${data.die_2} = ${data.die_1 + data.die_2}${automatic}. Next phase: ${String(data.phase)}.`
+  if (typeof data.die_1 === 'number' && typeof data.die_2 === 'number') return `${actor} rolled ${data.die_1} + ${data.die_2} = ${data.die_1 + data.die_2}${automatic}. Next phase: ${nextPhase}.`
   if (typeof data.q === 'number' && typeof data.r === 'number') return `${actor} moved the conquistator to (${data.q}, ${data.r})${automatic}.`
   if (data.proposal_id && data.proposer && data.acceptor) return `${String(data.acceptor)} accepted ${String(data.proposer)}'s trade: ${resourceList(data.offer)} for ${resourceList(data.request)}.`
   if (data.proposal_id) return `${actor} offered ${resourceList(data.offer)} for ${resourceList(data.request)} to ${Array.isArray(data.to) ? data.to.join(', ') : 'the other agents'}. The trade remains pending until an addressed agent can afford it.`
@@ -55,7 +63,11 @@ function describeEvent(data: Record<string, unknown>): string {
   if (data.item && data.coordinate) return `${actor} built a ${String(data.item)} at ${coordinate(data.coordinate)}${automatic}.`
   if (data.card) return `${actor} acquired or played ${String(data.card)}${automatic}.`
   if (data.next_player) return `${actor} ended the turn. ${String(data.next_player)} plays next.`
-  return `${actor} completed an action${automatic}. Phase: ${String(data.phase ?? 'unknown')}.`
+  return `${actor} completed an action${automatic}. Phase: ${nextPhase}.`
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function resourceList(value: unknown): string {

@@ -28,6 +28,9 @@ def test_propose_trade_stores_proposal(game: entities.Game) -> None:
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
     assert len(game.trade_proposals) == 1
     assert result.proposal_id in game.trade_proposals
+    assert result.offer == offer
+    assert result.request == request
+    assert result.to == {target}
     assert game.trade_proposals[result.proposal_id] == teyuna_shared.TradeProposal(
         by=proposer,
         offer=offer,
