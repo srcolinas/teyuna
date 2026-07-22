@@ -117,6 +117,16 @@ class Player(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True)
 
 
+class TradeProposal(pydantic.BaseModel):
+    id: uuid.UUID
+    by: str
+    offer: dict[ResourceCard, int]
+    request: dict[ResourceCard, int]
+    to: set[str]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
 class Game(pydantic.BaseModel):
     id: uuid.UUID
     map: tuple[Hex, ...]

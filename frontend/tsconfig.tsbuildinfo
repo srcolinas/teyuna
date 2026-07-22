@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/hexutils.ts","./src/main.tsx","./src/types.ts","./src/components/errorboundary.tsx","./src/components/eventfeed.tsx","./src/components/gameboard.tsx","./src/components/gamephasepanel.tsx","./src/components/playerpanel.tsx"],"version":"5.9.3"}

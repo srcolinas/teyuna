@@ -6,10 +6,21 @@ import httpx
 from . import board, entities
 from .logging_config import agent_logger_name
 
-# Cost totals (public API only exposes num_resources, not the hand).
-_PATH_RESOURCE_TOTAL = 2
-_TERRACE_RESOURCE_TOTAL = 4
-_GREAT_TERRACE_RESOURCE_TOTAL = 5
+_PATH_COST = {entities.ResourceCard.STONE: 1, entities.ResourceCard.WOOD: 1}
+_TERRACE_COST = {
+    entities.ResourceCard.STONE: 1,
+    entities.ResourceCard.WOOD: 1,
+    entities.ResourceCard.COTTON: 1,
+    entities.ResourceCard.MAIZE: 1,
+}
+_GREAT_TERRACE_COST = {entities.ResourceCard.GOLD: 3, entities.ResourceCard.MAIZE: 2}
+
+
+def _has_resources(
+    resources: dict[entities.ResourceCard, int],
+    cost: dict[entities.ResourceCard, int],
+) -> bool:
+    return all(resources.get(resource, 0) >= count for resource, count in cost.items())
 
 
 def _player(game: entities.Game, nickname: str) -> entities.Player | None:
@@ -17,14 +28,16 @@ def _player(game: entities.Game, nickname: str) -> entities.Player | None:
 
 
 def _can_build_great_terrace(
-    game: entities.Game, nickname: str
+    game: entities.Game,
+    nickname: str,
+    resources: dict[entities.ResourceCard, int],
 ) -> entities.VertexCoordinate | None:
     player = _player(game, nickname)
     if player is None:
         return None
     if player.available_great_terraces <= 0:
         return None
-    if player.num_resources < _GREAT_TERRACE_RESOURCE_TOTAL:
+    if not _has_resources(resources, _GREAT_TERRACE_COST):
         return None
     for settlement in game.settlements:
         if (
@@ -36,14 +49,16 @@ def _can_build_great_terrace(
 
 
 def _can_build_terrace(
-    game: entities.Game, nickname: str
+    game: entities.Game,
+    nickname: str,
+    resources: dict[entities.ResourceCard, int],
 ) -> entities.VertexCoordinate | None:
     player = _player(game, nickname)
     if player is None:
         return None
     if player.available_terraces <= 0:
         return None
-    if player.num_resources < _TERRACE_RESOURCE_TOTAL:
+    if not _has_resources(resources, _TERRACE_COST):
         return None
 
     buildable, _ = board.placement_sets(game)
@@ -58,14 +73,16 @@ def _can_build_terrace(
 
 
 def _can_build_path(
-    game: entities.Game, nickname: str
+    game: entities.Game,
+    nickname: str,
+    resources: dict[entities.ResourceCard, int],
 ) -> entities.EdgeCoordinate | None:
     player = _player(game, nickname)
     if player is None:
         return None
     if player.available_paths <= 0:
         return None
-    if player.num_resources < _PATH_RESOURCE_TOTAL:
+    if not _has_resources(resources, _PATH_COST):
         return None
 
     _, free_edges = board.placement_sets(game)
@@ -114,6 +131,10 @@ async def _tick(
     sleep_time: float,
 ) -> None:
     game = await context.client.get_game(context.client.game_id)
+    if game.phase is entities.GamePhaseName.TRADE_AND_BUILD:
+        if await _accept_affordable_proposal(context, logger):
+            await asyncio.sleep(sleep_time)
+            return
     turn_order = game.turn_order
     if not turn_order or turn_order[0] != context.nickname:
         await asyncio.sleep(sleep_time)
@@ -144,9 +165,10 @@ async def _trade_and_build(
             return
         if not game.turn_order or game.turn_order[0] != nickname:
             return
+        resources = await context.client.get_resources()
 
         if try_great:
-            if location := _can_build_great_terrace(game, nickname):
+            if location := _can_build_great_terrace(game, nickname, resources):
                 try:
                     await context.client.build_settlement(
                         item=entities.SettlementType.GREAT_TERRACE,
@@ -164,7 +186,7 @@ async def _trade_and_build(
                     )
             try_great = False
         elif try_terrace:
-            if location := _can_build_terrace(game, nickname):
+            if location := _can_build_terrace(game, nickname, resources):
                 try:
                     await context.client.build_settlement(
                         item=entities.SettlementType.TERRACE,
@@ -182,7 +204,7 @@ async def _trade_and_build(
                     )
             try_terrace = False
         elif try_path:
-            if edge := _can_build_path(game, nickname):
+            if edge := _can_build_path(game, nickname, resources):
                 try:
                     await context.client.build_path(edge)
                     logger.info("%s built path at %s", nickname, edge)
@@ -200,3 +222,19 @@ async def _trade_and_build(
             logger.info("%s advancing turn (trade and build)", nickname)
             await context.client.advance_turn()
             return
+
+
+async def _accept_affordable_proposal(
+    context: entities.PlayerContext,
+    logger: logging.Logger,
+) -> bool:
+    resources = await context.client.get_resources()
+    for proposal in await context.client.list_trade_proposals():
+        if context.nickname not in proposal.to:
+            continue
+        if not _has_resources(resources, proposal.request):
+            continue
+        await context.client.accept_trade(proposal.id)
+        logger.info("%s accepted a trade from %s", context.nickname, proposal.by)
+        return True
+    return False

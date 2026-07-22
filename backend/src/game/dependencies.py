@@ -205,13 +205,24 @@ def get_player(
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
     session_token: Annotated[str | None, fastapi.Cookie(alias="session-token")] = None,
+    authorization: Annotated[str | None, fastapi.Header()] = None,
 ) -> player.Nickname:
-    if session_token is None:
+    token = session_token
+    if authorization is not None:
+        scheme, separator, credentials = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not separator or not credentials:
+            raise fastapi.HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid authorization header",
+            )
+        token = credentials
+
+    if token is None:
         raise fastapi.HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token"
         )
 
-    nickname = auth.retrieve(session_token)
+    nickname = auth.retrieve(token)
     if nickname is None:
         raise fastapi.HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="player not found"

@@ -24,6 +24,9 @@ class AcceptTradeAction(_registry.PlayerAction):
 
 class ProposeTradeResult(_registry.ActionExecutionResult):
     proposal_id: uuid.UUID | None = None
+    offer: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
+    request: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
+    to: set[player.Nickname] = pydantic.Field(default_factory=set)
 
 
 class AcceptedTradeResult(_registry.ActionExecutionResult):
@@ -86,6 +89,9 @@ def handle_propose_trade(
         by=action.by,
         due_to_timeout=action.due_to_timeout,
         proposal_id=proposal_id,
+        offer=dict(action.offer),
+        request=dict(action.request),
+        to=set(action.to),
     )
 
 

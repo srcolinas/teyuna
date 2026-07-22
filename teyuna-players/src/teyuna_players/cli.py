@@ -3,7 +3,7 @@ import asyncio
 import logging
 import uuid
 
-from . import builder, entities, loop, skipper, sleepy
+from . import builder, entities, loop, skipper, sleepy, trader
 from .logging_config import (
     configure_logging,
     ensure_agent_logger,
@@ -44,6 +44,11 @@ def main() -> None:
         help="base URL of the Teyuna game server",
     )
     parser.add_argument(
+        "--show-tokens",
+        action="store_true",
+        help="print player session tokens for the optional private observer UI; treat them as credentials",
+    )
+    parser.add_argument(
         "players",
         nargs="*",
         type=_parse_player,
@@ -58,11 +63,14 @@ def main() -> None:
     ensure_game_loop_logger()
     for _, nickname in args.players:
         ensure_agent_logger(nickname)
-    asyncio.run(helper(args.game_id, args.host, args.players))
+    asyncio.run(helper(args.game_id, args.host, args.players, args.show_tokens))
 
 
 async def helper(
-    game_id: uuid.UUID | None, host: str, players: list[tuple[str, str]]
+    game_id: uuid.UUID | None,
+    host: str,
+    players: list[tuple[str, str]],
+    show_tokens: bool = False,
 ) -> None:
     if game_id is None:
         game = await loop.GameLoop.create(host=host, num_players=len(players))
@@ -75,6 +83,12 @@ async def helper(
             raise ValueError(f"unknown player agent: {agent!r}")
         context = await game.add_player(nickname)
         contexts.append((agent, context))
+        if show_tokens:
+            logger.warning(
+                "PRIVATE TOKEN for %s: %s",
+                nickname,
+                context.client.session_token,
+            )
 
     tasks: list[asyncio.Task[None]] = [
         asyncio.create_task(
@@ -97,6 +111,7 @@ _BUILDERS: dict[str, entities.PlayerBuilder] = {
     "sleepy": sleepy.build,
     "skipper": skipper.build,
     "builder": builder.build,
+    "trader": trader.build,
 }
 
 

@@ -189,6 +189,20 @@ async def move_conquistator(
 # --- Wisdom cards ---
 
 
+@router.get("/{game_id}/wisdom-cards")
+def list_own_wisdom_cards(
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
+    game_id: uuid.UUID,
+    repository: Annotated[
+        repository_module.InMemoryGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+) -> list[entities.WisdomCard]:
+    cards = repository.retrieve(game_id).players[nickname].cards
+    return [card for card, count in cards.items() for _ in range(count)]
+
+
 class PlayWisdomCardPayload(pydantic.BaseModel):
     card: entities.WisdomCard
 
@@ -259,6 +273,98 @@ async def buy_wisdom_card(
 
 
 # --- Trades ---
+
+
+class TradeProposal(pydantic.BaseModel):
+    id: uuid.UUID
+    by: player.Nickname
+    offer: dict[entities.ResourceCard, int]
+    request: dict[entities.ResourceCard, int]
+    to: set[player.Nickname]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.get("/{game_id}/resources")
+def get_own_resources(
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
+    game_id: uuid.UUID,
+    repository: Annotated[
+        repository_module.InMemoryGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+) -> dict[entities.ResourceCard, int]:
+    game = repository.retrieve(game_id)
+    return dict(game.players[nickname].resources)
+
+
+class DiscardResourcesPayload(pydantic.BaseModel):
+    count: dict[
+        entities.ResourceCard,
+        Annotated[int, pydantic.Field(ge=0)],
+    ]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/resources/discard")
+async def discard_resources(
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
+    game_id: uuid.UUID,
+    payload: DiscardResourcesPayload,
+    repository: Annotated[
+        repository_module.InMemoryGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
+) -> entities.GamePhaseName:
+    result, _ = await services.apply_player_action(
+        game_id,
+        actions.DiscardResourcesAction(
+            by=nickname,
+            count=collections.Counter(payload.count),
+        ),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+        broker=broker,
+    )
+    http.raise_if_failed(result)
+    return result.phase
+
+
+@router.get("/{game_id}/trades")
+def list_trade_proposals(
+    nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
+    _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
+    game_id: uuid.UUID,
+    repository: Annotated[
+        repository_module.InMemoryGameRepository,
+        fastapi.Depends(dependencies.get_repository),
+    ],
+) -> list[TradeProposal]:
+    game = repository.retrieve(game_id)
+    return [
+        TradeProposal(
+            id=id,
+            by=proposal.by,
+            offer=dict(proposal.offer),
+            request=dict(proposal.request),
+            to=set(proposal.to),
+        )
+        for id, proposal in game.trade_proposals.items()
+        if nickname == proposal.by or nickname in proposal.to
+    ]
 
 
 class ProposeTradePayload(pydantic.BaseModel):

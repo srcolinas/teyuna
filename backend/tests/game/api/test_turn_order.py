@@ -44,6 +44,33 @@ def test_returns_401_when_session_token_unknown(
     assert response.json()["detail"] == "player not found"
 
 
+def test_accepts_bearer_token_authentication(
+    client: testclient.TestClient,
+) -> None:
+    token = player.service().add("srcolinas-0")
+
+    response = client.post(
+        f"/games/{uuid.uuid4()}/turn-order",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 404, response.text
+
+
+def test_bearer_token_takes_precedence_over_cookie(
+    client: testclient.TestClient,
+) -> None:
+    client.cookies.set("session-token", "invalid-cookie")
+    token = player.service().add("srcolinas-0")
+
+    response = client.post(
+        f"/games/{uuid.uuid4()}/turn-order",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 404, response.text
+
+
 def test_returns_turn_order(
     app: fastapi.FastAPI,
     client: testclient.TestClient,

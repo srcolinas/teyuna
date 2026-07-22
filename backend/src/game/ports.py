@@ -84,6 +84,7 @@ class PlayedStonePath(pydantic.BaseModel):
 
 class Player(pydantic.BaseModel):
     nickname: player.Nickname
+    victory_points: Annotated[int, pydantic.Field(ge=0)] = 0
     played_wisdom_cards: list[entities.WisdomCard] = []
     num_hidden_wisdom_cards: Annotated[int, pydantic.Field(ge=0)] = 0
     num_resources: Annotated[int, pydantic.Field(ge=0)] = 0

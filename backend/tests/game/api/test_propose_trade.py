@@ -177,6 +177,58 @@ def test_proposes_trade(
     )
 
 
+def test_authenticated_player_can_retrieve_own_resources(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    _, game_id, tokens, active_player, _ = _setup_trade_and_build(app)
+    client.cookies.set("session-token", tokens[active_player])
+
+    response = client.get(f"/games/{game_id}/resources")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["gold"] == 1
+
+
+def test_public_game_state_does_not_expose_private_player_information(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    _, game_id, _, _, _ = _setup_trade_and_build(app)
+
+    response = client.get(f"/games/{game_id}")
+
+    assert response.status_code == 200, response.text
+    for public_player in response.json()["players"]:
+        assert "resources" not in public_player
+        assert "wisdom_cards" not in public_player
+
+
+def test_player_lists_only_addressed_or_own_trade_proposals(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    _, game_id, tokens, active_player, other = _setup_trade_and_build(app)
+    client.cookies.set("session-token", tokens[active_player])
+    response = client.post(
+        f"/games/{game_id}/trades",
+        json={
+            "offer": {"gold": 1},
+            "request": {"stone": 1},
+            "to": [other],
+        },
+    )
+    assert response.status_code == 200, response.text
+
+    client.cookies.set("session-token", tokens[other])
+    response = client.get(f"/games/{game_id}/trades")
+
+    assert response.status_code == 200, response.text
+    assert len(response.json()) == 1
+    assert response.json()[0]["by"] == active_player
+    assert response.json()[0]["to"] == [other]
+
+
 def _setup_trade_and_build(
     app: fastapi.FastAPI,
     *,
@@ -203,7 +255,7 @@ def _setup_trade_and_build(
 
 
 def _create_game() -> entities.Game:
-    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=1)
+    mountains = entities.Hex(q=0, r=0, type=entities.HexType.MOUNTAINS, number=2)
     game = entities.Game(
         map=(mountains,),
         conquistator_location=entities.HexLocation(q=mountains.q, r=mountains.r),

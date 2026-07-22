@@ -1,8 +1,7 @@
 import uuid
 from typing import Protocol
 
-from .. import player
-from .. import entities, ports
+from .. import actions, entities, player, ports
 
 
 class RetrieveGameRepository(Protocol):
@@ -15,7 +14,7 @@ def retrieve_game(
     game = repository.retrieve(id)
     players, settlements, paths = [], [], []
     for nickname, entity_player in game.players.items():
-        players.append(_to_port_player(nickname, entity_player))
+        players.append(_to_port_player(game, nickname, entity_player))
         for location, type in entity_player.settlements.items():
             settlements.append(
                 ports.PlayedSettlement(
@@ -81,11 +80,14 @@ def _turn_order_from_active(
 
 
 def _to_port_player(
-    nickname: player.Nickname, entity_player: entities.Player
+    game: entities.Game,
+    nickname: player.Nickname,
+    entity_player: entities.Player,
 ) -> ports.Player:
     counts = entity_player.settlements.counts
     return ports.Player(
         nickname=nickname,
+        victory_points=actions.victory_points(game, nickname),
         played_wisdom_cards=[
             card
             for card, count in entity_player.played_cards.items()

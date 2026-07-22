@@ -122,12 +122,53 @@ class GameClient:
 class AuthenticatedPlayerClient(GameClient):
     def __init__(self, base_url: str, token: str, game_id: uuid.UUID) -> None:
         super().__init__(base_url)
+        self._token = token
         self._cookies = {"session-token": token}
         self._game_id = game_id
 
     @property
     def game_id(self) -> uuid.UUID:
         return self._game_id
+
+    @property
+    def session_token(self) -> str:
+        return self._token
+
+    async def get_resources(self) -> dict[entities.ResourceCard, int]:
+        response = await _http_client.get(
+            f"{self._base_url}/games/{self._game_id}/resources",
+            cookies=self._cookies,
+        )
+        _raise_for_status(response)
+        return {
+            entities.ResourceCard(resource): count
+            for resource, count in response.json().items()
+        }
+
+    async def list_trade_proposals(self) -> list[entities.TradeProposal]:
+        response = await _http_client.get(
+            f"{self._base_url}/games/{self._game_id}/trades",
+            cookies=self._cookies,
+        )
+        _raise_for_status(response)
+        return [
+            entities.TradeProposal.model_validate(proposal)
+            for proposal in response.json()
+        ]
+
+    async def discard_resources(
+        self,
+        count: dict[entities.ResourceCard, int],
+    ) -> entities.GamePhaseName:
+        response = await _http_client.post(
+            f"{self._base_url}/games/{self._game_id}/resources/discard",
+            cookies=self._cookies,
+            json={
+                "count": {resource.value: amount for resource, amount in count.items()}
+            },
+        )
+        _raise_for_status(response)
+        return entities.GamePhaseName(response.json())
 
     async def advance_turn(self) -> tuple[entities.GamePhaseName, str]:
         response = await _http_client.post(
