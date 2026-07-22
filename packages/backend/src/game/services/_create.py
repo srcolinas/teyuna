@@ -1,7 +1,8 @@
 import datetime
 import random
 import uuid
-from typing import Protocol
+from collections.abc import Iterator
+from typing import Final, Protocol
 
 import teyuna_shared
 
@@ -39,35 +40,49 @@ def create_game(
 
 
 def generate_map() -> tuple[teyuna_shared.MapHex, ...]:
+    coords = [
+        (q, r)
+        for q in range(-2, 3)
+        for r in range(-2, 3)
+        if (q, r) not in teyuna_shared.INVALID_HEX_COORDINATES
+    ]
     types = list(_TYPES)
-    numbers = list(_NUMBERS)
     random.shuffle(types)
-    random.shuffle(numbers)
+    hex_types = dict(zip(coords, types, strict=True))
+    numbered = [c for c in coords if hex_types[c] is not teyuna_shared.HexType.DESERT]
 
-    tiles = []
-    type_idx = -1
-    number_idx = -1
-    for q in range(-2, 3):
-        for r in range(-2, 3):
-            if (q, r) in teyuna_shared.INVALID_HEX_COORDINATES:
-                continue
-            type_idx += 1
-            hex_type = types[type_idx]
-            if hex_type is teyuna_shared.HexType.DESERT:
-                number = 7
-            else:
-                number_idx += 1
-                number = numbers[number_idx]
-            tiles.append(
-                teyuna_shared.MapHex(
-                    q=q,
-                    r=r,
-                    type=hex_type,
-                    number=number,
-                )
-            )
+    for _ in range(_MAX_MAP_ATTEMPTS):
+        numbers = list(_NUMBERS)
+        random.shuffle(numbers)
+        number_by_coord = {(q, r): 7 for (q, r) in coords}
+        number_by_coord.update(zip(numbered, numbers, strict=True))
+        if _reds_are_separated(number_by_coord):
+            break
+    else:
+        raise RuntimeError("could not generate a valid map layout")
 
-    return tuple(tiles)
+    return tuple(
+        teyuna_shared.MapHex(
+            q=q, r=r, type=hex_types[(q, r)], number=number_by_coord[(q, r)]
+        )
+        for (q, r) in coords
+    )
+
+
+def _neighbor_coordinates(q: int, r: int) -> Iterator[tuple[int, int]]:
+    for d in range(6):
+        dq, dr = teyuna_shared.delta_to_neighbor(d)
+        yield q + dq, r + dr
+
+
+def _reds_are_separated(number_by_coord: dict[tuple[int, int], int]) -> bool:
+    for (q, r), number in number_by_coord.items():
+        if number not in _RED_NUMBERS:
+            continue
+        for neighbor in _neighbor_coordinates(q, r):
+            if number_by_coord.get(neighbor) in _RED_NUMBERS:
+                return False
+    return True
 
 
 def _resolve_board(
@@ -110,3 +125,5 @@ _TYPES = (
     + [teyuna_shared.HexType.DESERT]
 )
 _NUMBERS = [2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2
+_RED_NUMBERS: Final[frozenset[int]] = frozenset({6, 8})
+_MAX_MAP_ATTEMPTS: Final[int] = 1000

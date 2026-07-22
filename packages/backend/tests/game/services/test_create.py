@@ -1,7 +1,28 @@
+import collections
 import datetime
 
-from src.game import repository as repository_module, services
 import teyuna_shared
+
+from src.game import repository as repository_module, services
+
+_RED_NUMBERS = frozenset({6, 8})
+_EXPECTED_NUMBERS = collections.Counter([2, 12] + [3, 4, 5, 6, 8, 9, 10, 11] * 2 + [7])
+
+
+def test_generate_map_keeps_red_numbers_separated() -> None:
+    for _ in range(200):
+        board = services.generate_map()
+        number_by_coord = {(hex_.q, hex_.r): hex_.number for hex_ in board}
+
+        assert collections.Counter(number_by_coord.values()) == _EXPECTED_NUMBERS
+
+        for (q, r), number in number_by_coord.items():
+            if number not in _RED_NUMBERS:
+                continue
+            for d in range(6):
+                dq, dr = teyuna_shared.delta_to_neighbor(d)
+                neighbor_number = number_by_coord.get((q + dq, r + dr))
+                assert neighbor_number not in _RED_NUMBERS
 
 
 def test_create_game_generates_random_map_when_none_given() -> None:
