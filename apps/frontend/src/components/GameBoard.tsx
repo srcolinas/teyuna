@@ -132,14 +132,14 @@ export default function GameBoard({
                 className="cursor-pointer hover:opacity-100"
               />
 
-              {hex.number && (
+              {hex.number && hex.type !== 'desert' && (
                 <text
                   x={hexToPixel(hex.coordinate.q, hex.coordinate.r).x + offset.offsetX}
                   y={hexToPixel(hex.coordinate.q, hex.coordinate.r).y + offset.offsetY + 5}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   className="font-bold text-lg"
-                  fill="#000"
+                  fill={hex.number === 6 || hex.number === 8 ? '#dc2626' : '#000'}
                 >
                   {hex.number}
                 </text>
@@ -166,8 +166,9 @@ export default function GameBoard({
           const distance = Math.hypot(middle.x, middle.y) || 1
           const label = harbour.resource ? `⛵ 2:1 ${harbour.resource}` : '⛵ 3:1 any'
           const labelOffsetX = harbour.resource === 'gold' ? -34 : 0
+          const labelOffsetY = harbour.resource === 'cotton' ? 25 : 0
           const labelX = middle.x + (middle.x / distance) * 78 + offset.offsetX + labelOffsetX
-          const labelY = middle.y + (middle.y / distance) * 78 + offset.offsetY
+          const labelY = middle.y + (middle.y / distance) * 78 + offset.offsetY + labelOffsetY
           return (
             <g key={`harbour-${harbour.vertices[0].join('-')}`}>
               <line
