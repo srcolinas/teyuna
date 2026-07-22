@@ -9,32 +9,32 @@ all: check
 # Clean cache files and artifacts
 clean:
 	cd backend && make clean
-	cd teyuna-players && make clean
+	cd teyuna-sdk && make clean
 
 # Install all dependencies
 setup:
 	cd backend && make setup
-	cd teyuna-players && make setup
+	cd teyuna-sdk && make setup
 
 # Format all code
 format:
 	cd backend && make format
-	cd teyuna-players && make format
+	cd teyuna-sdk && make format
 
 # Lint all code
 lint:
 	cd backend && make lint
-	cd teyuna-players && make lint
+	cd teyuna-sdk && make lint
 
 # Run all tests
 test:
 	cd backend && make test
-	cd teyuna-players && make test
+	cd teyuna-sdk && make test
 
 # Run all checks
 check:
 	cd backend && make check
-	cd teyuna-players && make check
+	cd teyuna-sdk && make check
 
 # Run with Docker/Podman Compose
 run:

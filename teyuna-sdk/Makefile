@@ -1,12 +1,11 @@
-.PHONY: install dev format lint test check run
+.PHONY: install dev format lint test check publish clean setup
 
 clean:
-	rm -rf .venv __pycache__ .mypy_cache .ruff_cache
+	rm -rf .venv __pycache__ .mypy_cache .ruff_cache dist
 	rm -rf src/__pycache__ src/**/__pycache__
-	
+
 setup:
 	uv sync --dev
-	uv run pre-commit install
 
 dev:
 	uv sync --dev
@@ -26,5 +25,6 @@ test:
 check: lint test
 	@echo "All checks passed!"
 
-run:
-	...
+publish:
+	uv build
+	uv publish

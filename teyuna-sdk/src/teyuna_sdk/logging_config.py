@@ -72,7 +72,7 @@ def ensure_file_logger(logger_name: str, filename: str) -> logging.Logger:
 
 
 def agent_logger_name(nickname: str) -> str:
-    return f"teyuna_players.agent.{nickname}"
+    return f"teyuna_sdk.agent.{nickname}"
 
 
 def ensure_agent_logger(nickname: str) -> logging.Logger:
@@ -80,4 +80,4 @@ def ensure_agent_logger(nickname: str) -> logging.Logger:
 
 
 def ensure_game_loop_logger() -> logging.Logger:
-    return ensure_file_logger("teyuna_players.loop", "game_loop.log")
+    return ensure_file_logger("teyuna_sdk.loop", "game_loop.log")

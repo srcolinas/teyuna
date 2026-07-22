@@ -23,4 +23,4 @@ case "$NUM_PLAYERS" in
     ;;
 esac
 
-exec teyuna-players --host "$HOST" "$@"
+exec teyuna-simulate --host "$HOST" "$@"
