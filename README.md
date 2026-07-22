@@ -28,13 +28,13 @@ From the server point of view, there is no difference between a human player and
 
 ## Python SDK
 
-Build AI agents or other clients against the game server with [`teyuna-sdk`](teyuna-sdk/):
+Build AI agents or other clients against the game server with [`teyuna-sdk`](packages/sdk-python/):
 
 ```bash
 pip install teyuna-sdk
 ```
 
-See the [SDK README](teyuna-sdk/README.md) for usage, sample agents, and the `teyuna-simulate` CLI.
+See the [SDK README](packages/sdk-python/README.md) for usage, sample agents, and the `teyuna-simulate` CLI.
 
 ## License
 

@@ -14,16 +14,19 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# Dependency manifests first for layer caching.
-COPY backend/pyproject.toml backend/uv.lock backend/README.md ./
+# Workspace manifests first for layer caching.
+COPY pyproject.toml uv.lock ./
+COPY packages/backend/pyproject.toml packages/backend/README.md packages/backend/
+COPY packages/sdk-python/pyproject.toml packages/sdk-python/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-install-project --no-dev --no-editable
+    uv sync --package backend --no-install-project --no-dev --no-editable
 
-COPY backend/src/ ./src/
+# Runtime layout: src/ at /app/src for uvicorn src.main:create_app
+COPY packages/backend/src/ ./src/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-editable
+    uv sync --package backend --no-dev --no-editable
 
 # ============================================
 # Stage: Runtime — minimal production image

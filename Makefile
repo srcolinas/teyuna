@@ -8,33 +8,34 @@ all: check
 
 # Clean cache files and artifacts
 clean:
-	cd backend && make clean
-	cd teyuna-sdk && make clean
+	rm -rf .venv
+	cd packages/backend && make clean
+	cd packages/sdk-python && make clean
 
-# Install all dependencies
+# Install all workspace dependencies
 setup:
-	cd backend && make setup
-	cd teyuna-sdk && make setup
+	uv sync --all-packages --dev
+	uv run pre-commit install
 
 # Format all code
 format:
-	cd backend && make format
-	cd teyuna-sdk && make format
+	cd packages/backend && make format
+	cd packages/sdk-python && make format
 
 # Lint all code
 lint:
-	cd backend && make lint
-	cd teyuna-sdk && make lint
+	cd packages/backend && make lint
+	cd packages/sdk-python && make lint
 
 # Run all tests
 test:
-	cd backend && make test
-	cd teyuna-sdk && make test
+	cd packages/backend && make test
+	cd packages/sdk-python && make test
 
 # Run all checks
 check:
-	cd backend && make check
-	cd teyuna-sdk && make check
+	cd packages/backend && make check
+	cd packages/sdk-python && make check
 
 # Run with Docker/Podman Compose
 run:
