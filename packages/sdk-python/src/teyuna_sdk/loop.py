@@ -1,6 +1,9 @@
+import asyncio
 import logging
 import uuid
 from typing import Self
+
+import teyuna_shared
 
 from . import entities, sdk
 
@@ -47,7 +50,17 @@ class GameLoop:
             client=client,
         )
 
+    async def _wait_until_active(self) -> None:
+        """Block until the lobby closes; ``/events`` rejects lobby-phase games."""
+        while True:
+            state = await self._client.get_game(self._game_id)
+            if state.phase is not teyuna_shared.GamePhaseName.LOBBY:
+                return
+            logger.info("Waiting for game to start...")
+            await asyncio.sleep(2)
+
     async def run(self) -> None:
         """Stream and log SSE events until the connection ends."""
+        await self._wait_until_active()
         async for event in self._client.stream_events(self._game_id):
             logger.info("GameLoop event: %s", event)
