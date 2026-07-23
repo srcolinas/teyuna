@@ -32,7 +32,7 @@ def test_returns_404_when_game_does_not_exist(
     assert response.status_code == 404, response.text
 
 
-def test_returns_401_when_session_cookie_missing(
+def test_returns_401_when_authorization_missing(
     client: testclient.TestClient,
 ) -> None:
     response = client.post(f"/games/{uuid.uuid4()}/actions", json={"kind": "advance"})
@@ -44,8 +44,11 @@ def test_returns_401_when_session_cookie_missing(
 def test_returns_401_when_session_token_unknown(
     client: testclient.TestClient,
 ) -> None:
-    client.cookies.set("session-token", "not-a-real-token")
-    response = client.post(f"/games/{uuid.uuid4()}/actions", json={"kind": "advance"})
+    response = client.post(
+        f"/games/{uuid.uuid4()}/actions",
+        json={"kind": "advance"},
+        headers={"Authorization": "Bearer not-a-real-token"},
+    )
 
     assert response.status_code == 401, response.text
     assert response.json()["detail"] == "player not found"

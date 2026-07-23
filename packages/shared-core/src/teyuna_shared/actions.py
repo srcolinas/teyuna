@@ -137,6 +137,11 @@ class TradeWithSupplyAction(PlayerAction):
     requests: entities.ResourceCard
 
 
+class SentMessageAction(PlayerAction):
+    kind: Literal["sent_message"] = "sent_message"  # type: ignore[assignment]
+    text: str
+
+
 AnyPlayerAction = Annotated[
     FreePlacementAction
     | DiscardResourcesAction
@@ -151,6 +156,7 @@ AnyPlayerAction = Annotated[
     | ProposeTradeAction
     | AcceptTradeAction
     | TradeWithSupplyAction
+    | SentMessageAction
     | PlayerAction,
     pydantic.Field(discriminator="kind"),
 ]
@@ -232,6 +238,10 @@ class ProposeTradeResult(ActionExecutionResult):
     proposal_id: uuid.UUID | None = None
 
 
+class SentMessageResult(ActionExecutionResult):
+    kind: Literal["sent_message"] = "sent_message"  # type: ignore[assignment]
+
+
 class AcceptedTradeResult(ActionExecutionResult):
     kind: Literal["accepted_trade"] = "accepted_trade"  # type: ignore[assignment]
     proposal_id: uuid.UUID | None = None
@@ -275,6 +285,7 @@ AnyActionExecutionResult = Annotated[
     | EndedTradeAndBuildResult
     | BoughtWisdomCardResult
     | ProposeTradeResult
+    | SentMessageResult
     | AcceptedTradeResult
     | TradedWithSupplyResult
     | DiceRollResult

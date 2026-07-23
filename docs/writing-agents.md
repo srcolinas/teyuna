@@ -7,7 +7,7 @@ Build an AI (or scripted) client that plays Teyuna through the Python SDK.
 - A running game server ([getting started](getting-started.md))
 - `teyuna-sdk` installed
 
-Agents talk to the server over HTTP. Auth is a `session-token` cookie set when you join; the SDK handles it for you.
+Agents talk to the server over HTTP. Auth is a Bearer token returned in the join response body (`{ game, token }`); the SDK attaches `Authorization: Bearer <token>` for you.
 
 ## Agent contract
 
@@ -145,7 +145,3 @@ Alternatively, create the game with `teyuna-simulate` and join from your script 
 | `stochastic` | Picks random legal-ish actions across phases |
 
 Source: [`packages/sdk-python/src/teyuna_sdk/`](../packages/sdk-python/src/teyuna_sdk/).
-
-## Full method list
-
-See [sdk-reference.md](sdk-reference.md). For HTTP details, browse http://127.0.0.1:8000/docs or [api-reference.md](api-reference.md).

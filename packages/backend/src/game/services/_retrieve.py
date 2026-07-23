@@ -56,6 +56,7 @@ def retrieve_game(
         conquistator_location=teyuna_shared.HexCoordinate(
             q=game.conquistator_location.q, r=game.conquistator_location.r
         ),
+        harbours=teyuna_shared.grouped_harbours(game.harbours),
         players=players,
         settlements=settlements,
         paths=paths,

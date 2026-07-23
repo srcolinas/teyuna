@@ -169,7 +169,7 @@ def _trade_rate(
 ) -> int:
     rate = teyuna_shared.DEFAULT_TRADE_RATE
     settlements = game.players[by].settlements
-    for location, harbour_resource in teyuna_shared.HARBOUR_LOCATIONS.items():
+    for location, harbour_resource in game.harbour_locations.items():
         if location not in settlements:
             continue
         if harbour_resource is None:

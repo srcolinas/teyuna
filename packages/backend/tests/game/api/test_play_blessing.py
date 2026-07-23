@@ -155,7 +155,10 @@ def test_takes_two_resources_from_supply(
     assert body["resources"] == _BLESSING_RESOURCES
     assert body["next_phase"] == teyuna_shared.GamePhaseName.DICE_ROLL.value
 
-    hand = client.get(f"/games/{game_id}/hand")
+    hand = client.get(
+        f"/games/{game_id}/hand",
+        headers=utils.auth_headers(tokens[active_player]),
+    )
     assert hand.status_code == 200, hand.text
     assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 1
     assert hand.json()["resources"][teyuna_shared.ResourceCard.STONE.value] == 1
@@ -185,7 +188,10 @@ def test_takes_two_resources_during_trade_and_build_play_blessed(
     assert body["resources"] == _BLESSING_RESOURCES
     assert body["next_phase"] == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
 
-    hand = client.get(f"/games/{game_id}/hand")
+    hand = client.get(
+        f"/games/{game_id}/hand",
+        headers=utils.auth_headers(tokens[active_player]),
+    )
     assert hand.status_code == 200, hand.text
     assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 1
     assert hand.json()["resources"][teyuna_shared.ResourceCard.STONE.value] == 1

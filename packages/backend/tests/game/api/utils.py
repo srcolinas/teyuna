@@ -5,6 +5,10 @@ import httpx2
 from fastapi import testclient
 
 
+def auth_headers(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
 def create_active_game(
     client: testclient.TestClient,
     num_players: int = 3,
@@ -22,7 +26,7 @@ def create_active_game(
         )
         assert response.status_code == 200, response.text
 
-    assert response.json()["phase"] == "first placement"
+    assert response.json()["game"]["phase"] == "first placement"
     return game_id
 
 
@@ -42,9 +46,9 @@ def create_active_game_with_tokens(
             json={"nickname": nickname},
         )
         assert response.status_code == 200, response.text
-        tokens[nickname] = client.cookies["session-token"]
+        tokens[nickname] = response.json()["token"]
 
-    assert response.json()["phase"] == "first placement"
+    assert response.json()["game"]["phase"] == "first placement"
     return game_id, tokens
 
 
@@ -55,9 +59,8 @@ def post_action(
     *,
     token: str | None = None,
 ) -> httpx2.Response:
-    if token is not None:
-        client.cookies.set("session-token", token)
-    return client.post(f"/games/{game_id}/actions", json=action)
+    headers = auth_headers(token) if token is not None else None
+    return client.post(f"/games/{game_id}/actions", json=action, headers=headers)
 
 
 def build_free_placement_action(

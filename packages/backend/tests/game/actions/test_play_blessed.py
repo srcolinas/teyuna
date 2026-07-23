@@ -4,32 +4,36 @@ import teyuna_shared
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
-    result = actions.handle_dice_play_blessed(
-        game,
-        teyuna_shared.PlayBlessedAction(
-            by=other,
-            resources=(
-                teyuna_shared.ResourceCard.WOOD,
-                teyuna_shared.ResourceCard.STONE,
-            ),
+    action = teyuna_shared.PlayBlessedAction(
+        by=other,
+        resources=(
+            teyuna_shared.ResourceCard.WOOD,
+            teyuna_shared.ResourceCard.STONE,
         ),
     )
+    result = actions.handle_dice_play_blessed(
+        game,
+        action,
+    )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.resources is None
 
 
 def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
-    result = actions.handle_trade_and_build_play_blessed(
-        game,
-        teyuna_shared.PlayBlessedAction(
-            by=other,
-            resources=(
-                teyuna_shared.ResourceCard.WOOD,
-                teyuna_shared.ResourceCard.STONE,
-            ),
+    action = teyuna_shared.PlayBlessedAction(
+        by=other,
+        resources=(
+            teyuna_shared.ResourceCard.WOOD,
+            teyuna_shared.ResourceCard.STONE,
         ),
     )
+    result = actions.handle_trade_and_build_play_blessed(
+        game,
+        action,
+    )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.resources is None
 
@@ -40,16 +44,18 @@ def test_raises_when_supply_lacks_requested_resource(
     player = game.active_player
     game.resource_supply[teyuna_shared.ResourceCard.WOOD] = 0
 
-    result = actions.handle_dice_play_blessed(
-        game,
-        teyuna_shared.PlayBlessedAction(
-            by=player,
-            resources=(
-                teyuna_shared.ResourceCard.WOOD,
-                teyuna_shared.ResourceCard.STONE,
-            ),
+    action = teyuna_shared.PlayBlessedAction(
+        by=player,
+        resources=(
+            teyuna_shared.ResourceCard.WOOD,
+            teyuna_shared.ResourceCard.STONE,
         ),
     )
+    result = actions.handle_dice_play_blessed(
+        game,
+        action,
+    )
+    assert result.action == action
     assert result.error == "Not enough wood in the supply"
     assert result.resources is None
 
@@ -60,16 +66,18 @@ def test_raises_when_supply_lacks_duplicate_resource(
     player = game.active_player
     game.resource_supply[teyuna_shared.ResourceCard.WOOD] = 1
 
-    result = actions.handle_dice_play_blessed(
-        game,
-        teyuna_shared.PlayBlessedAction(
-            by=player,
-            resources=(
-                teyuna_shared.ResourceCard.WOOD,
-                teyuna_shared.ResourceCard.WOOD,
-            ),
+    action = teyuna_shared.PlayBlessedAction(
+        by=player,
+        resources=(
+            teyuna_shared.ResourceCard.WOOD,
+            teyuna_shared.ResourceCard.WOOD,
         ),
     )
+    result = actions.handle_dice_play_blessed(
+        game,
+        action,
+    )
+    assert result.action == action
     assert result.error == "Not enough wood in the supply"
     assert result.resources is None
 
@@ -82,13 +90,15 @@ def test_takes_from_supply_and_returns_to_dice_roll(
     before_stone = game.resource_supply[teyuna_shared.ResourceCard.STONE]
 
     resources = (teyuna_shared.ResourceCard.WOOD, teyuna_shared.ResourceCard.STONE)
+    action = teyuna_shared.PlayBlessedAction(
+        by=player,
+        resources=resources,
+    )
     result = actions.handle_dice_play_blessed(
         game,
-        teyuna_shared.PlayBlessedAction(
-            by=player,
-            resources=resources,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -107,13 +117,15 @@ def test_takes_from_supply_and_returns_to_trade_and_build(
     before_stone = game.resource_supply[teyuna_shared.ResourceCard.STONE]
 
     resources = (teyuna_shared.ResourceCard.WOOD, teyuna_shared.ResourceCard.STONE)
+    action = teyuna_shared.PlayBlessedAction(
+        by=player,
+        resources=resources,
+    )
     result = actions.handle_trade_and_build_play_blessed(
         game,
-        teyuna_shared.PlayBlessedAction(
-            by=player,
-            resources=resources,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD

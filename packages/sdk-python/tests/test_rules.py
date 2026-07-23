@@ -11,6 +11,7 @@ def _empty_game(*, map_tiles: tuple[teyuna_shared.Hex, ...]) -> teyuna_shared.Ga
         id=uuid.uuid4(),
         map=map_tiles,
         conquistator_location=teyuna_shared.HexCoordinate(q=0, r=0),
+        harbours=teyuna_shared.grouped_harbours(),
         players=[],
         settlements=[],
         paths=[],

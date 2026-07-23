@@ -1,4 +1,3 @@
-import collections
 import functools
 import random
 import uuid
@@ -97,6 +96,11 @@ def get_actions_registry() -> actions.ActionsRegistry:
         actions.handle_trade_and_build_play_pathfinder
     )
     reg.register(teyuna_shared.GamePhaseName.END_GAME)(actions.handle_end_game)
+
+    for phase in teyuna_shared.GamePhaseName:
+        if phase is teyuna_shared.GamePhaseName.LOBBY:
+            continue
+        reg.register(phase)(actions.handle_sent_message)
 
     timeouts = (
         (
@@ -217,14 +221,21 @@ def get_player(
     auth: Annotated[
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
-    session_token: Annotated[str | None, fastapi.Cookie(alias="session-token")] = None,
+    authorization: Annotated[str | None, fastapi.Header()] = None,
 ) -> player.Nickname:
-    if session_token is None:
+    if authorization is None:
         raise fastapi.HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token"
         )
 
-    nickname = auth.retrieve(session_token)
+    scheme, separator, credentials = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not separator or not credentials:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid authorization header",
+        )
+
+    nickname = auth.retrieve(credentials)
     if nickname is None:
         raise fastapi.HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="player not found"
@@ -236,29 +247,6 @@ def get_player(
 @functools.cache
 def random_generator() -> random.Random:
     return random.Random()
-
-
-class ConnectionManager:
-    def __init__(self) -> None:
-        self.active_connections: collections.defaultdict[
-            uuid.UUID, list[fastapi.WebSocket]
-        ] = collections.defaultdict(list)
-
-    async def connect(self, game_id: uuid.UUID, websocket: fastapi.WebSocket):
-        await websocket.accept()
-        self.active_connections[game_id].append(websocket)
-
-    def disconnect(self, game_id: uuid.UUID, websocket: fastapi.WebSocket):
-        self.active_connections[game_id].remove(websocket)
-
-    async def broadcast(self, game_id: uuid.UUID, message: str):
-        for connection in self.active_connections[game_id]:
-            await connection.send_text(message)
-
-
-@functools.cache
-def get_connection_manager() -> ConnectionManager:
-    return ConnectionManager()
 
 
 @functools.cache

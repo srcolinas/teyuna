@@ -243,15 +243,17 @@ async def test_apply_player_action_resets_deadline() -> None:
     waiter = asyncio.create_task(_next_broker_event(event_broker, game_id))
     await asyncio.sleep(0)
 
+    action = teyuna_shared.PlayerAction(by=active_player, rng_=random.Random(0))
     result, _ = await services.apply_player_action(
         game_id,
-        teyuna_shared.PlayerAction(by=active_player, rng_=random.Random(0)),
+        action,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
         broker=event_broker,
         now=now,
     )
+    assert result.action == action
 
     assert result.action.by == active_player
     published = await waiter

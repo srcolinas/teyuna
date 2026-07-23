@@ -271,10 +271,12 @@ def test_handle_build_path_awards_longest_road(game: entities.Game) -> None:
     fifth = teyuna_shared.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=fifth)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=fifth),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -293,10 +295,12 @@ def test_handle_build_path_can_end_game_via_longest_road(
     fifth = teyuna_shared.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=fifth)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=fifth),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
@@ -323,14 +327,16 @@ def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
         }
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=breaker,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=vertex,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=breaker,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=vertex,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -351,10 +357,12 @@ def test_pathfinder_awards_longest_road_on_fifth_path(
     fourth = teyuna_shared.canonical_edge(0, 0, 3)
     fifth = teyuna_shared.canonical_edge(0, 0, 4)
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(fourth, fifth))
     result = actions.handle_dice_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(fourth, fifth)),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL

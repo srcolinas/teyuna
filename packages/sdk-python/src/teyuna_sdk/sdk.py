@@ -105,10 +105,10 @@ class GameClient:
             json={"nickname": nickname},
         )
         _raise_for_status(response)
-        token = response.cookies.get("session-token")
-        if token is None:
-            raise RuntimeError("join response did not include a session-token cookie")
-        return AuthenticatedPlayerClient(self._base_url, token=token, game_id=game_id)
+        body = teyuna_shared.JoinGameResponse.model_validate(response.json())
+        return AuthenticatedPlayerClient(
+            self._base_url, token=body.token, game_id=game_id
+        )
 
     async def get_game(self, game_id: uuid.UUID) -> teyuna_shared.Game:
         """Fetch the full public game state."""
@@ -169,11 +169,12 @@ class GameClient:
 
 
 class AuthenticatedPlayerClient(GameClient):
-    """Player client bound to a game with a ``session-token`` cookie."""
+    """Player client bound to a game with an Authorization Bearer token."""
 
     def __init__(self, base_url: str, token: str, game_id: uuid.UUID) -> None:
         super().__init__(base_url)
-        self._cookies = {"session-token": token}
+        self._token = token
+        self._headers = {"Authorization": f"Bearer {token}"}
         self._game_id = game_id
 
     @property
@@ -181,11 +182,16 @@ class AuthenticatedPlayerClient(GameClient):
         """UUID of the game this client is authenticated for."""
         return self._game_id
 
+    @property
+    def token(self) -> str:
+        """Bearer token issued when this player joined the game."""
+        return self._token
+
     async def get_hand(self) -> teyuna_shared.PlayerHand:
         """Fetch this player's private resources and wisdom cards."""
         response = await _http_client.get(
             f"{self._base_url}/games/{self._game_id}/hand",
-            cookies=self._cookies,
+            headers=self._headers,
         )
         _raise_for_status(response)
         return teyuna_shared.PlayerHand.model_validate(response.json())
@@ -196,7 +202,7 @@ class AuthenticatedPlayerClient(GameClient):
         """Submit a player action; the server sets ``by`` from the session."""
         response = await _http_client.post(
             f"{self._base_url}/games/{self._game_id}/actions",
-            cookies=self._cookies,
+            headers=self._headers,
             json=action.model_dump(mode="json"),
         )
         _raise_for_status(response)
@@ -319,6 +325,15 @@ class AuthenticatedPlayerClient(GameClient):
             )
             for coord in result.paths
         ]
+
+    async def send_message(self, text: str) -> None:
+        """Send a chat message broadcast to all observers via SSE."""
+        response = await _http_client.post(
+            f"{self._base_url}/games/{self._game_id}/messages",
+            headers=self._headers,
+            json={"text": text},
+        )
+        _raise_for_status(response)
 
     async def add_initial_placements(
         self,

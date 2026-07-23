@@ -1,11 +1,28 @@
-# Contributing Guidelines
+# Contributing
 
-This project follows Google's Python style guide: https://google.github.io/styleguide/pyguide.html . However, any rule encoded in ruff (formatting and linting) and mypy (type checking) takes precedence.
+From the repository root, install and validate everything with:
 
-Unit tests are to be included for the full of the API, while internal functions can be tested if writing tests for them makes it easier to figure out things that could go wrong.
+```bash
+make setup
+make format
+make lint
+make test
+# or
+make check
+```
 
-## Commiting
+Those targets cover Python packages and the frontend (`apps/frontend`, pnpm).
+Pre-commit runs `make format`, `make lint`, and `make test`.
 
-* Please make sure to follow conventional commits: https://www.conventionalcommits.org/en/v1.0.0/ 
-* Follow this for code review process: https://google.github.io/eng-practices/review/ 
+Package-specific guidelines:
 
+| Package | Guide |
+| --- | --- |
+| Backend | [packages/backend/README.md](packages/backend/README.md) |
+| Shared core | [packages/shared-core/README.md](packages/shared-core/README.md) |
+| Python SDK | [packages/sdk-python/README.md](packages/sdk-python/README.md) |
+| Frontend | [apps/frontend/README.md](apps/frontend/README.md) |
+
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).

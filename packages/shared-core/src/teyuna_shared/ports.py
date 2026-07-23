@@ -1,10 +1,11 @@
 import datetime
 import uuid
+from collections.abc import Iterable
 from typing import Annotated
 
 import pydantic
 
-from . import constants, entities
+from . import board, constants, entities
 
 
 class HexCoordinate(pydantic.BaseModel):
@@ -113,10 +114,20 @@ class ActiveTradeProposal(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True)
 
 
+class Harbour(pydantic.BaseModel):
+    """A trading harbour spanning two docking vertices."""
+
+    resource: entities.ResourceCard | None = None
+    vertices: tuple[VertexCoordinate, VertexCoordinate]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
 class Game(pydantic.BaseModel):
     id: uuid.UUID
     map: tuple[Hex, ...]
     conquistator_location: HexCoordinate
+    harbours: tuple[Harbour, ...]
     players: list[Player]
     settlements: list[PlayedSettlement]
     paths: list[PlayedStonePath]
@@ -141,3 +152,63 @@ class CreateGameRequest(pydantic.BaseModel):
     num_players: Annotated[int, pydantic.Field(ge=3, le=4, default=3)]
     map: tuple[Hex, ...] | None = None
     conquistator_location: HexCoordinate | None = None
+    harbours: tuple[Harbour, ...] | None = None
+
+
+def _vertex_from_coordinate(coord: board.Coordinate) -> VertexCoordinate:
+    return VertexCoordinate(
+        hex_coord=HexCoordinate(q=coord.q, r=coord.r),
+        direction=coord.d,
+    )
+
+
+def _coordinate_from_vertex(vertex: VertexCoordinate) -> board.Coordinate:
+    return board.canonical_vertex(
+        vertex.hex_coord.q, vertex.hex_coord.r, vertex.direction
+    )
+
+
+def grouped_harbours(
+    pairs: Iterable[board.HarbourPair] | None = None,
+) -> tuple[Harbour, ...]:
+    """Convert harbour pairs (defaults if omitted) into API ``Harbour`` DTOs."""
+    if pairs is None:
+        pairs = board.default_harbour_pairs()
+    return tuple(
+        Harbour(
+            resource=pair.resource,
+            vertices=(
+                _vertex_from_coordinate(pair.vertices[0]),
+                _vertex_from_coordinate(pair.vertices[1]),
+            ),
+        )
+        for pair in pairs
+    )
+
+
+def harbour_pairs_from_ports(
+    harbours: Iterable[Harbour],
+) -> tuple[board.HarbourPair, ...]:
+    """Convert API harbours into board ``HarbourPair``s with canonical vertices."""
+    return tuple(
+        board.HarbourPair(
+            resource=harbour.resource,
+            vertices=(
+                _coordinate_from_vertex(harbour.vertices[0]),
+                _coordinate_from_vertex(harbour.vertices[1]),
+            ),
+        )
+        for harbour in harbours
+    )
+
+
+def flatten_harbours(
+    harbours: Iterable[Harbour],
+) -> dict[board.Coordinate, entities.ResourceCard | None]:
+    """Flatten API harbours into a canonical vertex → resource lookup."""
+    return board.harbour_locations_from_pairs(harbour_pairs_from_ports(harbours))
+
+
+class JoinGameResponse(pydantic.BaseModel):
+    game: Game
+    token: str

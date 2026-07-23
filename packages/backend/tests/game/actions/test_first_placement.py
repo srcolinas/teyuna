@@ -8,10 +8,12 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     other = game.turn_order[1]
 
+    action = teyuna_shared.FreePlacementAction(by=other, terrace=terrace, path=path)
     result = actions.handle_first_placement(
         game,
-        teyuna_shared.FreePlacementAction(by=other, terrace=terrace, path=path),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.settlement is None
     assert result.path is None
@@ -33,10 +35,12 @@ def test_raises_when_terrace_invalid(game: entities.Game) -> None:
         restricted_vertices=game.restricted_verticies,
     )
 
+    action = teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path)
     result = actions.handle_first_placement(
         game,
-        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.settlement is None
     assert result.path is None
@@ -54,10 +58,12 @@ def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
         restricted_vertices=game.restricted_verticies,
     )
 
+    action = teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path)
     result = actions.handle_first_placement(
         game,
-        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.settlement is None
     assert result.path is None
@@ -76,10 +82,12 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
+    action = teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path)
     result = actions.handle_first_placement(
         game,
-        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.settlement is None
     assert result.path is None
@@ -99,10 +107,12 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
+    action = teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path)
     result = actions.handle_first_placement(
         game,
-        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.settlement is None
     assert result.path is None
@@ -113,10 +123,12 @@ def test_mutates_board_and_advances_player(game: entities.Game) -> None:
     path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
+    action = teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path)
     result = actions.handle_first_placement(
         game,
-        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.FIRST_PLACEMENT
@@ -140,10 +152,12 @@ def test_returns_second_placement_after_last_player(game: entities.Game) -> None
     path = next(iter(teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
+    action = teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path)
     result = actions.handle_first_placement(
         game,
-        teyuna_shared.FreePlacementAction(by=player, terrace=terrace, path=path),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.SECOND_PLACEMENT

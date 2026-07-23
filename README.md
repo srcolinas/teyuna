@@ -12,7 +12,7 @@ A multiplayer strategy board game celebrating the ancient **Tayrona civilization
 
 The Tayrona were master builders who created an extensive network of stone-paved paths, terraces, and settlements throughout the Sierra Nevada mountains. Their descendants—the Kogi, Arhuaco, Wiwa, and Kankuamo peoples—still inhabit this region, which they consider the "Heart of the World."
 
-Learn the rules of the game in the [rulebook](rulebook.md).
+Learn the rules of the game in the [rulebook](docs/rulebook.md).
 
 ## ✨ Features
 
@@ -28,32 +28,8 @@ From the server point of view, there is no difference between a human player and
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Run the server and simulate a game |
 | [Writing agents](docs/writing-agents.md) | Build and test your own AI agent |
-| [SDK reference](docs/sdk-reference.md) | Public Python SDK API |
-| [API reference](docs/api-reference.md) | HTTP/SSE overview (details in OpenAPI) |
 
 Interactive OpenAPI docs (when the server is running): http://127.0.0.1:8000/docs
-
-## Playing the game
-
-Assuming you have Docker installed, you can run the game server with:
-
-```bash
-docker compose up -d backend
-```
-
-This will start the game server.
-
-You can then play against some dummy players or your own AI agents using the `teyuna-simulate` CLI (see below).
-
-## Python SDK
-
-Build AI agents or other clients against the game server with [`teyuna-sdk`](packages/sdk-python/):
-
-```bash
-pip install teyuna-sdk
-```
-
-See the [SDK README](packages/sdk-python/README.md) for usage, sample agents, and the `teyuna-simulate` CLI.
 
 ## License
 

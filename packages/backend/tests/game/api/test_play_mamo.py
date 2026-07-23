@@ -127,7 +127,10 @@ def test_takes_all_of_resource_from_other_players(
     assert body["resource"] == teyuna_shared.ResourceCard.WOOD.value
     assert body["next_phase"] == teyuna_shared.GamePhaseName.DICE_ROLL.value
 
-    hand = client.get(f"/games/{game_id}/hand")
+    hand = client.get(
+        f"/games/{game_id}/hand",
+        headers=utils.auth_headers(tokens[active_player]),
+    )
     assert hand.status_code == 200, hand.text
     assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 3
 
@@ -163,7 +166,10 @@ def test_takes_all_of_resource_during_trade_and_build_play_mamo(
     assert body["resource"] == teyuna_shared.ResourceCard.WOOD.value
     assert body["next_phase"] == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
 
-    hand = client.get(f"/games/{game_id}/hand")
+    hand = client.get(
+        f"/games/{game_id}/hand",
+        headers=utils.auth_headers(tokens[active_player]),
+    )
     assert hand.status_code == 200, hand.text
     assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 3
 

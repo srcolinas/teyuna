@@ -122,6 +122,9 @@ class Game:
     map: tuple[teyuna_shared.MapHex, ...]
     players: dict[str, Player]
     conquistator_location: teyuna_shared.HexLocation
+    harbours: tuple[teyuna_shared.HarbourPair, ...] = dataclasses.field(
+        default_factory=teyuna_shared.default_harbour_pairs
+    )
     available_slots: int = 4
     phase: teyuna_shared.GamePhaseName = teyuna_shared.GamePhaseName.LOBBY
     phase_deadline: datetime.datetime | None = None
@@ -160,6 +163,14 @@ class Game:
         self._free_verticies = free_verticies
         self._free_edges = free_edges
         self._restricted_verticies = set()
+
+    @property
+    def harbour_locations(
+        self,
+    ) -> MappingProxyType[teyuna_shared.Coordinate, teyuna_shared.ResourceCard | None]:
+        return MappingProxyType(
+            teyuna_shared.harbour_locations_from_pairs(self.harbours)
+        )
 
     @property
     def turn_order(self) -> tuple[str, ...]:

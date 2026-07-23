@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import logging
+import os
 import uuid
 
 from . import builder, entities, loop, skipper, sleepy, stochastic
@@ -75,6 +76,14 @@ async def helper(
             raise ValueError(f"unknown player agent: {agent!r}")
         context = await game.add_player(nickname)
         contexts.append((agent, context))
+
+    print(f"host:    {host}")
+    print(f"game_id: {game.game_id}")
+    print("tokens:")
+    for _, context in contexts:
+        print(f"  {context.nickname}: {context.client.token}")
+    frontend_port = os.environ.get("FRONTEND_PORT", "5173")
+    print(f"frontend observer: http://127.0.0.1:{frontend_port}/?gameId={game.game_id}")
 
     tasks: list[asyncio.Task[None]] = [
         asyncio.create_task(

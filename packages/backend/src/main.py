@@ -4,8 +4,9 @@ import logging
 import random
 from collections.abc import AsyncIterator, Callable
 from typing import TypeVar
-
 import fastapi
+from fastapi.middleware.cors import CORSMiddleware
+
 
 from . import game, settings
 from .game import services
@@ -32,7 +33,13 @@ def create_app() -> fastapi.FastAPI:
                 await poller
 
     app = fastapi.FastAPI(lifespan=lifespan)
-
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     loglevel = logging.getLevelNamesMapping()[settings_.loglevel]
     print(f"Setting log level to: {settings_.loglevel} ({loglevel})")
     logging.basicConfig(level=loglevel)

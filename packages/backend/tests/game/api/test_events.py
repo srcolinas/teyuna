@@ -31,7 +31,7 @@ def test_single_client_receives_action_event(
 
     with _Server(app, port=18765) as base_url:
         with httpx2.Client(
-            base_url=base_url, timeout=5.0, cookies={"session-token": token}
+            base_url=base_url, timeout=5.0, headers={"Authorization": f"Bearer {token}"}
         ) as http:
             with http.stream("GET", f"/games/{game_id}/events") as stream:
                 lines = stream.iter_lines()
@@ -70,7 +70,7 @@ def test_disconnect_does_not_break_remaining_clients(
 
     with _Server(app, port=18766) as base_url:
         with httpx2.Client(
-            base_url=base_url, timeout=5.0, cookies={"session-token": token}
+            base_url=base_url, timeout=5.0, headers={"Authorization": f"Bearer {token}"}
         ) as http:
             with http.stream("GET", f"/games/{game_id}/events") as leaving:
                 with http.stream("GET", f"/games/{game_id}/events") as remaining:
