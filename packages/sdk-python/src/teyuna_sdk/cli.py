@@ -2,12 +2,14 @@ import argparse
 import asyncio
 import logging
 import uuid
+from pathlib import Path
 
 from . import builder, entities, loop, skipper, sleepy, stochastic
 from .logging_config import (
     configure_logging,
     ensure_agent_logger,
     ensure_game_loop_logger,
+    resolve_log_dir,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +39,16 @@ def _add_host_argument(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_logdir_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--logdir",
+        type=Path,
+        default=None,
+        help="directory for agent/game-loop log files "
+        "(default: logs/<YYYY-MM-DD-HH-MM>)",
+    )
+
+
 def main() -> None:
     configure_logging()
     parser = argparse.ArgumentParser(
@@ -50,6 +62,7 @@ def main() -> None:
         help="create a new game and print its id",
     )
     _add_host_argument(create_parser)
+    _add_logdir_argument(create_parser)
     create_parser.add_argument(
         "--num-players",
         type=int,
@@ -69,6 +82,7 @@ def main() -> None:
         help="id of the game to join",
     )
     _add_host_argument(join_parser)
+    _add_logdir_argument(join_parser)
     join_parser.add_argument(
         "players",
         nargs="+",
@@ -88,9 +102,10 @@ def _cmd_create(args: argparse.Namespace) -> None:
 
 
 def _cmd_join(args: argparse.Namespace) -> None:
-    ensure_game_loop_logger()
+    logdir = resolve_log_dir(args.logdir)
+    ensure_game_loop_logger(logdir=logdir)
     for _, nickname in args.players:
-        ensure_agent_logger(nickname)
+        ensure_agent_logger(nickname, logdir=logdir)
     asyncio.run(_join(args.game_id, args.host, args.players))
 
 

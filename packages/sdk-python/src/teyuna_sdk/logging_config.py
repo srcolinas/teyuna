@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -12,28 +11,18 @@ _FORMATTER = logging.Formatter(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-_log_dir: Path | None = None
 
+def resolve_log_dir(logdir: Path | None = None) -> Path:
+    """Return the log directory for this run, creating it if needed.
 
-def log_dir() -> Path:
-    """Return this run's log directory (created once).
-
-    Uses ``TEYUNA_LOG_DIR`` if set; otherwise ``TEYUNA_LOG_ROOT`` (default
-    ``logs``) / ``YYYY-MM-DD-HH-MM`` so each run gets a fresh folder.
+    If ``logdir`` is given, use it directly; otherwise ``logs/YYYY-MM-DD-HH-MM``.
     """
-    global _log_dir
-    if _log_dir is not None:
-        return _log_dir
-
-    if explicit := os.environ.get("TEYUNA_LOG_DIR"):
-        path = Path(explicit)
+    if logdir is not None:
+        path = logdir
     else:
-        root = Path(os.environ.get("TEYUNA_LOG_ROOT", "logs"))
         stamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
-        path = root / stamp
-
+        path = Path("logs") / stamp
     path.mkdir(parents=True, exist_ok=True)
-    _log_dir = path
     return path
 
 
@@ -51,13 +40,15 @@ def configure_logging() -> None:
     root.addHandler(stream_handler)
 
 
-def ensure_file_logger(logger_name: str, filename: str) -> logging.Logger:
-    """Attach a FileHandler under this run's log dir once for ``logger_name``."""
+def ensure_file_logger(
+    logger_name: str, filename: str, *, logdir: Path
+) -> logging.Logger:
+    """Attach a FileHandler under ``logdir`` once for ``logger_name``."""
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
     logger.propagate = True
 
-    target = log_dir() / filename
+    target = logdir / filename
     for handler in logger.handlers:
         if (
             isinstance(handler, logging.FileHandler)
@@ -75,9 +66,11 @@ def agent_logger_name(nickname: str) -> str:
     return f"teyuna_sdk.agent.{nickname}"
 
 
-def ensure_agent_logger(nickname: str) -> logging.Logger:
-    return ensure_file_logger(agent_logger_name(nickname), f"{nickname}.log")
+def ensure_agent_logger(nickname: str, *, logdir: Path) -> logging.Logger:
+    return ensure_file_logger(
+        agent_logger_name(nickname), f"{nickname}.log", logdir=logdir
+    )
 
 
-def ensure_game_loop_logger() -> logging.Logger:
-    return ensure_file_logger("teyuna_sdk.loop", "game_loop.log")
+def ensure_game_loop_logger(*, logdir: Path) -> logging.Logger:
+    return ensure_file_logger("teyuna_sdk.loop", "game_loop.log", logdir=logdir)

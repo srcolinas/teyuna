@@ -88,4 +88,4 @@ Open the frontend observer with the printed game id:
 
 ## 4. Logs
 
-For local `teyuna-simulate`, set `TEYUNA_LOG_ROOT` (or `TEYUNA_LOG_DIR`) if you want file logging under a dedicated directory.
+`teyuna-simulate join` writes agent and game-loop logs under `logs/<YYYY-MM-DD-HH-MM>` by default. Pass `--logdir PATH` to write into a specific directory instead.

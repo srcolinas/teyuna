@@ -103,6 +103,10 @@ teyuna-simulate create --host http://127.0.0.1:8000
 teyuna-simulate join <uuid> --host http://127.0.0.1:8000 \
   builder:alice sleepy:bob skipper:carol
 
+# Custom log directory
+teyuna-simulate join <uuid> --logdir ./my-run-logs \
+  builder:alice sleepy:bob skipper:carol
+
 # Four-seat lobby, then join
 teyuna-simulate create --host http://127.0.0.1:8000 --num-players 4
 teyuna-simulate join <uuid> builder sleepy skipper builder:builder-2
