@@ -69,4 +69,4 @@ class GameLoop:
         """Stream and log SSE events until the connection ends."""
         await self._wait_until_active()
         async for event in self._client.stream_events(self._game_id):
-            logger.info("GameLoop event: %s", event)
+            logger.info("GameLoop event: %s", event.model_dump_json())
