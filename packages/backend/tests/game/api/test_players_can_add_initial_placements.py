@@ -29,7 +29,7 @@ def test_returns_404_when_game_does_not_exist(
         client,
         uuid.uuid4(),
         tokens[active_player],
-        utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH),
     )
 
     assert response.status_code == 404, response.text
@@ -46,20 +46,15 @@ def test_returns_200_when_active_player_places(
         client,
         game_id,
         tokens[active_player],
-        utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH),
     )
 
     assert response.status_code == 200, response.text
-    settlement, path = response.json()
-    assert settlement == {
-        "location": {"hex_coord": {"q": 0, "r": -1}, "direction": 2},
-        "type": "terrace",
-        "owner": active_player,
-    }
-    assert path == {
-        "location": {"hex_coord": {"q": 0, "r": -1}, "direction": 2},
-        "owner": active_player,
-    }
+    body = response.json()
+    assert body["kind"] == "placed_buildings"
+    assert body["action"]["kind"] == "free_placement"
+    assert body["settlement"] == [0, -1, 2]
+    assert body["path"] == [0, -1, 2]
 
 
 def test_persists_placement_after_success(client: testclient.TestClient) -> None:
@@ -71,7 +66,7 @@ def test_persists_placement_after_success(client: testclient.TestClient) -> None
         client,
         game_id,
         tokens[active_player],
-        utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH),
     )
     assert response.status_code == 200, response.text
 
@@ -107,7 +102,7 @@ def test_returns_400_when_player_not_in_turn(
         client,
         game_id,
         tokens[player_not_in_turn],
-        utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH),
     )
 
     assert response.status_code == 400, response.text
@@ -135,7 +130,7 @@ def test_returns_400_for_invalid_terrace(
         client,
         game_id,
         token,
-        utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH),
     )
 
     assert response.status_code == 400, response.text
@@ -150,7 +145,7 @@ def test_returns_400_for_invalid_path(client: testclient.TestClient) -> None:
         client,
         game_id,
         tokens[active_player],
-        utils.build_initial_placement_payload(_VALID_TERRACE, _INVALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _INVALID_PATH),
     )
 
     assert response.status_code == 400, response.text
@@ -168,12 +163,13 @@ def test_returns_200_when_payload_is_empty(client: testclient.TestClient) -> Non
     )
 
     assert response.status_code == 200, response.text
-    settlement, path = response.json()
-    assert settlement["owner"] == active_player
-    assert settlement["type"] == "terrace"
-    assert "location" in settlement
-    assert path["owner"] == active_player
-    assert "location" in path
+    body = response.json()
+    assert body["kind"] == "placed_buildings"
+    assert body["action"]["kind"] == "free_placement"
+    assert body["settlement"] is not None
+    assert body["path"] is not None
+    assert len(body["settlement"]) == 3
+    assert len(body["path"]) == 3
 
     response = client.get(f"/games/{game_id}/settlements")
     assert response.status_code == 200, response.text
@@ -195,18 +191,15 @@ def test_returns_200_when_only_terrace_provided(client: testclient.TestClient) -
         client,
         game_id,
         tokens[active_player],
-        utils.build_initial_placement_payload(terrace=_VALID_TERRACE),
+        utils.build_free_placement_action(terrace=_VALID_TERRACE),
     )
 
     assert response.status_code == 200, response.text
-    settlement, path = response.json()
-    assert settlement == {
-        "location": {"hex_coord": {"q": 0, "r": -1}, "direction": 2},
-        "type": "terrace",
-        "owner": active_player,
-    }
-    assert path["owner"] == active_player
-    assert "location" in path
+    body = response.json()
+    assert body["kind"] == "placed_buildings"
+    assert body["settlement"] == [0, -1, 2]
+    assert body["path"] is not None
+    assert len(body["path"]) == 3
 
 
 def test_returns_400_when_action_not_allowed(
@@ -224,7 +217,7 @@ def test_returns_400_when_action_not_allowed(
         client,
         game_id,
         tokens[active_player],
-        utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH),
     )
 
     assert response.status_code == 400, response.text
@@ -248,7 +241,7 @@ def test_returns_501_when_phase_not_implemented(
         client,
         game_id,
         token,
-        utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH),
+        utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH),
     )
 
     assert response.status_code == 501, response.text

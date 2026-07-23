@@ -14,24 +14,28 @@ from src.game import (
     repository as repository_module,
     actions,
 )
+from . import utils
+
+
+def _coord(vertex: teyuna_shared.Coordinate) -> dict[str, int]:
+    return {"q": vertex.q, "r": vertex.r, "d": vertex.d}
 
 
 def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
     terrace = teyuna_shared.canonical_vertex(0, 0, 0)
 
-    response = client.post(
-        f"/games/{uuid.uuid4()}/settlements",
-        json={
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {
+            "kind": "build_settlement",
             "item": teyuna_shared.SettlementType.TERRACE.value,
-            "location": {
-                "hex_coord": {"q": terrace.q, "r": terrace.r},
-                "direction": terrace.d,
-            },
+            "coordinate": _coord(terrace),
         },
+        token=token,
     )
 
     assert response.status_code == 404, response.text
@@ -43,16 +47,15 @@ def test_returns_400_when_player_not_in_turn(
 ) -> None:
     repository, game_id, tokens, _, other, terrace = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[other])
-    response = client.post(
-        f"/games/{game_id}/settlements",
-        json={
+    response = utils.post_action(
+        client,
+        game_id,
+        {
+            "kind": "build_settlement",
             "item": teyuna_shared.SettlementType.TERRACE.value,
-            "location": {
-                "hex_coord": {"q": terrace.q, "r": terrace.r},
-                "direction": terrace.d,
-            },
+            "coordinate": _coord(terrace),
         },
+        token=tokens[other],
     )
 
     assert response.status_code == 400, response.text
@@ -64,22 +67,23 @@ def test_builds_terrace_and_returns_settlement(
 ) -> None:
     repository, game_id, tokens, active_player, _, terrace = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/settlements",
-        json={
+    response = utils.post_action(
+        client,
+        game_id,
+        {
+            "kind": "build_settlement",
             "item": teyuna_shared.SettlementType.TERRACE.value,
-            "location": {
-                "hex_coord": {"q": terrace.q, "r": terrace.r},
-                "direction": terrace.d,
-            },
+            "coordinate": _coord(terrace),
         },
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["owner"] == active_player
-    assert body["type"] == teyuna_shared.SettlementType.TERRACE.value
+    assert body["kind"] == "built_settlement"
+    assert body["action"]["kind"] == "build_settlement"
+    assert body["item"] == teyuna_shared.SettlementType.TERRACE.value
+    assert body["coordinate"] == [terrace.q, terrace.r, terrace.d]
     game = repository.retrieve(game_id)
     phase = game.phase
     assert phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -106,16 +110,15 @@ def test_returns_400_when_insufficient_resources(
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/settlements",
-        json={
+    response = utils.post_action(
+        client,
+        game_id,
+        {
+            "kind": "build_settlement",
             "item": teyuna_shared.SettlementType.TERRACE.value,
-            "location": {
-                "hex_coord": {"q": terrace.q, "r": terrace.r},
-                "direction": terrace.d,
-            },
+            "coordinate": _coord(terrace),
         },
+        token=token,
     )
 
     assert response.status_code == 400, response.text
@@ -131,16 +134,15 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/settlements",
-        json={
+    response = utils.post_action(
+        client,
+        game_id,
+        {
+            "kind": "build_settlement",
             "item": teyuna_shared.SettlementType.TERRACE.value,
-            "location": {
-                "hex_coord": {"q": terrace.q, "r": terrace.r},
-                "direction": terrace.d,
-            },
+            "coordinate": _coord(terrace),
         },
+        token=tokens[active_player],
     )
 
     assert response.status_code == 400, response.text
@@ -155,16 +157,15 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/settlements",
-        json={
+    response = utils.post_action(
+        client,
+        game_id,
+        {
+            "kind": "build_settlement",
             "item": teyuna_shared.SettlementType.TERRACE.value,
-            "location": {
-                "hex_coord": {"q": terrace.q, "r": terrace.r},
-                "direction": terrace.d,
-            },
+            "coordinate": _coord(terrace),
         },
+        token=tokens[active_player],
     )
 
     assert response.status_code == 501, response.text
@@ -191,16 +192,15 @@ def test_returns_400_when_invalid_settlement_location(
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/settlements",
-        json={
+    response = utils.post_action(
+        client,
+        game_id,
+        {
+            "kind": "build_settlement",
             "item": teyuna_shared.SettlementType.TERRACE.value,
-            "location": {
-                "hex_coord": {"q": terrace.q, "r": terrace.r},
-                "direction": terrace.d,
-            },
+            "coordinate": _coord(terrace),
         },
+        token=token,
     )
 
     assert response.status_code == 400, response.text

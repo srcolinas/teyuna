@@ -7,6 +7,8 @@ import fastapi.testclient as testclient
 from src.game import entities, dependencies as game_dependencies
 from src.game import player
 from src.game import actions, repository as repository_module
+
+from . import utils
 import datetime
 import teyuna_shared
 
@@ -15,9 +17,13 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
 
-    response = client.post(f"/games/{uuid.uuid4()}/trades/{uuid.uuid4()}/accept")
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {"kind": "accept_trade", "id": str(uuid.uuid4())},
+        token=token,
+    )
 
     assert response.status_code == 404, response.text
 
@@ -32,8 +38,12 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "accept_trade", "id": str(proposal_id)},
+        token=tokens[accepts],
+    )
 
     assert response.status_code == 400, response.text
 
@@ -47,8 +57,12 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "accept_trade", "id": str(proposal_id)},
+        token=tokens[accepts],
+    )
 
     assert response.status_code == 501, response.text
 
@@ -59,8 +73,12 @@ def test_returns_400_when_proposal_not_found(
 ) -> None:
     _, game_id, tokens, _, accepts, _ = _setup_with_proposal(app)
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{uuid.uuid4()}/accept")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "accept_trade", "id": str(uuid.uuid4())},
+        token=tokens[accepts],
+    )
 
     assert response.status_code == 400, response.text
 
@@ -72,8 +90,12 @@ def test_returns_400_when_not_addressed_to_player(
     repository, game_id, tokens, _, _, proposal_id = _setup_with_proposal(app)
     outsider = repository.retrieve(game_id).turn_order[2]
 
-    client.cookies.set("session-token", tokens[outsider])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "accept_trade", "id": str(proposal_id)},
+        token=tokens[outsider],
+    )
 
     assert response.status_code == 400, response.text
 
@@ -86,8 +108,12 @@ def test_returns_400_when_insufficient_resources(
         app, grant_request=False
     )
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "accept_trade", "id": str(proposal_id)},
+        token=tokens[accepts],
+    )
 
     assert response.status_code == 400, response.text
 
@@ -100,11 +126,17 @@ def test_accepts_trade(
         app
     )
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "accept_trade", "id": str(proposal_id)},
+        token=tokens[accepts],
+    )
 
     assert response.status_code == 200, response.text
-    assert response.json() == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
+    body = response.json()
+    assert body["action"]["kind"] == "accept_trade"
+    assert body["next_phase"] == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
     game = repository.retrieve(game_id)
     phase = game.phase
     assert phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD

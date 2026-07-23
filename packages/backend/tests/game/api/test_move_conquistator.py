@@ -20,10 +20,11 @@ def test_returns_404_when_game_does_not_exist(
     response = client.get(f"/games/{game_id}")
     active_player = response.json()["turn_order"][0]
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{uuid.uuid4()}/conquistator",
-        json={"location": {"q": 1, "r": 0}},
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {"kind": "move_conquistator", "q": 1, "r": 0},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 404, response.text
@@ -54,10 +55,11 @@ def test_returns_400_when_player_not_in_turn(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_warrior_phase(app)
 
-    client.cookies.set("session-token", tokens[other])
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": 1, "r": 0}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": 1, "r": 0},
+        token=tokens[other],
     )
 
     assert response.status_code == 400, response.text
@@ -75,10 +77,11 @@ def test_returns_400_when_action_not_allowed(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": 1, "r": 0}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": 1, "r": 0},
+        token=token,
     )
 
     assert response.status_code == 400, response.text
@@ -100,10 +103,11 @@ def test_returns_501_when_phase_not_implemented(
     )
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": 1, "r": 0}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": 1, "r": 0},
+        token=token,
     )
 
     assert response.status_code == 501, response.text
@@ -120,14 +124,18 @@ def test_moves_conquistator_and_returns_location(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": 1, "r": -1}, "take_from": other},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": 1, "r": -1, "from_player": other},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
-    assert response.json() == {"q": 1, "r": -1}
+    body = response.json()
+    assert body["action"]["kind"] == "move_conquistator"
+    assert body["q"] == 1
+    assert body["r"] == -1
 
     game = repository.retrieve(game_id)
     phase = game.phase
@@ -148,13 +156,17 @@ def test_moves_without_taking_resources_when_take_from_omitted(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": 0, "r": 1}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": 0, "r": 1},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["q"] == 0
+    assert body["r"] == 1
     game = repository.retrieve(game_id)
     phase = game.phase
     assert phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -169,10 +181,11 @@ def test_returns_400_when_location_is_unchanged(
     game = repository.retrieve(game_id)
     location = game.conquistator_location
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": location.q, "r": location.r}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": location.q, "r": location.r},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 400, response.text
@@ -191,14 +204,18 @@ def test_moves_conquistator_during_move_conquistator_phase(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": 1, "r": -1}, "take_from": other},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": 1, "r": -1, "from_player": other},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
-    assert response.json() == {"q": 1, "r": -1}
+    body = response.json()
+    assert body["action"]["kind"] == "move_conquistator"
+    assert body["q"] == 1
+    assert body["r"] == -1
 
     game = repository.retrieve(game_id)
     phase = game.phase
@@ -221,14 +238,18 @@ def test_moves_conquistator_during_trade_and_build_play_warrior(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/conquistator",
-        json={"location": {"q": 1, "r": -1}, "take_from": other},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "move_conquistator", "q": 1, "r": -1, "from_player": other},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
-    assert response.json() == {"q": 1, "r": -1}
+    body = response.json()
+    assert body["action"]["kind"] == "move_conquistator"
+    assert body["q"] == 1
+    assert body["r"] == -1
 
     game = repository.retrieve(game_id)
     phase = game.phase

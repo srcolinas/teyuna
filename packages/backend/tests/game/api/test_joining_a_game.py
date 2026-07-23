@@ -169,7 +169,7 @@ def test_action_fails_while_in_lobby(client: testclient.TestClient) -> None:
     game_id = response.json()["id"]
     client.post(f"/games/{game_id}/players", json={"nickname": "only"})
 
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(f"/games/{game_id}/actions", json={"kind": "advance"})
     assert response.status_code == 400, response.text
     assert response.json()["detail"] == "game is not active"
 

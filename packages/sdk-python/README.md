@@ -40,6 +40,8 @@ async def main() -> None:
     # Authenticated actions use the session returned by join_game.
     # Example: advance the turn when it is your turn.
     # phase, nickname = await player.advance_turn()
+    # Or submit a typed action directly:
+    # result = await player.submit_action(teyuna_shared.PlayerAction())
 
 
 asyncio.run(main())

@@ -7,25 +7,27 @@ import fastapi.testclient as testclient
 from src.game import entities, dependencies as game_dependencies
 from src.game import player
 from src.game import actions, repository as repository_module
+
+from . import utils
 import datetime
 import teyuna_shared
+
+
+def _coord(path: teyuna_shared.Coordinate) -> dict[str, int]:
+    return {"q": path.q, "r": path.r, "d": path.d}
 
 
 def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
     path = teyuna_shared.canonical_edge(0, 0, 0)
 
-    response = client.post(
-        f"/games/{uuid.uuid4()}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
-        },
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {"kind": "build_path", "coordinate": _coord(path)},
+        token=token,
     )
 
     assert response.status_code == 404, response.text
@@ -37,15 +39,11 @@ def test_returns_400_when_player_not_in_turn(
 ) -> None:
     _, game_id, tokens, _, other, path = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[other])
-    response = client.post(
-        f"/games/{game_id}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
-        },
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "build_path", "coordinate": _coord(path)},
+        token=tokens[other],
     )
 
     assert response.status_code == 400, response.text
@@ -61,15 +59,11 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
-        },
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "build_path", "coordinate": _coord(path)},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 400, response.text
@@ -81,22 +75,18 @@ def test_builds_path_and_returns_it(
 ) -> None:
     repository, game_id, tokens, active_player, _, path = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
-        },
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "build_path", "coordinate": _coord(path)},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["owner"] == active_player
-    assert body["location"]["hex_coord"] == {"q": path.q, "r": path.r}
-    assert body["location"]["direction"] == path.d
+    assert body["kind"] == "built_path"
+    assert body["action"]["kind"] == "build_path"
+    assert body["coordinate"] == [path.q, path.r, path.d]
 
     game = repository.retrieve(game_id)
     phase = game.phase
@@ -125,15 +115,11 @@ def test_returns_400_when_insufficient_resources(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
-        },
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "build_path", "coordinate": _coord(path)},
+        token=token,
     )
 
     assert response.status_code == 400, response.text
@@ -148,15 +134,11 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": path.q, "r": path.r},
-                "direction": path.d,
-            }
-        },
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "build_path", "coordinate": _coord(path)},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 501, response.text
@@ -169,15 +151,11 @@ def test_returns_400_when_invalid_path_location(
     repository, game_id, tokens, active_player, _, _ = _setup_trade_and_build(app)
     disconnected = teyuna_shared.canonical_edge(1, 1, 1)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/paths",
-        json={
-            "location": {
-                "hex_coord": {"q": disconnected.q, "r": disconnected.r},
-                "direction": disconnected.d,
-            }
-        },
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "build_path", "coordinate": _coord(disconnected)},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 400, response.text

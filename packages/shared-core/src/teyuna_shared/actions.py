@@ -1,6 +1,6 @@
 import random
 import uuid
-from typing import Any
+from typing import Annotated, Any, Literal
 
 import pydantic
 
@@ -10,7 +10,8 @@ from . import entities, board
 class PlayerAction(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
-    by: str
+    kind: Literal["advance"] = "advance"
+    by: str = ""
     due_to_timeout: bool = False
     rng_: Any = pydantic.Field(
         default_factory=random.Random,
@@ -18,16 +19,8 @@ class PlayerAction(pydantic.BaseModel):
     )
 
 
-class ActionExecutionResult(pydantic.BaseModel):
-    model_config = pydantic.ConfigDict(frozen=True)
-
-    previous_phase: entities.GamePhaseName
-    next_phase: entities.GamePhaseName
-    action: PlayerAction
-    error: str | None = None
-
-
 class FreePlacementAction(PlayerAction):
+    kind: Literal["free_placement"] = "free_placement"  # type: ignore[assignment]
     terrace: board.Coordinate | None = None
     path: board.Coordinate | None = None
 
@@ -48,58 +41,35 @@ class FreePlacementAction(PlayerAction):
         return self
 
 
-class PlacedBuildingsResult(ActionExecutionResult):
-    settlement: board.Coordinate | None = None
-    path: board.Coordinate | None = None
-    next_player: str = ""
-
-
 class DiscardResourcesAction(PlayerAction):
+    kind: Literal["discard_resources"] = "discard_resources"  # type: ignore[assignment]
     count: dict[entities.ResourceCard, int]
 
 
-class DiscardedResourcesResult(ActionExecutionResult):
-    count: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
-
-
 class MoveConquistatorAction(PlayerAction):
+    kind: Literal["move_conquistator"] = "move_conquistator"  # type: ignore[assignment]
     q: int
     r: int
     from_player: str | None = None
 
 
-class MovedConquistatorResult(ActionExecutionResult):
-    q: int = -1
-    r: int = -1
-    from_player: str | None = None
-    stolen: entities.ResourceCard | None = None
-
-
 class PlayWisdomCardAction(PlayerAction):
+    kind: Literal["play_wisdom_card"] = "play_wisdom_card"  # type: ignore[assignment]
     card: entities.WisdomCard
 
 
-class PlayedWisdomCardResult(ActionExecutionResult):
-    card: entities.WisdomCard | None = None
-
-
 class PlayMamoAction(PlayerAction):
+    kind: Literal["play_mamo"] = "play_mamo"  # type: ignore[assignment]
     resource: entities.ResourceCard
 
 
-class PlayedMamoResult(ActionExecutionResult):
-    resource: entities.ResourceCard | None = None
-
-
 class PlayBlessedAction(PlayerAction):
+    kind: Literal["play_blessed"] = "play_blessed"  # type: ignore[assignment]
     resources: tuple[entities.ResourceCard, entities.ResourceCard]
 
 
-class PlayedBlessedResult(ActionExecutionResult):
-    resources: tuple[entities.ResourceCard, entities.ResourceCard] | None = None
-
-
 class PlayPathfinderAction(PlayerAction):
+    kind: Literal["play_pathfinder"] = "play_pathfinder"  # type: ignore[assignment]
     paths: tuple[board.Coordinate, ...]
 
     @pydantic.model_validator(mode="after")
@@ -112,11 +82,8 @@ class PlayPathfinderAction(PlayerAction):
         return self
 
 
-class PlayedPathfinderResult(ActionExecutionResult):
-    paths: tuple[board.Coordinate, ...] = ()
-
-
 class BuildSettlementAction(PlayerAction):
+    kind: Literal["build_settlement"] = "build_settlement"  # type: ignore[assignment]
     item: entities.SettlementType
     coordinate: board.Coordinate
 
@@ -132,12 +99,8 @@ class BuildSettlementAction(PlayerAction):
         return self
 
 
-class BuiltSettlementResult(ActionExecutionResult):
-    item: entities.SettlementType | None = None
-    coordinate: board.Coordinate | None = None
-
-
 class BuildPathAction(PlayerAction):
+    kind: Literal["build_path"] = "build_path"  # type: ignore[assignment]
     coordinate: board.Coordinate
 
     @pydantic.model_validator(mode="after")
@@ -152,37 +115,125 @@ class BuildPathAction(PlayerAction):
         return self
 
 
-class BuiltPathResult(ActionExecutionResult):
-    coordinate: board.Coordinate | None = None
-
-
-class EndedTradeAndBuildResult(ActionExecutionResult):
-    next_player: str = ""
-
-
 class BuyWisdomCardAction(PlayerAction):
-    pass
-
-
-class BoughtWisdomCardResult(ActionExecutionResult):
-    card: entities.WisdomCard | None = None
+    kind: Literal["buy_wisdom_card"] = "buy_wisdom_card"  # type: ignore[assignment]
 
 
 class ProposeTradeAction(PlayerAction):
+    kind: Literal["propose_trade"] = "propose_trade"  # type: ignore[assignment]
     offer: dict[entities.ResourceCard, int]
     request: dict[entities.ResourceCard, int]
     to: set[str]
 
 
 class AcceptTradeAction(PlayerAction):
+    kind: Literal["accept_trade"] = "accept_trade"  # type: ignore[assignment]
     id: uuid.UUID
 
 
+class TradeWithSupplyAction(PlayerAction):
+    kind: Literal["trade_with_supply"] = "trade_with_supply"  # type: ignore[assignment]
+    offers: entities.ResourceCard
+    requests: entities.ResourceCard
+
+
+AnyPlayerAction = Annotated[
+    FreePlacementAction
+    | DiscardResourcesAction
+    | MoveConquistatorAction
+    | PlayWisdomCardAction
+    | PlayMamoAction
+    | PlayBlessedAction
+    | PlayPathfinderAction
+    | BuildSettlementAction
+    | BuildPathAction
+    | BuyWisdomCardAction
+    | ProposeTradeAction
+    | AcceptTradeAction
+    | TradeWithSupplyAction
+    | PlayerAction,
+    pydantic.Field(discriminator="kind"),
+]
+
+
+class ActionExecutionResult(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(frozen=True)
+
+    kind: Literal["action_result"] = "action_result"
+    previous_phase: entities.GamePhaseName
+    next_phase: entities.GamePhaseName
+    action: AnyPlayerAction
+    error: str | None = None
+
+
+class PlacedBuildingsResult(ActionExecutionResult):
+    kind: Literal["placed_buildings"] = "placed_buildings"  # type: ignore[assignment]
+    settlement: board.Coordinate | None = None
+    path: board.Coordinate | None = None
+    next_player: str = ""
+
+
+class DiscardedResourcesResult(ActionExecutionResult):
+    kind: Literal["discarded_resources"] = "discarded_resources"  # type: ignore[assignment]
+    count: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
+
+
+class MovedConquistatorResult(ActionExecutionResult):
+    kind: Literal["moved_conquistator"] = "moved_conquistator"  # type: ignore[assignment]
+    q: int = -1
+    r: int = -1
+    from_player: str | None = None
+    stolen: entities.ResourceCard | None = None
+
+
+class PlayedWisdomCardResult(ActionExecutionResult):
+    kind: Literal["played_wisdom_card"] = "played_wisdom_card"  # type: ignore[assignment]
+    card: entities.WisdomCard | None = None
+
+
+class PlayedMamoResult(ActionExecutionResult):
+    kind: Literal["played_mamo"] = "played_mamo"  # type: ignore[assignment]
+    resource: entities.ResourceCard | None = None
+
+
+class PlayedBlessedResult(ActionExecutionResult):
+    kind: Literal["played_blessed"] = "played_blessed"  # type: ignore[assignment]
+    resources: tuple[entities.ResourceCard, entities.ResourceCard] | None = None
+
+
+class PlayedPathfinderResult(ActionExecutionResult):
+    kind: Literal["played_pathfinder"] = "played_pathfinder"  # type: ignore[assignment]
+    paths: tuple[board.Coordinate, ...] = ()
+
+
+class BuiltSettlementResult(ActionExecutionResult):
+    kind: Literal["built_settlement"] = "built_settlement"  # type: ignore[assignment]
+    item: entities.SettlementType | None = None
+    coordinate: board.Coordinate | None = None
+
+
+class BuiltPathResult(ActionExecutionResult):
+    kind: Literal["built_path"] = "built_path"  # type: ignore[assignment]
+    coordinate: board.Coordinate | None = None
+
+
+class EndedTradeAndBuildResult(ActionExecutionResult):
+    kind: Literal["ended_trade_and_build"] = "ended_trade_and_build"  # type: ignore[assignment]
+    next_player: str = ""
+
+
+class BoughtWisdomCardResult(ActionExecutionResult):
+    kind: Literal["bought_wisdom_card"] = "bought_wisdom_card"  # type: ignore[assignment]
+    card: entities.WisdomCard | None = None
+
+
 class ProposeTradeResult(ActionExecutionResult):
+    kind: Literal["proposed_trade"] = "proposed_trade"  # type: ignore[assignment]
     proposal_id: uuid.UUID | None = None
 
 
 class AcceptedTradeResult(ActionExecutionResult):
+    kind: Literal["accepted_trade"] = "accepted_trade"  # type: ignore[assignment]
     proposal_id: uuid.UUID | None = None
     proposer: str = ""
     acceptor: str = ""
@@ -190,18 +241,15 @@ class AcceptedTradeResult(ActionExecutionResult):
     request: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
 
 
-class TradeWithSupplyAction(PlayerAction):
-    offers: entities.ResourceCard
-    requests: entities.ResourceCard
-
-
 class TradedWithSupplyResult(ActionExecutionResult):
+    kind: Literal["traded_with_supply"] = "traded_with_supply"  # type: ignore[assignment]
     offers: entities.ResourceCard | None = None
     requests: entities.ResourceCard | None = None
     rate: int = -1
 
 
 class DiceRollResult(ActionExecutionResult):
+    kind: Literal["dice_roll"] = "dice_roll"  # type: ignore[assignment]
     die_1: int = -1
     die_2: int = -1
     to_discard: dict[str, int] = pydantic.Field(default_factory=dict)
@@ -211,4 +259,26 @@ class DiceRollResult(ActionExecutionResult):
 
 
 class EndGameResult(ActionExecutionResult):
-    pass
+    kind: Literal["end_game"] = "end_game"  # type: ignore[assignment]
+
+
+AnyActionExecutionResult = Annotated[
+    PlacedBuildingsResult
+    | DiscardedResourcesResult
+    | MovedConquistatorResult
+    | PlayedWisdomCardResult
+    | PlayedMamoResult
+    | PlayedBlessedResult
+    | PlayedPathfinderResult
+    | BuiltSettlementResult
+    | BuiltPathResult
+    | EndedTradeAndBuildResult
+    | BoughtWisdomCardResult
+    | ProposeTradeResult
+    | AcceptedTradeResult
+    | TradedWithSupplyResult
+    | DiceRollResult
+    | EndGameResult
+    | ActionExecutionResult,
+    pydantic.Field(discriminator="kind"),
+]

@@ -8,6 +8,8 @@ import fastapi.testclient as testclient
 from src.game import actions, dependencies as game_dependencies
 from src.game import entities, player
 from src.game import repository as repository_module
+
+from . import utils
 import teyuna_shared
 
 
@@ -15,11 +17,12 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
 
-    response = client.post(
-        f"/games/{uuid.uuid4()}/discard",
-        json={"count": {"wood": 4}},
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {"kind": "discard_resources", "count": {"wood": 4}},
+        token=token,
     )
 
     assert response.status_code == 404, response.text
@@ -34,10 +37,11 @@ def test_returns_400_when_player_not_required_to_discard(
     game.to_discard_resources = {other: 4}
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
-    response = client.post(
-        f"/games/{game_id}/discard",
-        json={"count": {"wood": 4}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "discard_resources", "count": {"wood": 4}},
+        token=tokens[player_nick],
     )
 
     assert response.status_code == 400, response.text
@@ -55,10 +59,11 @@ def test_returns_400_when_discard_count_is_wrong(
     )
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
-    response = client.post(
-        f"/games/{game_id}/discard",
-        json={"count": {"wood": 5}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "discard_resources", "count": {"wood": 5}},
+        token=tokens[player_nick],
     )
 
     assert response.status_code == 400, response.text
@@ -73,10 +78,11 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[player_nick])
-    response = client.post(
-        f"/games/{game_id}/discard",
-        json={"count": {"wood": 4}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "discard_resources", "count": {"wood": 4}},
+        token=tokens[player_nick],
     )
 
     assert response.status_code == 501, response.text
@@ -94,14 +100,17 @@ def test_discards_and_stays_in_phase_when_others_remain(
     )
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
-    response = client.post(
-        f"/games/{game_id}/discard",
-        json={"count": {"wood": 4}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "discard_resources", "count": {"wood": 4}},
+        token=tokens[player_nick],
     )
 
     assert response.status_code == 200, response.text
-    assert response.json() == teyuna_shared.GamePhaseName.DISCARD_RESOURCES.value
+    body = response.json()
+    assert body["action"]["kind"] == "discard_resources"
+    assert body["next_phase"] == teyuna_shared.GamePhaseName.DISCARD_RESOURCES.value
     game = repository.retrieve(game_id)
     assert game.to_discard_resources == {other: 5}
     assert game.players[player_nick].resources[teyuna_shared.ResourceCard.WOOD] == 4
@@ -122,14 +131,17 @@ def test_last_discard_moves_to_move_conquistator(
     )
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
-    response = client.post(
-        f"/games/{game_id}/discard",
-        json={"count": {"wood": 2, "gold": 2}},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "discard_resources", "count": {"wood": 2, "gold": 2}},
+        token=tokens[player_nick],
     )
 
     assert response.status_code == 200, response.text
-    assert response.json() == teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR.value
+    body = response.json()
+    assert body["action"]["kind"] == "discard_resources"
+    assert body["next_phase"] == teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR.value
     game = repository.retrieve(game_id)
     assert game.to_discard_resources == {}
     assert sum(game.players[player_nick].resources.values()) == 5

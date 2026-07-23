@@ -24,7 +24,7 @@ def add_placement_round(
             client,
             game_id,
             token,
-            utils.build_initial_placement_payload(terrace, edge),
+            utils.build_free_placement_action(terrace, edge),
         )
         assert response.status_code == 200, pprint.pformat(response.text)
 
@@ -34,8 +34,16 @@ def advance_phase(
     game_id: uuid.UUID,
     token: Token,
 ) -> tuple[teyuna_shared.GamePhaseName, player.Nickname]:
-    client.cookies["session-token"] = token
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=token,
+    )
     assert response.status_code == 200, pprint.pformat(response.text)
-    state, active_player = response.json()
-    return state, active_player
+    body = response.json()
+    active_player = body.get("next_player")
+    if not active_player:
+        game = client.get(f"/games/{game_id}").json()
+        active_player = game["turn_order"][0] if game["turn_order"] else ""
+    return teyuna_shared.GamePhaseName(body["next_phase"]), active_player

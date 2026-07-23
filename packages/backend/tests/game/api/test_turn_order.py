@@ -13,6 +13,7 @@ from src.game import (
     repository as repository_module,
     actions,
 )
+from . import utils
 import datetime
 
 
@@ -20,9 +21,13 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
 
-    response = client.post(f"/games/{uuid.uuid4()}/turn-order")
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {"kind": "advance"},
+        token=token,
+    )
 
     assert response.status_code == 404, response.text
 
@@ -30,7 +35,7 @@ def test_returns_404_when_game_does_not_exist(
 def test_returns_401_when_session_cookie_missing(
     client: testclient.TestClient,
 ) -> None:
-    response = client.post(f"/games/{uuid.uuid4()}/turn-order")
+    response = client.post(f"/games/{uuid.uuid4()}/actions", json={"kind": "advance"})
 
     assert response.status_code == 401, response.text
     assert response.json()["detail"] == "invalid token"
@@ -40,7 +45,7 @@ def test_returns_401_when_session_token_unknown(
     client: testclient.TestClient,
 ) -> None:
     client.cookies.set("session-token", "not-a-real-token")
-    response = client.post(f"/games/{uuid.uuid4()}/turn-order")
+    response = client.post(f"/games/{uuid.uuid4()}/actions", json={"kind": "advance"})
 
     assert response.status_code == 401, response.text
     assert response.json()["detail"] == "player not found"
@@ -118,8 +123,12 @@ def test_returns_400_when_action_not_allowed(
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=token,
+    )
 
     assert response.status_code == 400, response.text
 
@@ -141,8 +150,12 @@ def test_returns_501_when_phase_not_implemented(
     )
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=token,
+    )
 
     assert response.status_code == 501, response.text
 
@@ -162,8 +175,12 @@ def test_returns_400_when_player_not_in_turn(
     other = game.turn_order[1]
     token = player.service().add(other)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=token,
+    )
 
     assert response.status_code == 400, response.text
 
@@ -183,18 +200,27 @@ def test_rolls_dice_and_advances_phase(
     active_player = game.active_player
     token = player.service().add(active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=token,
+    )
 
     assert response.status_code == 200, response.text
-    phase, nickname = response.json()
+    body = response.json()
+    assert body["action"]["kind"] == "advance"
+    assert body["kind"] == "dice_roll"
+    phase = body["next_phase"]
     assert phase in {
-        teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR,
-        teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
+        teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR.value,
+        teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value,
+        teyuna_shared.GamePhaseName.DISCARD_RESOURCES.value,
     }
-    assert nickname == active_player
+    turn_order = client.get(f"/games/{game_id}/turn-order").json()
+    assert turn_order[0] == active_player
     stored_phase = repository.retrieve(game_id).phase
-    assert stored_phase == phase
+    assert stored_phase.value == phase
     assert game.active_player == active_player
 
 
@@ -214,13 +240,19 @@ def test_ends_trade_and_build_and_advances_player(
     next_player = game.turn_order[1]
     token = player.service().add(active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=token,
+    )
 
     assert response.status_code == 200, response.text
-    phase, nickname = response.json()
-    assert phase == teyuna_shared.GamePhaseName.DICE_ROLL
-    assert nickname == next_player
+    body = response.json()
+    assert body["action"]["kind"] == "advance"
+    assert body["kind"] == "ended_trade_and_build"
+    assert body["next_phase"] == teyuna_shared.GamePhaseName.DICE_ROLL.value
+    assert body["next_player"] == next_player
     stored_phase = repository.retrieve(game_id).phase
     assert stored_phase is teyuna_shared.GamePhaseName.DICE_ROLL
     assert game.active_player == next_player

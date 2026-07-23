@@ -8,14 +8,18 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import AsyncIterator
-from typing import Any
 
 import httpx2
+import pydantic
 
 import teyuna_shared
 
 _http_client = httpx2.AsyncClient(
     timeout=httpx2.Timeout(30.0, read=None),
+)
+
+_action_result_adapter: pydantic.TypeAdapter[teyuna_shared.AnyActionExecutionResult] = (
+    pydantic.TypeAdapter(teyuna_shared.AnyActionExecutionResult)
 )
 
 
@@ -37,6 +41,44 @@ def _raise_for_status(response: httpx2.Response) -> None:
             request=exc.request,
             response=exc.response,
         ) from None
+
+
+def _vertex_to_coordinate(
+    location: teyuna_shared.VertexCoordinate,
+) -> teyuna_shared.Coordinate:
+    return teyuna_shared.Coordinate(
+        q=location.hex_coord.q,
+        r=location.hex_coord.r,
+        d=location.direction,
+    )
+
+
+def _edge_to_coordinate(
+    location: teyuna_shared.EdgeCoordinate,
+) -> teyuna_shared.Coordinate:
+    return teyuna_shared.Coordinate(
+        q=location.hex_coord.q,
+        r=location.hex_coord.r,
+        d=location.direction,
+    )
+
+
+def _coordinate_to_vertex(
+    coordinate: teyuna_shared.Coordinate,
+) -> teyuna_shared.VertexCoordinate:
+    return teyuna_shared.VertexCoordinate(
+        hex_coord=teyuna_shared.HexCoordinate(q=coordinate.q, r=coordinate.r),
+        direction=coordinate.d,
+    )
+
+
+def _coordinate_to_edge(
+    coordinate: teyuna_shared.Coordinate,
+) -> teyuna_shared.EdgeCoordinate:
+    return teyuna_shared.EdgeCoordinate(
+        hex_coord=teyuna_shared.HexCoordinate(q=coordinate.q, r=coordinate.r),
+        direction=coordinate.d,
+    )
 
 
 class GameClient:
@@ -112,8 +154,10 @@ class GameClient:
         _raise_for_status(response)
         return teyuna_shared.Player.model_validate(response.json())
 
-    async def stream_events(self, game_id: uuid.UUID) -> AsyncIterator[dict[str, Any]]:
-        """Yield SSE game-action events as parsed JSON dicts."""
+    async def stream_events(
+        self, game_id: uuid.UUID
+    ) -> AsyncIterator[teyuna_shared.AnyActionExecutionResult]:
+        """Yield SSE game-action events as typed action results."""
         async with _http_client.sse(
             f"{self._base_url}/games/{game_id}/events",
         ) as source:
@@ -121,10 +165,7 @@ class GameClient:
                 if not event.data:
                     continue
                 payload = json.loads(event.data)
-                if isinstance(payload, dict):
-                    yield payload
-                else:
-                    yield {"data": payload}
+                yield _action_result_adapter.validate_python(payload)
 
 
 class AuthenticatedPlayerClient(GameClient):
@@ -149,15 +190,30 @@ class AuthenticatedPlayerClient(GameClient):
         _raise_for_status(response)
         return teyuna_shared.PlayerHand.model_validate(response.json())
 
-    async def advance_turn(self) -> tuple[teyuna_shared.GamePhaseName, str]:
-        """Roll dice (dice-roll phase) or end the turn (trade-and-build phase)."""
+    async def submit_action(
+        self, action: teyuna_shared.AnyPlayerAction
+    ) -> teyuna_shared.AnyActionExecutionResult:
+        """Submit a player action; the server sets ``by`` from the session."""
         response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/turn-order",
+            f"{self._base_url}/games/{self._game_id}/actions",
             cookies=self._cookies,
+            json=action.model_dump(mode="json"),
         )
         _raise_for_status(response)
-        phase, nickname = response.json()
-        return teyuna_shared.GamePhaseName(phase), nickname
+        return _action_result_adapter.validate_python(response.json())
+
+    async def advance_turn(self) -> tuple[teyuna_shared.GamePhaseName, str]:
+        """Roll dice (dice-roll phase) or end the turn (trade-and-build phase)."""
+        result = await self.submit_action(teyuna_shared.PlayerAction())
+        if (
+            isinstance(result, teyuna_shared.EndedTradeAndBuildResult)
+            and result.next_player
+        ):
+            active = result.next_player
+        else:
+            game = await self.get_game(self._game_id)
+            active = game.turn_order[0] if game.turn_order else ""
+        return result.next_phase, active
 
     async def move_conquistator(
         self,
@@ -166,49 +222,36 @@ class AuthenticatedPlayerClient(GameClient):
         take_from: str | None = None,
     ) -> teyuna_shared.HexCoordinate:
         """Move the Conquistador; optionally steal from ``take_from``."""
-        payload: dict[str, Any] = {"location": location.model_dump(mode="json")}
-        if take_from is not None:
-            payload["take_from"] = take_from
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/conquistator",
-            json=payload,
-            cookies=self._cookies,
+        result = await self.submit_action(
+            teyuna_shared.MoveConquistatorAction(
+                q=location.q,
+                r=location.r,
+                from_player=take_from,
+            )
         )
-        _raise_for_status(response)
-        return teyuna_shared.HexCoordinate.model_validate(response.json())
+        assert isinstance(result, teyuna_shared.MovedConquistatorResult)
+        return teyuna_shared.HexCoordinate(q=result.q, r=result.r)
 
     async def discard_resources(
         self, count: dict[teyuna_shared.ResourceCard, int]
     ) -> teyuna_shared.GamePhaseName:
         """Discard resources after a 7 is rolled (when required)."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/discard",
-            cookies=self._cookies,
-            json={"count": {k.value: v for k, v in count.items()}},
+        result = await self.submit_action(
+            teyuna_shared.DiscardResourcesAction(count=count)
         )
-        _raise_for_status(response)
-        return teyuna_shared.GamePhaseName(response.json())
+        return result.next_phase
 
     async def play_wisdom_card(
         self, card: teyuna_shared.WisdomCard
     ) -> teyuna_shared.GamePhaseName:
         """Play a wisdom card from hand; may enter a resolution sub-phase."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/wisdom-cards",
-            cookies=self._cookies,
-            json={"card": card.value},
-        )
-        _raise_for_status(response)
-        return teyuna_shared.GamePhaseName(response.json())
+        result = await self.submit_action(teyuna_shared.PlayWisdomCardAction(card=card))
+        return result.next_phase
 
     async def buy_wisdom_card(self) -> teyuna_shared.GamePhaseName:
         """Buy a wisdom card from the deck during trade-and-build."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/wisdom-cards/buy",
-            cookies=self._cookies,
-        )
-        _raise_for_status(response)
-        return teyuna_shared.GamePhaseName(response.json())
+        result = await self.submit_action(teyuna_shared.BuyWisdomCardAction())
+        return result.next_phase
 
     async def propose_trade(
         self,
@@ -218,25 +261,16 @@ class AuthenticatedPlayerClient(GameClient):
         to: set[str],
     ) -> None:
         """Propose a player-to-player trade to the nicknames in ``to``."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/trades",
-            cookies=self._cookies,
-            json={
-                "offer": {k.value: v for k, v in offer.items()},
-                "request": {k.value: v for k, v in request.items()},
-                "to": list(to),
-            },
+        await self.submit_action(
+            teyuna_shared.ProposeTradeAction(offer=offer, request=request, to=to)
         )
-        _raise_for_status(response)
 
     async def accept_trade(self, proposal_id: uuid.UUID) -> teyuna_shared.GamePhaseName:
         """Accept an open trade proposal by id."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/trades/{proposal_id}/accept",
-            cookies=self._cookies,
+        result = await self.submit_action(
+            teyuna_shared.AcceptTradeAction(id=proposal_id)
         )
-        _raise_for_status(response)
-        return teyuna_shared.GamePhaseName(response.json())
+        return result.next_phase
 
     async def trade_with_supply(
         self,
@@ -245,58 +279,45 @@ class AuthenticatedPlayerClient(GameClient):
         requests: teyuna_shared.ResourceCard,
     ) -> teyuna_shared.GamePhaseName:
         """Trade with the bank/supply at the applicable harbour rate."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/trades/supply",
-            cookies=self._cookies,
-            json={"offers": offers.value, "requests": requests.value},
+        result = await self.submit_action(
+            teyuna_shared.TradeWithSupplyAction(offers=offers, requests=requests)
         )
-        _raise_for_status(response)
-        return teyuna_shared.GamePhaseName(response.json())
+        return result.next_phase
 
     async def play_mamo(
         self, resource: teyuna_shared.ResourceCard
     ) -> dict[teyuna_shared.ResourceCard, int]:
         """Resolve Wisdom of the Mamo by naming a resource to monopolize."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/wisdom-cards/mamo",
-            cookies=self._cookies,
-            json={"resource": resource.value},
-        )
-        _raise_for_status(response)
-        return {
-            teyuna_shared.ResourceCard(key): value
-            for key, value in response.json().items()
-        }
+        await self.submit_action(teyuna_shared.PlayMamoAction(resource=resource))
+        hand = await self.get_hand()
+        return dict(hand.resources)
 
     async def play_blessing(
         self,
         resources: tuple[teyuna_shared.ResourceCard, teyuna_shared.ResourceCard],
     ) -> dict[teyuna_shared.ResourceCard, int]:
         """Resolve Blessing of Aluna by choosing two resources to take."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/wisdom-cards/blessing",
-            cookies=self._cookies,
-            json={"resources": [r.value for r in resources]},
-        )
-        _raise_for_status(response)
-        return {
-            teyuna_shared.ResourceCard(key): value
-            for key, value in response.json().items()
-        }
+        await self.submit_action(teyuna_shared.PlayBlessedAction(resources=resources))
+        hand = await self.get_hand()
+        return dict(hand.resources)
 
     async def play_pathfinder(
         self, paths: list[teyuna_shared.EdgeCoordinate]
     ) -> list[teyuna_shared.PlayedStonePath]:
         """Resolve Pathfinder by placing one or two free stone paths."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/wisdom-cards/pathfinder",
-            cookies=self._cookies,
-            json={"paths": [p.model_dump(mode="json") for p in paths]},
+        result = await self.submit_action(
+            teyuna_shared.PlayPathfinderAction(
+                paths=tuple(_edge_to_coordinate(path) for path in paths)
+            )
         )
-        _raise_for_status(response)
+        assert isinstance(result, teyuna_shared.PlayedPathfinderResult)
+        owner = result.action.by
         return [
-            teyuna_shared.PlayedStonePath.model_validate(item)
-            for item in response.json()
+            teyuna_shared.PlayedStonePath(
+                owner=owner,
+                location=_coordinate_to_edge(coord),
+            )
+            for coord in result.paths
         ]
 
     async def add_initial_placements(
@@ -306,21 +327,25 @@ class AuthenticatedPlayerClient(GameClient):
         path: teyuna_shared.EdgeCoordinate | None = None,
     ) -> tuple[teyuna_shared.PlayedSettlement, teyuna_shared.PlayedStonePath]:
         """Place a free terrace and path in setup; omit both to skip/timeout."""
-        body: dict[str, object] = {}
-        if terrace is not None:
-            body["terrace"] = terrace.model_dump(mode="json")
-        if path is not None:
-            body["path"] = path.model_dump(mode="json")
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/initial-placements",
-            cookies=self._cookies,
-            json=body,
+        result = await self.submit_action(
+            teyuna_shared.FreePlacementAction(
+                terrace=None if terrace is None else _vertex_to_coordinate(terrace),
+                path=None if path is None else _edge_to_coordinate(path),
+            )
         )
-        _raise_for_status(response)
-        settlement, stone_path = response.json()
+        assert isinstance(result, teyuna_shared.PlacedBuildingsResult)
+        assert result.settlement is not None and result.path is not None
+        owner = result.action.by
         return (
-            teyuna_shared.PlayedSettlement.model_validate(settlement),
-            teyuna_shared.PlayedStonePath.model_validate(stone_path),
+            teyuna_shared.PlayedSettlement(
+                owner=owner,
+                location=_coordinate_to_vertex(result.settlement),
+                type=teyuna_shared.SettlementType.TERRACE,
+            ),
+            teyuna_shared.PlayedStonePath(
+                owner=owner,
+                location=_coordinate_to_edge(result.path),
+            ),
         )
 
     async def build_settlement(
@@ -330,25 +355,30 @@ class AuthenticatedPlayerClient(GameClient):
         location: teyuna_shared.VertexCoordinate,
     ) -> teyuna_shared.PlayedSettlement:
         """Build a terrace or upgrade to a great terrace at ``location``."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/settlements",
-            cookies=self._cookies,
-            json={
-                "item": item.value,
-                "location": location.model_dump(mode="json"),
-            },
+        result = await self.submit_action(
+            teyuna_shared.BuildSettlementAction(
+                item=item,
+                coordinate=_vertex_to_coordinate(location),
+            )
         )
-        _raise_for_status(response)
-        return teyuna_shared.PlayedSettlement.model_validate(response.json())
+        assert isinstance(result, teyuna_shared.BuiltSettlementResult)
+        assert result.coordinate is not None and result.item is not None
+        return teyuna_shared.PlayedSettlement(
+            owner=result.action.by,
+            location=_coordinate_to_vertex(result.coordinate),
+            type=result.item,
+        )
 
     async def build_path(
         self, location: teyuna_shared.EdgeCoordinate
     ) -> teyuna_shared.PlayedStonePath:
         """Build a stone path at ``location`` during trade-and-build."""
-        response = await _http_client.post(
-            f"{self._base_url}/games/{self._game_id}/paths",
-            cookies=self._cookies,
-            json={"location": location.model_dump(mode="json")},
+        result = await self.submit_action(
+            teyuna_shared.BuildPathAction(coordinate=_edge_to_coordinate(location))
         )
-        _raise_for_status(response)
-        return teyuna_shared.PlayedStonePath.model_validate(response.json())
+        assert isinstance(result, teyuna_shared.BuiltPathResult)
+        assert result.coordinate is not None
+        return teyuna_shared.PlayedStonePath(
+            owner=result.action.by,
+            location=_coordinate_to_edge(result.coordinate),
+        )

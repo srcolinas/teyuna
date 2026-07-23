@@ -7,6 +7,8 @@ import fastapi.testclient as testclient
 from src.game import entities, dependencies as game_dependencies
 from src.game import player
 from src.game import actions, repository as repository_module
+
+from . import utils
 import datetime
 import teyuna_shared
 
@@ -15,11 +17,12 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
 
-    response = client.post(
-        f"/games/{uuid.uuid4()}/wisdom-cards/mamo",
-        json={"resource": teyuna_shared.ResourceCard.WOOD.value},
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {"kind": "play_mamo", "resource": teyuna_shared.ResourceCard.WOOD.value},
+        token=token,
     )
 
     assert response.status_code == 404, response.text
@@ -35,10 +38,11 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards/mamo",
-        json={"resource": teyuna_shared.ResourceCard.WOOD.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_mamo", "resource": teyuna_shared.ResourceCard.WOOD.value},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 400, response.text
@@ -54,10 +58,11 @@ def test_returns_400_when_called_during_blessed_phase(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards/mamo",
-        json={"resource": teyuna_shared.ResourceCard.WOOD.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_mamo", "resource": teyuna_shared.ResourceCard.WOOD.value},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 400, response.text
@@ -69,10 +74,11 @@ def test_returns_400_when_player_not_in_turn(
 ) -> None:
     _, game_id, tokens, _, other = _setup_mamo_phase(app)
 
-    client.cookies.set("session-token", tokens[other])
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards/mamo",
-        json={"resource": teyuna_shared.ResourceCard.WOOD.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_mamo", "resource": teyuna_shared.ResourceCard.WOOD.value},
+        token=tokens[other],
     )
 
     assert response.status_code == 400, response.text
@@ -87,10 +93,11 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards/mamo",
-        json={"resource": teyuna_shared.ResourceCard.WOOD.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_mamo", "resource": teyuna_shared.ResourceCard.WOOD.value},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 501, response.text
@@ -107,14 +114,22 @@ def test_takes_all_of_resource_from_other_players(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards/mamo",
-        json={"resource": teyuna_shared.ResourceCard.WOOD.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_mamo", "resource": teyuna_shared.ResourceCard.WOOD.value},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
-    assert response.json()[teyuna_shared.ResourceCard.WOOD.value] == 3
+    body = response.json()
+    assert body["action"]["kind"] == "play_mamo"
+    assert body["resource"] == teyuna_shared.ResourceCard.WOOD.value
+    assert body["next_phase"] == teyuna_shared.GamePhaseName.DICE_ROLL.value
+
+    hand = client.get(f"/games/{game_id}/hand")
+    assert hand.status_code == 200, hand.text
+    assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 3
 
     game = repository.retrieve(game_id)
     phase = game.phase
@@ -135,14 +150,22 @@ def test_takes_all_of_resource_during_trade_and_build_play_mamo(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards/mamo",
-        json={"resource": teyuna_shared.ResourceCard.WOOD.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_mamo", "resource": teyuna_shared.ResourceCard.WOOD.value},
+        token=tokens[active_player],
     )
 
     assert response.status_code == 200, response.text
-    assert response.json()[teyuna_shared.ResourceCard.WOOD.value] == 3
+    body = response.json()
+    assert body["action"]["kind"] == "play_mamo"
+    assert body["resource"] == teyuna_shared.ResourceCard.WOOD.value
+    assert body["next_phase"] == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
+
+    hand = client.get(f"/games/{game_id}/hand")
+    assert hand.status_code == 200, hand.text
+    assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 3
 
     game = repository.retrieve(game_id)
     phase = game.phase

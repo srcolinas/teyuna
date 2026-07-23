@@ -4,6 +4,7 @@ import fastapi.testclient as testclient
 
 from src.game import entities
 
+from .. import utils
 from . import rounds
 import teyuna_shared
 
@@ -107,31 +108,29 @@ class GreedyBuilder(BasePlayer):
         item: teyuna_shared.SettlementType,
         location: teyuna_shared.Coordinate,
     ) -> tuple[bool, str]:
-        self._client.cookies["session-token"] = self._token
-        response = self._client.post(
-            f"/games/{self._game_id}/settlements",
-            json={
+        response = utils.post_action(
+            self._client,
+            self._game_id,
+            {
+                "kind": "build_settlement",
                 "item": item.value,
-                "location": {
-                    "hex_coord": {"q": location.q, "r": location.r},
-                    "direction": location.d,
-                },
+                "coordinate": {"q": location.q, "r": location.r, "d": location.d},
             },
+            token=self._token,
         )
         if response.status_code == 200:
             return True, ""
         return False, response.text
 
     def _post_path(self, location: teyuna_shared.Coordinate) -> tuple[bool, str]:
-        self._client.cookies["session-token"] = self._token
-        response = self._client.post(
-            f"/games/{self._game_id}/paths",
-            json={
-                "location": {
-                    "hex_coord": {"q": location.q, "r": location.r},
-                    "direction": location.d,
-                },
+        response = utils.post_action(
+            self._client,
+            self._game_id,
+            {
+                "kind": "build_path",
+                "coordinate": {"q": location.q, "r": location.r, "d": location.d},
             },
+            token=self._token,
         )
         if response.status_code == 200:
             return True, ""

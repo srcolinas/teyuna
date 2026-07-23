@@ -8,7 +8,7 @@ setup:
 	uv sync --all-packages --dev
 
 format:
-	uv run ruff format src
+	uv run ruff format .
 	uv run ruff check --fix src
 
 lint:

@@ -8,6 +8,8 @@ import pytest
 from src.game import entities, dependencies as game_dependencies
 from src.game import player
 from src.game import actions, repository as repository_module
+
+from . import utils
 import datetime
 import teyuna_shared
 
@@ -16,11 +18,12 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
 
-    response = client.post(
-        f"/games/{uuid.uuid4()}/wisdom-cards",
-        json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+    response = utils.post_action(
+        client,
+        uuid.uuid4(),
+        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        token=token,
     )
 
     assert response.status_code == 404, response.text
@@ -38,10 +41,11 @@ def test_returns_400_when_action_not_allowed(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards",
-        json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        token=token,
     )
 
     assert response.status_code == 400, response.text
@@ -63,10 +67,11 @@ def test_returns_501_when_phase_not_implemented(
     )
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards",
-        json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        token=token,
     )
 
     assert response.status_code == 501, response.text
@@ -86,10 +91,11 @@ def test_returns_400_when_player_not_in_turn(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(other)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards",
-        json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        token=token,
     )
 
     assert response.status_code == 400, response.text
@@ -107,10 +113,11 @@ def test_returns_400_when_player_does_not_have_card(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards",
-        json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        token=token,
     )
 
     assert response.status_code == 400, response.text
@@ -156,14 +163,17 @@ def test_plays_card_during_trade_and_build(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(
-        f"/games/{game_id}/wisdom-cards",
-        json={"card": card.value},
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "play_wisdom_card", "card": card.value},
+        token=token,
     )
 
     assert response.status_code == 200, response.text
-    assert response.json() == expected_phase.value
+    body = response.json()
+    assert body["action"]["kind"] == "play_wisdom_card"
+    assert body["next_phase"] == expected_phase.value
     game = repository.retrieve(game_id)
     phase = game.phase
     assert phase is expected_phase

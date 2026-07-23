@@ -27,7 +27,7 @@ def test_single_client_receives_action_event(
     game_id, tokens = utils.create_active_game_with_tokens(client)
     active_player = client.get(f"/games/{game_id}").json()["turn_order"][0]
     token = tokens[active_player]
-    payload = utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH)
+    action = utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH)
 
     with _Server(app, port=18765) as base_url:
         with httpx2.Client(
@@ -38,8 +38,8 @@ def test_single_client_receives_action_event(
                 _wait_until_connected(lines)
 
                 response = http.post(
-                    f"/games/{game_id}/initial-placements",
-                    json=payload,
+                    f"/games/{game_id}/actions",
+                    json=action,
                 )
                 assert response.status_code == 200, response.text
 
@@ -48,7 +48,10 @@ def test_single_client_receives_action_event(
     assert event["error"] is None
     assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
     assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["action"]["kind"] == "free_placement"
     assert event["action"]["by"] == active_player
+    assert event["action"]["terrace"] == [0, -1, 2]
+    assert event["action"]["path"] == [0, -1, 2]
     game_after = client.get(f"/games/{game_id}").json()
     assert event["next_player"] == game_after["turn_order"][0]
 
@@ -63,7 +66,7 @@ def test_disconnect_does_not_break_remaining_clients(
     game_id, tokens = utils.create_active_game_with_tokens(client)
     active_player = client.get(f"/games/{game_id}").json()["turn_order"][0]
     token = tokens[active_player]
-    payload = utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH)
+    action = utils.build_free_placement_action(_VALID_TERRACE, _VALID_PATH)
 
     with _Server(app, port=18766) as base_url:
         with httpx2.Client(
@@ -79,8 +82,8 @@ def test_disconnect_does_not_break_remaining_clients(
                     leaving.close()
 
                     response = http.post(
-                        f"/games/{game_id}/initial-placements",
-                        json=payload,
+                        f"/games/{game_id}/actions",
+                        json=action,
                     )
                     assert response.status_code == 200, response.text
 
@@ -89,6 +92,7 @@ def test_disconnect_does_not_break_remaining_clients(
     assert event["error"] is None
     assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
     assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["action"]["kind"] == "free_placement"
     assert event["action"]["by"] == active_player
 
 

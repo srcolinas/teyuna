@@ -1,10 +1,8 @@
 import uuid
+from typing import Any
 
 import httpx2
 from fastapi import testclient
-
-
-type InitialPlacementPayload = dict[str, dict[str, dict[str, int] | int]]
 
 
 def create_active_game(
@@ -50,28 +48,41 @@ def create_active_game_with_tokens(
     return game_id, tokens
 
 
-def build_initial_placement_payload(
+def post_action(
+    client: testclient.TestClient,
+    game_id: uuid.UUID,
+    action: dict[str, Any],
+    *,
+    token: str | None = None,
+) -> httpx2.Response:
+    if token is not None:
+        client.cookies.set("session-token", token)
+    return client.post(f"/games/{game_id}/actions", json=action)
+
+
+def build_free_placement_action(
     terrace: tuple[int, int, int] | None = None,
     path: tuple[int, int, int] | None = None,
-) -> InitialPlacementPayload:
-    payload: InitialPlacementPayload = {}
+) -> dict[str, Any]:
+    action: dict[str, Any] = {"kind": "free_placement"}
     if terrace is not None:
         tq, tr, td = terrace
-        payload["terrace"] = {"hex_coord": {"q": tq, "r": tr}, "direction": td}
+        action["terrace"] = {"q": tq, "r": tr, "d": td}
     if path is not None:
         pq, pr, pd = path
-        payload["path"] = {"hex_coord": {"q": pq, "r": pr}, "direction": pd}
-    return payload
+        action["path"] = {"q": pq, "r": pr, "d": pd}
+    return action
 
 
 def post_initial_placements(
     client: testclient.TestClient,
     game_id: uuid.UUID,
     token: str,
-    payload: InitialPlacementPayload | None = None,
+    action: dict[str, Any] | None = None,
 ) -> httpx2.Response:
-    client.cookies.set("session-token", token)
-    return client.post(
-        f"/games/{game_id}/initial-placements",
-        json=payload if payload is not None else {},
+    return post_action(
+        client,
+        game_id,
+        action if action is not None else {"kind": "free_placement"},
+        token=token,
     )
