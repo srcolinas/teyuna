@@ -92,6 +92,7 @@ def handle_end_trade_and_build(
         game.player_idx += 1
     else:
         game.player_idx = 0
+    game.turns_played += 1
     game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
 
     return teyuna_shared.EndedTradeAndBuildResult(

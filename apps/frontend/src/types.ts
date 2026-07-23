@@ -61,6 +61,7 @@ export interface PrivatePlayerInfo {
 
 export interface ActiveGame {
   id: string
+  turns_played: number
   map: Hex[]
   conquistator_location: HexCoordinate
   harbours: Harbour[]
@@ -82,10 +83,10 @@ export const HEX_TYPE_TO_RESOURCE: Record<HexType, ResourceCard> = {
 }
 
 export const HEX_TYPE_COLORS: Record<HexType, string> = {
-  mountains: '#8B7355',
+  mountains: '#D36E3D',
   quarries: '#808080',
-  highlands: '#90EE90',
-  valleys: '#FFD700',
-  jungle: '#228B22',
-  desert: '#F4A460',
+  highlands: '#87C14E',
+  valleys: '#E5AF4D',
+  jungle: '#3E6037',
+  desert: '#D8AE6F',
 }

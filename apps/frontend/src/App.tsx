@@ -4,6 +4,7 @@ import { API_BASE_URL, apiClient, apiErrorMessage } from './api'
 import GameBoard from './components/GameBoard'
 import PlayerPanel from './components/PlayerPanel'
 import EventFeed, { GameEvent } from './components/EventFeed'
+import teyunaLogo from '../images/teyuna_logo.png'
 
 function App() {
   const gameId = new URLSearchParams(window.location.search).get('gameId')
@@ -95,9 +96,9 @@ function App() {
 
   const playerColors = useMemo(() => {
     if (!game) return {}
-    const palette = ['#ef4444', '#0891b2', '#d97706', '#7c3aed']
+    const palette = ['#ef4444', '#2563eb', '#eab308', '#7c3aed', '#16a34a']
     return Object.fromEntries(
-      game.players.map((player, index) => [player.nickname, palette[index]]),
+      game.players.map((player, index) => [player.nickname, palette[index % palette.length]]),
     )
   }, [game])
 
@@ -156,14 +157,17 @@ function App() {
       : null
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 pb-24">
+    <main className="min-h-screen bg-white p-4 pb-24">
       <div className="mx-auto max-w-7xl">
         <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-emerald-700">
               Live agent simulation
             </p>
-            <h1 className="text-3xl font-bold text-slate-900">Teyuna — The Lost City</h1>
+            <h1 className="flex items-center gap-3 text-3xl font-bold text-slate-900">
+              Teyuna — The Lost City
+              <img src={teyunaLogo} alt="Teyuna logo" className="h-12 w-12 object-contain" />
+            </h1>
           </div>
           <div className="rounded-lg bg-white px-4 py-2 text-right shadow-sm">
             <p className="text-xs uppercase text-slate-500">Current phase</p>
@@ -212,13 +216,16 @@ function App() {
               conquistadorLocation={game.conquistator_location}
               playerColors={playerColors}
             />
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <span className="text-sm font-semibold text-slate-600">Turns played</span>
+              <strong className="text-lg text-slate-900">{game.turns_played}</strong>
+            </div>
           </section>
 
           <aside>
             <PlayerPanel
               players={game.players}
               turnOrder={game.turn_order}
-              currentPlayerIdx={0}
               playerColors={playerColors}
               privateInfo={privatePlayerInfo}
               privateErrors={privateErrors}

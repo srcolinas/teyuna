@@ -9,6 +9,7 @@ def test_200_if_active_game_exists(client: testclient.TestClient) -> None:
     game_id = utils.create_active_game(client)
     response = client.get(f"/games/{game_id}")
     assert response.status_code == 200, response.text
+    assert response.json()["turns_played"] == 0
 
 
 def test_get_game_map_status_code(client: testclient.TestClient) -> None:
