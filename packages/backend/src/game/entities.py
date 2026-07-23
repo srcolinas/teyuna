@@ -144,6 +144,7 @@ class Game:
     biggest_army: tuple[str | None, int] = dataclasses.field(
         default_factory=lambda: (None, 0)
     )
+    turns_played: int = 0
     player_idx: int = 0
     _turn_order: list[str] = dataclasses.field(
         default_factory=list, init=False, repr=False

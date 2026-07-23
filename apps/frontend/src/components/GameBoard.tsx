@@ -8,6 +8,16 @@ import {
   HEX_TYPE_COLORS,
 } from '../types'
 import { hexToPixel, getHexVertices, getHexVertexCoord, getHexEdges } from '../hexUtils'
+import terraceRed from '../../images/terrace_red.png'
+import terraceBlue from '../../images/terrace_blue.png'
+import terraceYellow from '../../images/terrace_yellow.png'
+import terracePurple from '../../images/terrace_purple.png'
+import terraceGreen from '../../images/terrace_green.png'
+import grandTerraceRed from '../../images/grand_terrace_red.png'
+import grandTerraceBlue from '../../images/grand_terrace_blue.png'
+import grandTerraceYellow from '../../images/grand_terrace_yellow.png'
+import grandTerracePurple from '../../images/grand_terrace_purple.png'
+import grandTerraceGreen from '../../images/grand_terrace_green.png'
 
 interface Point {
   x: number
@@ -15,6 +25,20 @@ interface Point {
 }
 
 const BOARD_CENTER = { offsetX: 450, offsetY: 400 }
+const TERRACE_IMAGES: Record<string, string> = {
+  '#ef4444': terraceRed,
+  '#2563eb': terraceBlue,
+  '#eab308': terraceYellow,
+  '#7c3aed': terracePurple,
+  '#16a34a': terraceGreen,
+}
+const GREAT_TERRACE_IMAGES: Record<string, string> = {
+  '#ef4444': grandTerraceRed,
+  '#2563eb': grandTerraceBlue,
+  '#eab308': grandTerraceYellow,
+  '#7c3aed': grandTerracePurple,
+  '#16a34a': grandTerraceGreen,
+}
 
 function convexHull(points: Point[]): Point[] {
   const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y)
@@ -101,24 +125,24 @@ export default function GameBoard({
   })
 
   return (
-    <div className="overflow-hidden rounded-lg bg-sky-950">
+    <div className="overflow-hidden rounded-lg bg-[#293681]">
       <svg
         viewBox="0 0 900 800"
-        className="block h-auto w-full bg-sky-950"
+        className="block h-auto w-full bg-[#293681]"
         role="img"
         aria-label="Teyuna board surrounded by water, sand, and trading harbors"
       >
         <polygon
           points={polygonPoints(regularHexagon(385))}
-          fill="#0e7490"
+          fill="#017DD5"
           stroke="#164e63"
           strokeWidth="8"
         />
-        <polygon points={polygonPoints(terrainHull, 1.12)} fill="#d9b77e" />
+        <polygon points={polygonPoints(terrainHull, 1.12)} fill="#EED5A0" />
         <polygon
           points={polygonPoints(terrainHull, 1.01)}
           fill="none"
-          stroke="#d9b77e"
+          stroke="#EED5A0"
           strokeWidth="14"
           strokeLinejoin="round"
           pointerEvents="none"
@@ -148,26 +172,36 @@ export default function GameBoard({
               />
 
               {hex.number && hex.type !== 'desert' && (
-                <text
-                  x={center.x + offset.offsetX}
-                  y={center.y + offset.offsetY + 5}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="pointer-events-none font-bold text-lg"
-                  fill={hex.number === 6 || hex.number === 8 ? '#dc2626' : '#000'}
-                >
-                  {hex.number}
-                </text>
+                <g className="pointer-events-none">
+                  <circle
+                    cx={center.x + offset.offsetX}
+                    cy={center.y + offset.offsetY + 4}
+                    r="15"
+                    fill="#fff"
+                    stroke="#e2e8f0"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={center.x + offset.offsetX}
+                    y={center.y + offset.offsetY + 5}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="font-bold text-lg"
+                    fill={hex.number === 6 || hex.number === 8 ? '#dc2626' : '#000'}
+                  >
+                    {hex.number}
+                  </text>
+                </g>
               )}
 
               <text
                 x={center.x + offset.offsetX}
                 y={center.y + offset.offsetY - 20}
                 textAnchor="middle"
-                className="pointer-events-none text-xs"
-                fill="#666"
+                className="pointer-events-none text-sm font-semibold"
+                fill="#fff"
               >
-                {hex.type}
+                {hex.type.charAt(0).toUpperCase() + hex.type.slice(1)}
               </text>
 
               {isHovered && (
@@ -200,10 +234,9 @@ export default function GameBoard({
           const middle = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }
           const distance = Math.hypot(middle.x, middle.y) || 1
           const label = harbour.resource ? `⛵ 2:1 ${harbour.resource}` : '⛵ 3:1 any'
-          const labelOffsetX = harbour.resource === 'gold' ? -34 : 0
-          const labelOffsetY = harbour.resource === 'cotton' ? 25 : 0
-          const labelX = middle.x + (middle.x / distance) * 78 + offset.offsetX + labelOffsetX
-          const labelY = middle.y + (middle.y / distance) * 78 + offset.offsetY + labelOffsetY
+          const labelDistance = 112
+          const labelX = middle.x + (middle.x / distance) * labelDistance + offset.offsetX
+          const labelY = middle.y + (middle.y / distance) * labelDistance + offset.offsetY
           const harbourKey = [
             firstVertex.hex_coord.q,
             firstVertex.hex_coord.r,
@@ -215,10 +248,20 @@ export default function GameBoard({
           return (
             <g key={`harbour-${harbourKey}`}>
               <line
-                x1={middle.x + offset.offsetX}
-                y1={middle.y + offset.offsetY}
-                x2={labelX}
-                y2={labelY}
+                x1={labelX}
+                y1={labelY}
+                x2={first.x + offset.offsetX}
+                y2={first.y + offset.offsetY}
+                stroke="#ecfeff"
+                strokeWidth="2"
+                strokeDasharray="5 4"
+                strokeLinecap="round"
+              />
+              <line
+                x1={labelX}
+                y1={labelY}
+                x2={second.x + offset.offsetX}
+                y2={second.y + offset.offsetY}
                 stroke="#ecfeff"
                 strokeWidth="2"
                 strokeDasharray="5 4"
@@ -271,24 +314,10 @@ export default function GameBoard({
               <g key={`edge-${key}`}>
                 {path && (
                   <line
-                    x1={
-                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[edge.direction][0] +
-                      offset.offsetX
-                    }
-                    y1={
-                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[edge.direction][1] +
-                      offset.offsetY
-                    }
-                    x2={
-                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[
-                        (edge.direction + 1) % 6
-                      ][0] + offset.offsetX
-                    }
-                    y2={
-                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[
-                        (edge.direction + 1) % 6
-                      ][1] + offset.offsetY
-                    }
+                    x1={edge.x1 + offset.offsetX}
+                    y1={edge.y1 + offset.offsetY}
+                    x2={edge.x2 + offset.offsetX}
+                    y2={edge.y2 + offset.offsetY}
                     stroke={playerColors[path.owner] || '#999'}
                     strokeWidth="8"
                     strokeLinecap="round"
@@ -320,20 +349,39 @@ export default function GameBoard({
             const key = `${hex.coordinate.q},${hex.coordinate.r},${direction}`
             const settlement = settlementsByLocation.get(key)
             const vertex = getHexVertexCoord(hex.coordinate.q, hex.coordinate.r, direction)
+            const isGreatTerrace = settlement?.type === 'great terrace'
+            const circleRadius = isGreatTerrace ? 27 : 22
+            const pieceSize = isGreatTerrace ? 42 : 34
+            const pieceRadius = pieceSize / 2
+            const ownerColor = settlement ? playerColors[settlement.owner] || '#ef4444' : '#ef4444'
+            const pieceImage = isGreatTerrace
+              ? GREAT_TERRACE_IMAGES[ownerColor] || grandTerraceRed
+              : TERRACE_IMAGES[ownerColor] || terraceRed
 
             return (
               <g key={`vertex-${key}`}>
                 {settlement && (
-                  <circle
-                    cx={vertex.x + offset.offsetX}
-                    cy={vertex.y + offset.offsetY}
-                    r={settlement.type === 'great terrace' ? 10 : 7}
-                    fill={playerColors[settlement.owner] || '#999'}
-                    stroke="#000"
-                    strokeWidth="2"
+                  <g
                     onClick={() => onVertexClick?.(hex.coordinate.q, hex.coordinate.r, direction)}
                     className="cursor-pointer"
-                  />
+                  >
+                    <circle
+                      cx={vertex.x + offset.offsetX}
+                      cy={vertex.y + offset.offsetY}
+                      r={circleRadius}
+                      fill="#fff"
+                      stroke={ownerColor}
+                      strokeWidth="4"
+                    />
+                    <image
+                      href={pieceImage}
+                      x={vertex.x + offset.offsetX - pieceRadius}
+                      y={vertex.y + offset.offsetY - pieceRadius}
+                      width={pieceSize}
+                      height={pieceSize}
+                      preserveAspectRatio="xMidYMid slice"
+                    />
+                  </g>
                 )}
                 {!settlement && (
                   <circle

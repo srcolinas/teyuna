@@ -45,6 +45,7 @@ def retrieve_game(
             )
     return teyuna_shared.Game(
         id=id,
+        turns_played=game.turns_played,
         map=tuple(
             teyuna_shared.Hex(
                 coordinate=teyuna_shared.HexCoordinate(q=hex.q, r=hex.r),
