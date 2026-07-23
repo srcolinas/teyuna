@@ -180,6 +180,9 @@ class AcceptTradeAction(PlayerAction):
 
 class ProposeTradeResult(ActionExecutionResult):
     proposal_id: uuid.UUID | None = None
+    offer: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
+    request: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
+    to: set[str] = pydantic.Field(default_factory=set)
 
 
 class AcceptedTradeResult(ActionExecutionResult):
