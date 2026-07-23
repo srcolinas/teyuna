@@ -18,6 +18,7 @@ import grandTerraceBlue from '../../images/grand_terrace_blue.png'
 import grandTerraceYellow from '../../images/grand_terrace_yellow.png'
 import grandTerracePurple from '../../images/grand_terrace_purple.png'
 import grandTerraceGreen from '../../images/grand_terrace_green.png'
+import conquistatorImage from '../../images/conquistator.png'
 
 interface Point {
   x: number
@@ -407,27 +408,18 @@ export default function GameBoard({
             hex.coordinate.r === conquistadorLocation.r
           ) {
             const { x, y } = hexToPixel(hex.coordinate.q, hex.coordinate.r)
+            const conquistatorSize = 36
             return (
-              <g key="conquistador">
-                <circle
-                  cx={x + offset.offsetX}
-                  cy={y + offset.offsetY}
-                  r="8"
-                  fill="none"
-                  stroke="#FF6B6B"
-                  strokeWidth="3"
-                />
-                <text
-                  x={x + offset.offsetX}
-                  y={y + offset.offsetY}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="font-bold"
-                  fill="#FF6B6B"
-                >
-                  C
-                </text>
-              </g>
+              <image
+                key="conquistator"
+                href={conquistatorImage}
+                x={x + offset.offsetX - conquistatorSize / 2}
+                y={y + offset.offsetY - conquistatorSize / 2}
+                width={conquistatorSize}
+                height={conquistatorSize}
+                preserveAspectRatio="xMidYMid meet"
+                className="pointer-events-none"
+              />
             )
           }
           return null
