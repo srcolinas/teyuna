@@ -38,12 +38,18 @@ class GameLoop:
     @classmethod
     def join_existing(cls, game_id: uuid.UUID, host: str) -> Self:
         """Bind to an existing game without creating a new one."""
+        logger.info("Joining existing game %s on %s", game_id, host)
         return cls(game_id, sdk.GameClient(host))
 
     async def add_player(self, nickname: str) -> entities.PlayerContext:
         """Join the game as ``nickname`` and return an authenticated context."""
         client = await self._client.join_game(self._game_id, nickname)
-        logger.info("Player %s joined game %s", nickname, self._game_id)
+        logger.info(
+            "Player %s (token: %s) joined game %s",
+            nickname,
+            client.token,
+            self._game_id,
+        )
         return entities.PlayerContext(
             nickname=nickname,
             game_id=self._game_id,

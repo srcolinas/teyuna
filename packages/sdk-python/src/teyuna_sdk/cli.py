@@ -124,12 +124,6 @@ async def _join(game_id: uuid.UUID, host: str, players: list[tuple[str, str]]) -
         context = await game.add_player(nickname)
         contexts.append((agent, context))
 
-    print(f"host:    {host}")
-    print(f"game_id: {game.game_id}")
-    print("tokens:")
-    for _, context in contexts:
-        print(f"  {context.nickname}: {context.client.token}")
-
     tasks: list[asyncio.Task[None]] = [
         asyncio.create_task(
             _BUILDERS[agent](context=context),
