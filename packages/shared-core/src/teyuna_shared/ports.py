@@ -125,6 +125,7 @@ class Harbour(pydantic.BaseModel):
 
 class Game(pydantic.BaseModel):
     id: uuid.UUID
+    turns_played: Annotated[int, pydantic.Field(ge=0)] = 0
     map: tuple[Hex, ...]
     conquistator_location: HexCoordinate
     harbours: tuple[Harbour, ...]

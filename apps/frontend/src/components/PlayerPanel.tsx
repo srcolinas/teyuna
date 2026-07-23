@@ -1,5 +1,8 @@
 import { FormEvent, useState } from 'react'
 import { Player, PrivatePlayerInfo, ResourceCard } from '../types'
+import terraceImage from '../../images/terrace_black.png'
+import greatTerraceImage from '../../images/grand_terrace_black.png'
+import pathImage from '../../images/path.png'
 
 const RESOURCE_ICONS: Record<ResourceCard, string> = {
   gold: '🟡',
@@ -12,7 +15,6 @@ const RESOURCE_ICONS: Record<ResourceCard, string> = {
 interface PlayerPanelProps {
   players: Player[]
   turnOrder: string[]
-  currentPlayerIdx: number
   playerColors: Record<string, string>
   privateInfo: Record<string, PrivatePlayerInfo>
   privateErrors: Record<string, string>
@@ -24,7 +26,6 @@ interface PlayerPanelProps {
 export default function PlayerPanel({
   players,
   turnOrder,
-  currentPlayerIdx,
   playerColors,
   privateInfo,
   privateErrors,
@@ -32,18 +33,23 @@ export default function PlayerPanel({
   onTokenSubmit,
   onTokenClear,
 }: PlayerPanelProps) {
-  const orderedNames = turnOrder.length > 0 ? turnOrder : players.map((player) => player.nickname)
+  const activePlayer = turnOrder[0]
+  const nextPlayer = turnOrder[1]
 
   return (
     <div className="bg-white rounded-lg shadow p-4 h-full overflow-y-auto">
       <h2 className="text-xl font-bold mb-4">Players</h2>
+      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Up next</p>
+        <p className="font-semibold text-blue-950">
+          {nextPlayer ?? (activePlayer ? 'Waiting for the next turn' : 'Waiting for players')}
+        </p>
+      </div>
 
       <div className="space-y-3">
-        {orderedNames.map((nickname, idx) => {
-          const player = players.find((p) => p.nickname === nickname)
-          if (!player) return null
-
-          const isActive = idx === currentPlayerIdx
+        {players.map((player) => {
+          const nickname = player.nickname
+          const isActive = nickname === activePlayer
           const color = playerColors[nickname] || '#999'
           const internal = privateInfo[nickname]
 
@@ -126,15 +132,18 @@ export default function PlayerPanel({
                     Pieces on board / available:
                   </div>
                   <div className="grid grid-cols-1 gap-1 text-xs">
-                    <span>
-                      🏠 Terraces: {5 - player.available_terraces} / {player.available_terraces}
+                    <span className="flex items-center gap-3">
+                      <img src={terraceImage} alt="" className="h-10 w-10 object-cover" />
+                      Terraces: {5 - player.available_terraces} / {player.available_terraces}
                     </span>
-                    <span>
-                      🏛️ Great terraces: {4 - player.available_great_terraces} /{' '}
+                    <span className="flex items-center gap-3">
+                      <img src={greatTerraceImage} alt="" className="h-12 w-12 object-cover" />
+                      Great terraces: {4 - player.available_great_terraces} /{' '}
                       {player.available_great_terraces}
                     </span>
-                    <span>
-                      🛤️ Paths: {15 - player.available_paths} / {player.available_paths}
+                    <span className="flex items-center gap-3">
+                      <img src={pathImage} alt="" className="h-10 w-10 object-contain" />
+                      Paths: {15 - player.available_paths} / {player.available_paths}
                     </span>
                   </div>
                 </div>

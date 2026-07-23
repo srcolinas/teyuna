@@ -729,6 +729,7 @@ def test_end_turn_advances_player_and_returns_to_dice_roll(
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
     assert result.next_player == game.turn_order[1]
+    assert game.turns_played == 1
     assert game.player_idx == 1
     assert game.active_player == game.turn_order[1]
 
