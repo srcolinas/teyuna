@@ -27,7 +27,6 @@ Create a game, join as a player, and perform actions with the async HTTP client:
 import asyncio
 
 from teyuna_sdk.sdk import GameClient
-from teyuna_sdk import entities
 
 
 async def main() -> None:
@@ -53,6 +52,7 @@ Agents are async callables that receive a `PlayerContext` (nickname, game id, an
 ```python
 import asyncio
 
+import teyuna_shared
 from teyuna_sdk import entities, loop
 
 
@@ -63,7 +63,7 @@ async def my_agent(*, context: entities.PlayerContext) -> None:
             await asyncio.sleep(1)
             continue
 
-        if game.phase is entities.GamePhaseName.DICE_ROLL:
+        if game.phase is teyuna_shared.GamePhaseName.DICE_ROLL:
             await context.client.advance_turn()
         else:
             await asyncio.sleep(1)
@@ -80,13 +80,14 @@ asyncio.run(main())
 
 ## Sample agents
 
-The package ships with three simple agents you can use as templates or opponents:
+The package ships with simple agents you can use as templates or opponents:
 
 | Agent | Behavior |
 | --- | --- |
 | `builder` | Builds terraces, great terraces, and paths when it can |
 | `skipper` | Advances the turn as soon as possible |
 | `sleepy` | Waits and lets server timeouts drive the game |
+| `stochastic` | Chooses random actions across phases |
 
 ## CLI: simulate a game
 

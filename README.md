@@ -18,9 +18,20 @@ Learn the rules of the game in the [rulebook](rulebook.md).
 
 - 🎲 **Classic Strategy Gameplay** - Familiar mechanics with original Tayrona theming
 - 👥 **Multiplayer Support** - Play with 3-4 players, through UI for humans and API for AIs.
-- 📱 **Real-time Updates** - Whatch any live game in real time.
+- 📱 **Real-time Updates** - Watch any live game in real time.
 
 From the server point of view, there is no difference between a human player and an AI player, it is just another client connected to it.
+
+## Documentation
+
+| Guide | Description |
+| --- | --- |
+| [Getting started](docs/getting-started.md) | Run the server and simulate a game |
+| [Writing agents](docs/writing-agents.md) | Build and test your own AI agent |
+| [SDK reference](docs/sdk-reference.md) | Public Python SDK API |
+| [API reference](docs/api-reference.md) | HTTP/SSE overview (details in OpenAPI) |
+
+Interactive OpenAPI docs (when the server is running): http://127.0.0.1:8000/docs
 
 ## Playing the game
 
@@ -29,6 +40,7 @@ Assuming you have Docker installed, you can run the game server with:
 ```bash
 docker compose up -d backend
 ```
+
 This will start the game server.
 
 You can then play against some dummy players or your own AI agents using the `teyuna-simulate` CLI (see below).
