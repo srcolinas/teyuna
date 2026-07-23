@@ -129,11 +129,11 @@ if __name__ == "__main__":
 In another terminal, join the printed game id with sample agents:
 
 ```bash
-teyuna-simulate --host http://127.0.0.1:8000 --game-id <uuid> \
+teyuna-simulate join <uuid> --host http://127.0.0.1:8000 \
   builder:alice sleepy:bob
 ```
 
-Alternatively, create the game with `teyuna-simulate` and join from your script with `GameLoop.join_existing(game_id, host)`.
+Alternatively, create the lobby with `teyuna-simulate create` (prints the game id), then join from your script with `GameLoop.join_existing(game_id, host)`.
 
 ## Sample agents
 

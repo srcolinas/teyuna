@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import logging
-import os
 import uuid
 
 from . import builder, entities, loop, skipper, sleepy, stochastic
@@ -30,45 +29,78 @@ def _parse_player(value: str) -> tuple[str, str]:
     return value, value
 
 
-def main() -> None:
-    configure_logging()
-    parser = argparse.ArgumentParser("Creates up to 4 players to play a game of Teyuna")
-    parser.add_argument(
-        "--game-id",
-        type=_parse_uuid,
-        default=None,
-        help="if not provided, a new game will be created. If provided, the players will join the existing game.",
-    )
+def _add_host_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--host",
         default="http://127.0.0.1:8000",
         help="base URL of the Teyuna game server",
     )
-    parser.add_argument(
-        "players",
-        nargs="*",
-        type=_parse_player,
-        default=[
-            ("builder", "builder"),
-            ("sleepy", "sleepy"),
-            ("skipper", "skipper"),
-        ],
-        help="agents as 'name' or 'name:nickname' (default: builder, sleepy, skipper)",
+
+
+def main() -> None:
+    configure_logging()
+    parser = argparse.ArgumentParser(
+        "teyuna-simulate",
+        description="Create a Teyuna game or join with simulated agents",
     )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    create_parser = subparsers.add_parser(
+        "create",
+        help="create a new game and print its id",
+    )
+    _add_host_argument(create_parser)
+    create_parser.add_argument(
+        "--num-players",
+        type=int,
+        choices=(3, 4),
+        default=3,
+        help="number of seats in the lobby (default: 3)",
+    )
+    create_parser.set_defaults(func=_cmd_create)
+
+    join_parser = subparsers.add_parser(
+        "join",
+        help="join an existing game with 1–4 agents",
+    )
+    join_parser.add_argument(
+        "game_id",
+        type=_parse_uuid,
+        help="id of the game to join",
+    )
+    _add_host_argument(join_parser)
+    join_parser.add_argument(
+        "players",
+        nargs="+",
+        type=_parse_player,
+        help="agents as 'name' or 'name:nickname' (1–4)",
+    )
+    join_parser.set_defaults(func=_cmd_join)
+
     args = parser.parse_args()
+    if args.command == "join" and not 1 <= len(args.players) <= 4:
+        join_parser.error("join requires between 1 and 4 player specs")
+    args.func(args)
+
+
+def _cmd_create(args: argparse.Namespace) -> None:
+    asyncio.run(_create(args.host, args.num_players))
+
+
+def _cmd_join(args: argparse.Namespace) -> None:
     ensure_game_loop_logger()
     for _, nickname in args.players:
         ensure_agent_logger(nickname)
-    asyncio.run(helper(args.game_id, args.host, args.players))
+    asyncio.run(_join(args.game_id, args.host, args.players))
 
 
-async def helper(
-    game_id: uuid.UUID | None, host: str, players: list[tuple[str, str]]
-) -> None:
-    if game_id is None:
-        game = await loop.GameLoop.create(host=host, num_players=len(players))
-    else:
-        game = loop.GameLoop.join_existing(game_id, host)
+async def _create(host: str, num_players: int) -> None:
+    game = await loop.GameLoop.create(host=host, num_players=num_players)
+    print(game.game_id)
+
+
+async def _join(game_id: uuid.UUID, host: str, players: list[tuple[str, str]]) -> None:
+    game = loop.GameLoop.join_existing(game_id, host)
 
     contexts: list[tuple[str, entities.PlayerContext]] = []
     for agent, nickname in players:
@@ -82,8 +114,6 @@ async def helper(
     print("tokens:")
     for _, context in contexts:
         print(f"  {context.nickname}: {context.client.token}")
-    frontend_port = os.environ.get("FRONTEND_PORT", "5173")
-    print(f"frontend observer: http://127.0.0.1:{frontend_port}/?gameId={game.game_id}")
 
     tasks: list[asyncio.Task[None]] = [
         asyncio.create_task(

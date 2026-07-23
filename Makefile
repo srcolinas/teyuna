@@ -48,21 +48,31 @@ check:
 	cd packages/sdk-python && make check
 	cd apps/frontend && make check
 
-# Start backend + frontend with Docker Compose (attached so service URLs stay visible)
+# Host ports published by Docker Compose (see docker-compose.yml)
 BACKEND_PORT ?= 8000
 FRONTEND_PORT ?= 5173
+export BACKEND_PORT FRONTEND_PORT
+# Keep the frontend build's API URL aligned with the published backend port.
+VITE_API_URL ?= http://localhost:$(BACKEND_PORT)
+export VITE_API_URL
 
+# Start backend + frontend with Docker Compose (attached so service URLs stay visible)
 run:
 	docker compose up --build
+	@echo "Backend:  http://127.0.0.1:$(BACKEND_PORT)"
+	@echo "Frontend: http://127.0.0.1:$(FRONTEND_PORT)"
 
-# Detach Compose, wait for health, then run agents in the foreground (with game id / tokens)
+# Detach Compose, wait for health, then create a game and join with agents
 simulate:
 	docker compose up --build --detach
 	@echo "Waiting for backend at http://127.0.0.1:$(BACKEND_PORT)/health ..."
 	@until curl -sf "http://127.0.0.1:$(BACKEND_PORT)/health" >/dev/null; do sleep 1; done
 	@echo "Backend:  http://127.0.0.1:$(BACKEND_PORT)"
 	@echo "Frontend: http://127.0.0.1:$(FRONTEND_PORT)"
-	FRONTEND_PORT=$(FRONTEND_PORT) uv run teyuna-simulate --host "http://127.0.0.1:$(BACKEND_PORT)" stochastic:alice stochastic:bob stochastic:carol
+	@GAME_ID=$$(uv run teyuna-simulate create --host "http://127.0.0.1:$(BACKEND_PORT)"); \
+	echo "Watch: http://127.0.0.1:$(FRONTEND_PORT)/?gameId=$$GAME_ID"; \
+	uv run teyuna-simulate join "$$GAME_ID" --host "http://127.0.0.1:$(BACKEND_PORT)" \
+		stochastic:alice stochastic:bob stochastic:carol
 
 # Stop Docker Compose services
 stop:

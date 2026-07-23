@@ -96,14 +96,16 @@ The package ships with simple agents you can use as templates or opponents:
 After installing the package, run a local simulation against a game server:
 
 ```bash
-# Create a new 3-player game with the default agents
-teyuna-simulate --host http://127.0.0.1:8000
+# Create a new game (prints only the game id)
+teyuna-simulate create --host http://127.0.0.1:8000
 
-# Join an existing game
-teyuna-simulate --host http://127.0.0.1:8000 --game-id <uuid> builder:alice sleepy:bob skipper:carol
+# Join with 1–4 agents (agent or agent:nickname)
+teyuna-simulate join <uuid> --host http://127.0.0.1:8000 \
+  builder:alice sleepy:bob skipper:carol
 
-# Custom agent mix (agent or agent:nickname)
-teyuna-simulate builder sleepy skipper builder:builder-2
+# Four-seat lobby, then join
+teyuna-simulate create --host http://127.0.0.1:8000 --num-players 4
+teyuna-simulate join <uuid> builder sleepy skipper builder:builder-2
 ```
 
 ## Development

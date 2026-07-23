@@ -62,35 +62,24 @@ That installs `teyuna-sdk`, `teyuna-shared-core`, and the backend package into t
 
 ## 3. Run a simulation
 
-Easiest path — start Compose detached, wait for backend health, then run three
-stochastic agents in the foreground. The CLI prints `host`, `game_id`, and each
+Easiest path — start Compose detached, wait for backend health, create a game,
+then join with three stochastic agents. `join` prints `host`, `game_id`, and each
 player's Bearer token (useful for the frontend observer):
 
 ```bash
 make simulate
 ```
 
-With the server already up, run agents yourself:
+With the server already up, create a game (prints only the game id), then join:
 
 ```bash
-teyuna-simulate --host http://127.0.0.1:8000
-```
-
-Defaults to three agents: `builder`, `sleepy`, and `skipper`.
-
-Custom mix (form is `agent` or `agent:nickname`):
-
-```bash
-teyuna-simulate --host http://127.0.0.1:8000 \
+GAME_ID=$(teyuna-simulate create --host http://127.0.0.1:8000)
+teyuna-simulate join "$GAME_ID" --host http://127.0.0.1:8000 \
   builder:alice sleepy:bob skipper:carol
 ```
 
-Join an existing game instead of creating one:
-
-```bash
-teyuna-simulate --host http://127.0.0.1:8000 --game-id <uuid> \
-  builder:alice sleepy:bob skipper:carol
-```
+Player specs are `agent` or `agent:nickname` (1–4). Create takes optional
+`--num-players` (`3` or `4`, default `3`).
 
 Available built-in agents: `builder`, `skipper`, `sleepy`, `stochastic`.
 
