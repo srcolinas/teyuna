@@ -104,6 +104,51 @@ def test_create_game_uses_explicit_conquistator_location() -> None:
     assert game.conquistator_location == teyuna_shared.HexCoordinate(q=1, r=0)
 
 
+def test_create_game_uses_explicit_harbours() -> None:
+    repository = repository_module.InMemoryGameRepository()
+    board = _port_map((0, 0, teyuna_shared.HexType.DESERT, 7))
+    harbour = teyuna_shared.Harbour(
+        resource=teyuna_shared.ResourceCard.GOLD,
+        vertices=(
+            teyuna_shared.VertexCoordinate(
+                hex_coord=teyuna_shared.HexCoordinate(q=0, r=0),
+                direction=0,
+            ),
+            teyuna_shared.VertexCoordinate(
+                hex_coord=teyuna_shared.HexCoordinate(q=0, r=0),
+                direction=1,
+            ),
+        ),
+    )
+
+    game = services.create_game(
+        teyuna_shared.CreateGameRequest(
+            num_players=3,
+            map=board,
+            conquistator_location=teyuna_shared.HexCoordinate(q=0, r=0),
+            harbours=(harbour,),
+        ),
+        repository,
+        lobby_timeout=datetime.timedelta(minutes=10),
+    )
+
+    assert game.harbours == teyuna_shared.grouped_harbours(
+        teyuna_shared.harbour_pairs_from_ports((harbour,))
+    )
+
+
+def test_create_game_includes_default_harbours() -> None:
+    repository = repository_module.InMemoryGameRepository()
+
+    game = services.create_game(
+        teyuna_shared.CreateGameRequest(num_players=3),
+        repository,
+        lobby_timeout=datetime.timedelta(minutes=10),
+    )
+
+    assert game.harbours == teyuna_shared.grouped_harbours()
+
+
 def _port_map(
     *hexes: tuple[int, int, teyuna_shared.HexType, int],
 ) -> tuple[teyuna_shared.Hex, ...]:

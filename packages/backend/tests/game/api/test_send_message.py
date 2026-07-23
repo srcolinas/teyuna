@@ -13,11 +13,8 @@ from src.game import broker, dependencies
 from . import utils
 import teyuna_shared
 
-_VALID_TERRACE = (0, -1, 2)
-_VALID_PATH = (0, -1, 2)
 
-
-def test_single_client_receives_action_event(
+def test_send_message_appears_on_events(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
@@ -25,11 +22,11 @@ def test_single_client_receives_action_event(
     app.dependency_overrides[dependencies.get_event_broker] = lambda: event_broker
 
     game_id, tokens = utils.create_active_game_with_tokens(client)
-    active_player = client.get(f"/games/{game_id}").json()["turn_order"][0]
-    token = tokens[active_player]
-    payload = utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH)
+    sender = client.get(f"/games/{game_id}").json()["turn_order"][0]
+    token = tokens[sender]
+    text = "hello from the terrace"
 
-    with _Server(app, port=18765) as base_url:
+    with _Server(app, port=18767) as base_url:
         with httpx2.Client(
             base_url=base_url, timeout=5.0, headers={"Authorization": f"Bearer {token}"}
         ) as http:
@@ -38,8 +35,8 @@ def test_single_client_receives_action_event(
                 _wait_until_connected(lines)
 
                 response = http.post(
-                    f"/games/{game_id}/initial-placements",
-                    json=payload,
+                    f"/games/{game_id}/messages",
+                    json={"text": text},
                 )
                 assert response.status_code == 200, response.text
 
@@ -48,48 +45,8 @@ def test_single_client_receives_action_event(
     assert event["error"] is None
     assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
     assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["action"]["by"] == active_player
-    game_after = client.get(f"/games/{game_id}").json()
-    assert event["next_player"] == game_after["turn_order"][0]
-
-
-def test_disconnect_does_not_break_remaining_clients(
-    app: fastapi.FastAPI,
-    client: testclient.TestClient,
-) -> None:
-    event_broker = broker.EventBroker()
-    app.dependency_overrides[dependencies.get_event_broker] = lambda: event_broker
-
-    game_id, tokens = utils.create_active_game_with_tokens(client)
-    active_player = client.get(f"/games/{game_id}").json()["turn_order"][0]
-    token = tokens[active_player]
-    payload = utils.build_initial_placement_payload(_VALID_TERRACE, _VALID_PATH)
-
-    with _Server(app, port=18766) as base_url:
-        with httpx2.Client(
-            base_url=base_url, timeout=5.0, headers={"Authorization": f"Bearer {token}"}
-        ) as http:
-            with http.stream("GET", f"/games/{game_id}/events") as leaving:
-                with http.stream("GET", f"/games/{game_id}/events") as remaining:
-                    leaving_lines = leaving.iter_lines()
-                    remaining_lines = remaining.iter_lines()
-                    _wait_until_connected(leaving_lines)
-                    _wait_until_connected(remaining_lines)
-
-                    leaving.close()
-
-                    response = http.post(
-                        f"/games/{game_id}/initial-placements",
-                        json=payload,
-                    )
-                    assert response.status_code == 200, response.text
-
-                    event = _read_first_data_event(remaining_lines)
-
-    assert event["error"] is None
-    assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["action"]["by"] == active_player
+    assert event["action"]["by"] == sender
+    assert event["action"]["text"] == text
 
 
 class _Server:

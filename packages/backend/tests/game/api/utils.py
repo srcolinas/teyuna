@@ -7,6 +7,10 @@ from fastapi import testclient
 type InitialPlacementPayload = dict[str, dict[str, dict[str, int] | int]]
 
 
+def auth_headers(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
 def create_active_game(
     client: testclient.TestClient,
     num_players: int = 3,
@@ -24,7 +28,7 @@ def create_active_game(
         )
         assert response.status_code == 200, response.text
 
-    assert response.json()["phase"] == "first placement"
+    assert response.json()["game"]["phase"] == "first placement"
     return game_id
 
 
@@ -44,9 +48,9 @@ def create_active_game_with_tokens(
             json={"nickname": nickname},
         )
         assert response.status_code == 200, response.text
-        tokens[nickname] = client.cookies["session-token"]
+        tokens[nickname] = response.json()["token"]
 
-    assert response.json()["phase"] == "first placement"
+    assert response.json()["game"]["phase"] == "first placement"
     return game_id, tokens
 
 
@@ -70,8 +74,8 @@ def post_initial_placements(
     token: str,
     payload: InitialPlacementPayload | None = None,
 ) -> httpx2.Response:
-    client.cookies.set("session-token", token)
     return client.post(
         f"/games/{game_id}/initial-placements",
         json=payload if payload is not None else {},
+        headers=auth_headers(token),
     )

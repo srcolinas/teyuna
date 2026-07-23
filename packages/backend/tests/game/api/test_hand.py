@@ -9,22 +9,22 @@ from src.game import dependencies, repository as repository_module
 from . import utils
 
 
-def test_returns_401_without_session_cookie(client: testclient.TestClient) -> None:
+def test_returns_401_without_authorization(client: testclient.TestClient) -> None:
     game_id = utils.create_active_game(client)
-    client.cookies.clear()
 
     response = client.get(f"/games/{game_id}/hand")
 
     assert response.status_code == 401
 
 
-def test_returns_401_with_invalid_session_cookie(
+def test_returns_401_with_invalid_bearer_token(
     client: testclient.TestClient,
 ) -> None:
     game_id = utils.create_active_game(client)
-    client.cookies.set("session-token", "not-a-real-token")
-
-    response = client.get(f"/games/{game_id}/hand")
+    response = client.get(
+        f"/games/{game_id}/hand",
+        headers={"Authorization": "Bearer not-a-real-token"},
+    )
 
     assert response.status_code == 401
 
@@ -57,8 +57,10 @@ def test_returns_private_hand_for_authenticated_player(
         {teyuna_shared.WisdomCard.PATHFINDER: 1}
     )
 
-    client.cookies.set("session-token", token)
-    response = client.get(f"/games/{game_id}/hand")
+    response = client.get(
+        f"/games/{game_id}/hand",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
     assert response.status_code == 200, response.text
     body = response.json()

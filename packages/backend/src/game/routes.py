@@ -5,9 +5,8 @@ from typing import Annotated, AsyncIterable, cast
 
 import fastapi
 import pydantic
-from fastapi import status
-from fastapi.sse import EventSourceResponse, ServerSentEvent
-from starlette import websockets
+from fastapi import status, sse
+
 
 from . import player
 from .. import settings
@@ -48,7 +47,6 @@ class JoinGameRequest(pydantic.BaseModel):
 
 @router.post("/{game_id}/players")
 def join_game(
-    response: fastapi.Response,
     game_id: uuid.UUID,
     payload: JoinGameRequest,
     repository_: Annotated[
@@ -59,7 +57,7 @@ def join_game(
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
     settings_: Annotated[settings.Settings, fastapi.Depends(settings.get_settings)],
-) -> teyuna_shared.Game:
+) -> teyuna_shared.JoinGameResponse:
     result, token = services.add_player(
         game_id=game_id,
         nickname=payload.nickname,
@@ -67,8 +65,7 @@ def join_game(
         auth=auth,
         first_placement_timeout=settings_.first_placement_timeout,
     )
-    response.set_cookie(key="session-token", value=token, httponly=True)
-    return result
+    return teyuna_shared.JoinGameResponse(game=result, token=token)
 
 
 @router.get("/{game_id}")
@@ -844,34 +841,53 @@ async def build_path(
     )
 
 
-@router.websocket("/{game_id}/chat")
-async def chat(
-    websocket: fastapi.WebSocket,
+class SendMessagePayload(pydantic.BaseModel):
+    text: str
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+
+@router.post("/{game_id}/messages")
+async def send_message(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
     game_id: uuid.UUID,
-    manager: Annotated[
-        dependencies.ConnectionManager,
-        fastapi.Depends(dependencies.get_connection_manager),
+    payload: SendMessagePayload,
+    repository: Annotated[
+        repository_module.InMemoryGameRepository,
+        fastapi.Depends(dependencies.get_repository),
     ],
-):
-    await manager.connect(game_id, websocket)
-    try:
-        while True:
-            message = await websocket.receive_text()
-            await manager.broadcast(game_id, f"{nickname}: {message}")
-    except websockets.WebSocketDisconnect:
-        manager.disconnect(game_id, websocket)
+    registry: Annotated[
+        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
+    ],
+    game_locks: Annotated[
+        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
+    ],
+    broker: Annotated[
+        broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
+    ],
+) -> None:
+    result, _ = await services.apply_player_action(
+        game_id,
+        teyuna_shared.SentMessageAction(by=nickname, text=payload.text),
+        repository=repository,
+        registry=registry,
+        game_locks=game_locks,
+        broker=broker,
+    )
+    http.raise_if_failed(result)
 
 
-@router.get("/{game_id}/events", response_class=EventSourceResponse)
+@router.get("/{game_id}/events", response_class=sse.EventSourceResponse)
 async def stream_items(
     _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
     game_id: uuid.UUID,
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-) -> AsyncIterable[ServerSentEvent]:
-    yield ServerSentEvent(comment="connected")
+) -> AsyncIterable[sse.ServerSentEvent]:
+    yield sse.ServerSentEvent(comment="connected")
     async for event in broker.iterate(game_id):
-        yield ServerSentEvent(data=event.data.model_dump(mode="json"), id=str(event.id))
+        yield sse.ServerSentEvent(
+            data=event.data.model_dump(mode="json"), id=str(event.id)
+        )

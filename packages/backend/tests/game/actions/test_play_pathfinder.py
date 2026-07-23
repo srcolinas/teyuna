@@ -13,10 +13,12 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     )
     other = game.turn_order[1]
 
+    action = teyuna_shared.PlayPathfinderAction(by=other, paths=(path,))
     result = actions.handle_dice_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=other, paths=(path,)),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.paths == ()
 
@@ -31,10 +33,12 @@ def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> 
     )
     other = game.turn_order[1]
 
+    action = teyuna_shared.PlayPathfinderAction(by=other, paths=(path,))
     result = actions.handle_trade_and_build_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=other, paths=(path,)),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.paths == ()
 
@@ -56,10 +60,12 @@ def test_places_two_paths_and_returns_to_dice_roll(
         if e != first
     )
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(first, second))
     result = actions.handle_dice_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(first, second)),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -85,10 +91,12 @@ def test_places_two_paths_and_returns_to_trade_and_build(
         if e != first
     )
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(first, second))
     result = actions.handle_trade_and_build_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(first, second)),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -118,10 +126,12 @@ def test_ignores_second_path_when_only_one_slot_remaining(
         for i in range(teyuna_shared.MAX_PATHS - 1)
     }
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(first, second))
     result = actions.handle_dice_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(first, second)),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -143,10 +153,12 @@ def test_raises_when_path_is_invalid(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(disconnected,))
     result = actions.handle_dice_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(disconnected,)),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.paths == ()
 
@@ -168,10 +180,12 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(path,))
     result = actions.handle_dice_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(path,)),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.paths == ()
 
@@ -185,10 +199,12 @@ def test_placing_paths_at_ten_vp_ends_game(game: entities.Game) -> None:
         iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(path,))
     result = actions.handle_dice_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(path,)),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
@@ -206,10 +222,12 @@ def test_placing_paths_at_ten_vp_ends_game_from_trade_and_build(
         iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
+    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(path,))
     result = actions.handle_trade_and_build_play_pathfinder(
         game,
-        teyuna_shared.PlayPathfinderAction(by=player, paths=(path,)),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME

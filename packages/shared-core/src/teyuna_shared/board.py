@@ -169,3 +169,33 @@ HARBOUR_LOCATIONS: Final[dict[Coordinate, entities.ResourceCard | None]] = {
     canonical_vertex(-2, 1, 4): entities.ResourceCard.GOLD,
     canonical_vertex(-2, 1, 5): entities.ResourceCard.GOLD,
 }
+
+
+class HarbourPair(NamedTuple):
+    """One harbour: a trade discount shared by two docking vertices."""
+
+    resource: entities.ResourceCard | None
+    vertices: tuple[Coordinate, Coordinate]
+
+
+def default_harbour_pairs() -> tuple[HarbourPair, ...]:
+    """Group ``HARBOUR_LOCATIONS`` into harbour pairs (insertion order)."""
+    items = list(HARBOUR_LOCATIONS.items())
+    pairs: list[HarbourPair] = []
+    for i in range(0, len(items), 2):
+        (loc_a, resource_a), (loc_b, resource_b) = items[i], items[i + 1]
+        if resource_a != resource_b:
+            raise ValueError("harbour location pairs must share a resource")
+        pairs.append(HarbourPair(resource=resource_a, vertices=(loc_a, loc_b)))
+    return tuple(pairs)
+
+
+def harbour_locations_from_pairs(
+    harbours: tuple[HarbourPair, ...],
+) -> dict[Coordinate, entities.ResourceCard | None]:
+    """Flatten harbour pairs into a vertex → resource lookup."""
+    locations: dict[Coordinate, entities.ResourceCard | None] = {}
+    for harbour in harbours:
+        for vertex in harbour.vertices:
+            locations[vertex] = harbour.resource
+    return locations

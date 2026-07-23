@@ -26,10 +26,11 @@ def create_game(
 ) -> teyuna_shared.Game:
     if now is None:
         now = datetime.datetime.now(datetime.UTC)
-    board, conquistator = _resolve_board(params)
+    board, conquistator, harbours = _resolve_board(params)
     game = entities.Game(
         map=board,
         conquistator_location=conquistator,
+        harbours=harbours,
         players={},
         available_slots=params.num_players,
         phase=teyuna_shared.GamePhaseName.LOBBY,
@@ -87,7 +88,11 @@ def _reds_are_separated(number_by_coord: dict[tuple[int, int], int]) -> bool:
 
 def _resolve_board(
     params: teyuna_shared.CreateGameRequest,
-) -> tuple[tuple[teyuna_shared.MapHex, ...], teyuna_shared.HexLocation]:
+) -> tuple[
+    tuple[teyuna_shared.MapHex, ...],
+    teyuna_shared.HexLocation,
+    tuple[teyuna_shared.HarbourPair, ...],
+]:
     if params.map is None:
         board = generate_map()
     else:
@@ -101,19 +106,28 @@ def _resolve_board(
             for tile in params.map
         )
 
+    if params.harbours is None:
+        harbours = teyuna_shared.default_harbour_pairs()
+    else:
+        harbours = teyuna_shared.harbour_pairs_from_ports(params.harbours)
+
     if params.conquistator_location is not None:
-        return board, teyuna_shared.HexLocation(
-            q=params.conquistator_location.q, r=params.conquistator_location.r
+        return (
+            board,
+            teyuna_shared.HexLocation(
+                q=params.conquistator_location.q, r=params.conquistator_location.r
+            ),
+            harbours,
         )
 
     deserts = [hex for hex in board if hex.type == teyuna_shared.HexType.DESERT]
     if deserts:
         desert = random.choice(deserts)
-        return board, teyuna_shared.HexLocation(q=desert.q, r=desert.r)
+        return board, teyuna_shared.HexLocation(q=desert.q, r=desert.r), harbours
     if board:
         first = board[0]
-        return board, teyuna_shared.HexLocation(q=first.q, r=first.r)
-    return board, teyuna_shared.HexLocation(q=0, r=0)
+        return board, teyuna_shared.HexLocation(q=first.q, r=first.r), harbours
+    return board, teyuna_shared.HexLocation(q=0, r=0), harbours
 
 
 _TYPES = (

@@ -43,9 +43,6 @@ def handle_propose_trade(
         next_phase=game.phase,
         action=action,
         proposal_id=proposal_id,
-        offer=dict(action.offer),
-        request=dict(action.request),
-        to=set(action.to),
     )
 
 
@@ -172,7 +169,7 @@ def _trade_rate(
 ) -> int:
     rate = teyuna_shared.DEFAULT_TRADE_RATE
     settlements = game.players[by].settlements
-    for location, harbour_resource in teyuna_shared.HARBOUR_LOCATIONS.items():
+    for location, harbour_resource in game.harbour_locations.items():
         if location not in settlements:
             continue
         if harbour_resource is None:

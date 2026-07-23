@@ -5,10 +5,12 @@ import teyuna_shared
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
+    action = teyuna_shared.MoveConquistatorAction(by=other, q=1, r=0)
     result = actions.handle_dice_play_warrior(
         game,
-        teyuna_shared.MoveConquistatorAction(by=other, q=1, r=0),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.q == -1
     assert result.r == -1
@@ -24,10 +26,12 @@ def test_raises_when_location_is_unchanged(game: entities.Game) -> None:
         player=player,
         current_location=location,
     )
+    action = teyuna_shared.MoveConquistatorAction(by=player, q=location.q, r=location.r)
     result = actions.handle_dice_play_warrior(
         game,
-        teyuna_shared.MoveConquistatorAction(by=player, q=location.q, r=location.r),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.q == -1
     assert result.r == -1
@@ -40,10 +44,12 @@ def test_moves_conquistator_and_returns_to_dice_roll(
 ) -> None:
     player = game.active_player
 
+    action = teyuna_shared.MoveConquistatorAction(by=player, q=1, r=-1)
     result = actions.handle_dice_play_warrior(
         game,
-        teyuna_shared.MoveConquistatorAction(by=player, q=1, r=-1),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -60,10 +66,12 @@ def test_moves_conquistator_and_returns_to_trade_and_build(
 ) -> None:
     player = game.active_player
 
+    action = teyuna_shared.MoveConquistatorAction(by=player, q=1, r=-1)
     result = actions.handle_move_conquistator(
         game,
-        teyuna_shared.MoveConquistatorAction(by=player, q=1, r=-1),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -82,10 +90,12 @@ def test_does_not_take_resources_when_from_player_is_none(
     other = game.turn_order[1]
     game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
 
+    action = teyuna_shared.MoveConquistatorAction(by=player, q=1, r=0, from_player=None)
     result = actions.handle_dice_play_warrior(
         game,
-        teyuna_shared.MoveConquistatorAction(by=player, q=1, r=0, from_player=None),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.q == 1
@@ -103,10 +113,14 @@ def test_takes_one_resource_when_from_player_is_set(
     other = game.turn_order[1]
     game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
 
+    action = teyuna_shared.MoveConquistatorAction(
+        by=player, q=1, r=0, from_player=other
+    )
     result = actions.handle_dice_play_warrior(
         game,
-        teyuna_shared.MoveConquistatorAction(by=player, q=1, r=0, from_player=other),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.q == 1

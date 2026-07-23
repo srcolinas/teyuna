@@ -7,10 +7,12 @@ import teyuna_shared
 
 def test_cannot_accept_if_not_in_trade_proposals(game: entities.Game) -> None:
     proposal_id = uuid.uuid4()
+    action = teyuna_shared.AcceptTradeAction(by=game.active_player, id=proposal_id)
     result = actions.handle_accept_trade(
         game,
-        teyuna_shared.AcceptTradeAction(by=game.active_player, id=proposal_id),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Trade proposal {proposal_id} not found."
     assert result.proposal_id is None
     assert result.proposer == ""
@@ -33,10 +35,12 @@ def test_cannot_accept_if_not_addressed_to_player(game: entities.Game) -> None:
         )
     }
 
+    action = teyuna_shared.AcceptTradeAction(by=outsider, id=proposal_id)
     result = actions.handle_accept_trade(
         game,
-        teyuna_shared.AcceptTradeAction(by=outsider, id=proposal_id),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {outsider} cannot accept this trade proposal"
     assert result.proposal_id is None
     assert result.proposer == ""
@@ -61,10 +65,12 @@ def test_cannot_accept_if_not_enough_resources(game: entities.Game) -> None:
         {teyuna_shared.ResourceCard.GOLD: 2}
     )
 
+    action = teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id)
     result = actions.handle_accept_trade(
         game,
-        teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id),
+        action,
     )
+    assert result.action == action
     assert result.error == "You do not have enough stone to accept the trade."
     assert result.proposal_id is None
     assert result.proposer == ""
@@ -91,10 +97,12 @@ def test_cannot_accept_if_proposer_no_longer_has_offer(
         {teyuna_shared.ResourceCard.STONE: 1}
     )
 
+    action = teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id)
     result = actions.handle_accept_trade(
         game,
-        teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id),
+        action,
     )
+    assert result.action == action
     assert result.error == "You do not have enough gold to complete the trade."
     assert result.proposal_id is None
     assert result.proposer == ""
@@ -111,10 +119,12 @@ def test_accepted_trade_is_removed_from_trade_proposals(
     accepts = game.turn_order[0]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
+    action = teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id)
     result = actions.handle_accept_trade(
         game,
-        teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -132,10 +142,12 @@ def test_accepted_trade_changes_resources(game: entities.Game) -> None:
     accepts = game.turn_order[0]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
+    action = teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id)
     result = actions.handle_accept_trade(
         game,
-        teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -158,10 +170,12 @@ def test_non_active_player_can_accept_when_addressed(
     accepts = game.turn_order[1]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
+    action = teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id)
     result = actions.handle_accept_trade(
         game,
-        teyuna_shared.AcceptTradeAction(by=accepts, id=proposal_id),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD

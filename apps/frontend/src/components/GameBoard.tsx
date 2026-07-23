@@ -1,23 +1,13 @@
-import { Hex, PlayedSettlement, PlayedStonePath, HEX_TYPE_COLORS } from '../types'
+import { useState } from 'react'
+import {
+  Harbour,
+  Hex,
+  HexCoordinate,
+  PlayedSettlement,
+  PlayedStonePath,
+  HEX_TYPE_COLORS,
+} from '../types'
 import { hexToPixel, getHexVertices, getHexVertexCoord, getHexEdges } from '../hexUtils'
-
-interface Harbour {
-  resource: string | null
-  vertices: [[number, number, number], [number, number, number]]
-}
-
-// These are the canonical harbour vertices enforced by the backend.
-const HARBOURS: Harbour[] = [
-  { resource: 'wood', vertices: [[-1, -1, 4], [-1, -1, 5]] },
-  { resource: null, vertices: [[0, -2, 0], [0, -2, 5]] },
-  { resource: 'maize', vertices: [[1, -2, 0], [1, -2, 1]] },
-  { resource: 'stone', vertices: [[2, -1, 0], [2, -1, 1]] },
-  { resource: null, vertices: [[2, 0, 1], [2, 0, 2]] },
-  { resource: 'cotton', vertices: [[1, 1, 2], [1, 1, 3]] },
-  { resource: null, vertices: [[-1, 2, 2], [-1, 2, 3]] },
-  { resource: null, vertices: [[-2, 2, 3], [-2, 2, 4]] },
-  { resource: 'gold', vertices: [[-2, 1, 4], [-2, 1, 5]] },
-]
 
 interface Point {
   x: number
@@ -32,8 +22,12 @@ function convexHull(points: Point[]): Point[] {
     (a.x - origin.x) * (b.y - origin.y) - (a.y - origin.y) * (b.x - origin.x)
   const half = (source: Point[]) => {
     const result: Point[] = []
-    source.forEach(point => {
-      while (result.length >= 2 && cross(result[result.length - 2], result[result.length - 1], point) <= 0) result.pop()
+    source.forEach((point) => {
+      while (
+        result.length >= 2 &&
+        cross(result[result.length - 2], result[result.length - 1], point) <= 0
+      )
+        result.pop()
       result.push(point)
     })
     return result
@@ -45,19 +39,27 @@ function convexHull(points: Point[]): Point[] {
 
 function polygonPoints(points: Point[], scale = 1): string {
   return points
-    .map(point => `${point.x * scale + BOARD_CENTER.offsetX},${point.y * scale + BOARD_CENTER.offsetY}`)
+    .map(
+      (point) =>
+        `${point.x * scale + BOARD_CENTER.offsetX},${point.y * scale + BOARD_CENTER.offsetY}`,
+    )
     .join(' ')
 }
 
 function regularHexagon(radius: number): Point[] {
   return Array.from({ length: 6 }, (_, index) => {
-    const angle = -Math.PI / 2 + index * Math.PI / 3
+    const angle = -Math.PI / 2 + (index * Math.PI) / 3
     return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) }
   })
 }
 
+function sameHex(a: HexCoordinate | null, b: HexCoordinate): boolean {
+  return a !== null && a.q === b.q && a.r === b.r
+}
+
 interface GameBoardProps {
   hexes: Hex[]
+  harbours: Harbour[]
   settlements: PlayedSettlement[]
   paths: PlayedStonePath[]
   conquistadorLocation: { q: number; r: number }
@@ -69,6 +71,7 @@ interface GameBoardProps {
 
 export default function GameBoard({
   hexes,
+  harbours,
   settlements,
   paths,
   conquistadorLocation,
@@ -77,21 +80,22 @@ export default function GameBoard({
   onVertexClick,
   onEdgeClick,
 }: GameBoardProps) {
+  const [hoveredHex, setHoveredHex] = useState<HexCoordinate | null>(null)
   const offset = BOARD_CENTER
   const terrainHull = convexHull(
-    hexes.flatMap(hex =>
+    hexes.flatMap((hex) =>
       getHexVertices(hex.coordinate.q, hex.coordinate.r).map(([x, y]) => ({ x, y })),
     ),
   )
 
   const settlementsByLocation = new Map<string, PlayedSettlement>()
-  settlements.forEach(s => {
+  settlements.forEach((s) => {
     const key = `${s.location.hex_coord.q},${s.location.hex_coord.r},${s.location.direction}`
     settlementsByLocation.set(key, s)
   })
 
   const pathsByLocation = new Map<string, PlayedStonePath>()
-  paths.forEach(p => {
+  paths.forEach((p) => {
     const key = `${p.location.hex_coord.q},${p.location.hex_coord.r},${p.location.direction}`
     pathsByLocation.set(key, p)
   })
@@ -104,7 +108,12 @@ export default function GameBoard({
         role="img"
         aria-label="Teyuna board surrounded by water, sand, and trading harbors"
       >
-        <polygon points={polygonPoints(regularHexagon(385))} fill="#0e7490" stroke="#164e63" strokeWidth="8" />
+        <polygon
+          points={polygonPoints(regularHexagon(385))}
+          fill="#0e7490"
+          stroke="#164e63"
+          strokeWidth="8"
+        />
         <polygon points={polygonPoints(terrainHull, 1.12)} fill="#d9b77e" />
         <polygon
           points={polygonPoints(terrainHull, 1.01)}
@@ -115,10 +124,14 @@ export default function GameBoard({
           pointerEvents="none"
         />
 
-        {hexes.map(hex => {
+        {hexes.map((hex) => {
           const vertices = getHexVertices(hex.coordinate.q, hex.coordinate.r)
-          const points = vertices.map(v => `${v[0] + offset.offsetX},${v[1] + offset.offsetY}`).join(' ')
+          const points = vertices
+            .map((v) => `${v[0] + offset.offsetX},${v[1] + offset.offsetY}`)
+            .join(' ')
           const color = HEX_TYPE_COLORS[hex.type]
+          const center = hexToPixel(hex.coordinate.q, hex.coordinate.r)
+          const isHovered = sameHex(hoveredHex, hex.coordinate)
 
           return (
             <g key={`hex-${hex.coordinate.q}-${hex.coordinate.r}`}>
@@ -127,18 +140,20 @@ export default function GameBoard({
                 fill={color}
                 stroke="#333"
                 strokeWidth="2"
-                opacity="0.8"
+                opacity={isHovered ? 1 : 0.8}
                 onClick={() => onHexClick?.(hex)}
-                className="cursor-pointer hover:opacity-100"
+                onMouseEnter={() => setHoveredHex(hex.coordinate)}
+                onMouseLeave={() => setHoveredHex(null)}
+                className="cursor-pointer"
               />
 
               {hex.number && hex.type !== 'desert' && (
                 <text
-                  x={hexToPixel(hex.coordinate.q, hex.coordinate.r).x + offset.offsetX}
-                  y={hexToPixel(hex.coordinate.q, hex.coordinate.r).y + offset.offsetY + 5}
+                  x={center.x + offset.offsetX}
+                  y={center.y + offset.offsetY + 5}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="font-bold text-lg"
+                  className="pointer-events-none font-bold text-lg"
                   fill={hex.number === 6 || hex.number === 8 ? '#dc2626' : '#000'}
                 >
                   {hex.number}
@@ -146,21 +161,41 @@ export default function GameBoard({
               )}
 
               <text
-                x={hexToPixel(hex.coordinate.q, hex.coordinate.r).x + offset.offsetX}
-                y={hexToPixel(hex.coordinate.q, hex.coordinate.r).y + offset.offsetY - 20}
+                x={center.x + offset.offsetX}
+                y={center.y + offset.offsetY - 20}
                 textAnchor="middle"
-                className="text-xs"
+                className="pointer-events-none text-xs"
                 fill="#666"
               >
                 {hex.type}
               </text>
+
+              {isHovered && (
+                <text
+                  x={center.x + offset.offsetX}
+                  y={center.y + offset.offsetY + 28}
+                  textAnchor="middle"
+                  className="pointer-events-none text-xs font-bold"
+                  fill="#0f172a"
+                >
+                  ({hex.coordinate.q}, {hex.coordinate.r})
+                </text>
+              )}
             </g>
           )
         })}
 
-        {HARBOURS.map(harbour => {
-          const [first, second] = harbour.vertices.map(([q, r, direction]) =>
-            getHexVertexCoord(q, r, direction),
+        {harbours.map((harbour) => {
+          const [firstVertex, secondVertex] = harbour.vertices
+          const first = getHexVertexCoord(
+            firstVertex.hex_coord.q,
+            firstVertex.hex_coord.r,
+            firstVertex.direction,
+          )
+          const second = getHexVertexCoord(
+            secondVertex.hex_coord.q,
+            secondVertex.hex_coord.r,
+            secondVertex.direction,
           )
           const middle = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }
           const distance = Math.hypot(middle.x, middle.y) || 1
@@ -169,8 +204,16 @@ export default function GameBoard({
           const labelOffsetY = harbour.resource === 'cotton' ? 25 : 0
           const labelX = middle.x + (middle.x / distance) * 78 + offset.offsetX + labelOffsetX
           const labelY = middle.y + (middle.y / distance) * 78 + offset.offsetY + labelOffsetY
+          const harbourKey = [
+            firstVertex.hex_coord.q,
+            firstVertex.hex_coord.r,
+            firstVertex.direction,
+            secondVertex.hex_coord.q,
+            secondVertex.hex_coord.r,
+            secondVertex.direction,
+          ].join('-')
           return (
-            <g key={`harbour-${harbour.vertices[0].join('-')}`}>
+            <g key={`harbour-${harbourKey}`}>
               <line
                 x1={middle.x + offset.offsetX}
                 y1={middle.y + offset.offsetY}
@@ -181,19 +224,46 @@ export default function GameBoard({
                 strokeDasharray="5 4"
                 strokeLinecap="round"
               />
-              <circle cx={first.x + offset.offsetX} cy={first.y + offset.offsetY} r="4" fill="#fef3c7" stroke="#92400e" />
-              <circle cx={second.x + offset.offsetX} cy={second.y + offset.offsetY} r="4" fill="#fef3c7" stroke="#92400e" />
-              <rect x={labelX - 52} y={labelY - 14} width="104" height="28" rx="14" fill="#ecfeff" stroke="#155e75" strokeWidth="2" />
-              <text x={labelX} y={labelY + 4} textAnchor="middle" className="text-[11px] font-bold" fill="#164e63">
+              <circle
+                cx={first.x + offset.offsetX}
+                cy={first.y + offset.offsetY}
+                r="4"
+                fill="#fef3c7"
+                stroke="#92400e"
+              />
+              <circle
+                cx={second.x + offset.offsetX}
+                cy={second.y + offset.offsetY}
+                r="4"
+                fill="#fef3c7"
+                stroke="#92400e"
+              />
+              <rect
+                x={labelX - 52}
+                y={labelY - 14}
+                width="104"
+                height="28"
+                rx="14"
+                fill="#ecfeff"
+                stroke="#155e75"
+                strokeWidth="2"
+              />
+              <text
+                x={labelX}
+                y={labelY + 4}
+                textAnchor="middle"
+                className="text-[11px] font-bold"
+                fill="#164e63"
+              >
                 {label}
               </text>
             </g>
           )
         })}
 
-        {hexes.map(hex => {
+        {hexes.map((hex) => {
           const edges = getHexEdges(hex.coordinate.q, hex.coordinate.r)
-          return edges.map(edge => {
+          return edges.map((edge) => {
             const key = `${hex.coordinate.q},${hex.coordinate.r},${edge.direction}`
             const path = pathsByLocation.get(key)
 
@@ -201,10 +271,24 @@ export default function GameBoard({
               <g key={`edge-${key}`}>
                 {path && (
                   <line
-                    x1={getHexVertices(hex.coordinate.q, hex.coordinate.r)[edge.direction][0] + offset.offsetX}
-                    y1={getHexVertices(hex.coordinate.q, hex.coordinate.r)[edge.direction][1] + offset.offsetY}
-                    x2={getHexVertices(hex.coordinate.q, hex.coordinate.r)[(edge.direction + 1) % 6][0] + offset.offsetX}
-                    y2={getHexVertices(hex.coordinate.q, hex.coordinate.r)[(edge.direction + 1) % 6][1] + offset.offsetY}
+                    x1={
+                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[edge.direction][0] +
+                      offset.offsetX
+                    }
+                    y1={
+                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[edge.direction][1] +
+                      offset.offsetY
+                    }
+                    x2={
+                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[
+                        (edge.direction + 1) % 6
+                      ][0] + offset.offsetX
+                    }
+                    y2={
+                      getHexVertices(hex.coordinate.q, hex.coordinate.r)[
+                        (edge.direction + 1) % 6
+                      ][1] + offset.offsetY
+                    }
                     stroke={playerColors[path.owner] || '#999'}
                     strokeWidth="8"
                     strokeLinecap="round"
@@ -219,7 +303,9 @@ export default function GameBoard({
                     stroke="#ccc"
                     strokeWidth="1"
                     opacity="0.3"
-                    onClick={() => onEdgeClick?.(hex.coordinate.q, hex.coordinate.r, edge.direction)}
+                    onClick={() =>
+                      onEdgeClick?.(hex.coordinate.q, hex.coordinate.r, edge.direction)
+                    }
                     className="cursor-pointer hover:opacity-100"
                   />
                 )}
@@ -228,7 +314,7 @@ export default function GameBoard({
           })
         })}
 
-        {hexes.map(hex => {
+        {hexes.map((hex) => {
           const vertices = getHexVertices(hex.coordinate.q, hex.coordinate.r)
           return vertices.map((_, direction) => {
             const key = `${hex.coordinate.q},${hex.coordinate.r},${direction}`
@@ -267,8 +353,11 @@ export default function GameBoard({
           })
         })}
 
-        {hexes.map(hex => {
-          if (hex.coordinate.q === conquistadorLocation.q && hex.coordinate.r === conquistadorLocation.r) {
+        {hexes.map((hex) => {
+          if (
+            hex.coordinate.q === conquistadorLocation.q &&
+            hex.coordinate.r === conquistadorLocation.r
+          ) {
             const { x, y } = hexToPixel(hex.coordinate.q, hex.coordinate.r)
             return (
               <g key="conquistador">
@@ -298,8 +387,12 @@ export default function GameBoard({
       </svg>
       <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
         <strong className="text-slate-800">Harbors:</strong>
-        <span><b>3:1 any</b> — give three identical resources for one resource</span>
-        <span><b>2:1 resource</b> — give two of the named resource for one resource</span>
+        <span>
+          <b>3:1 any</b> — give three identical resources for one resource
+        </span>
+        <span>
+          <b>2:1 resource</b> — give two of the named resource for one resource
+        </span>
       </div>
     </div>
   )

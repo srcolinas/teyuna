@@ -15,7 +15,6 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
     path = teyuna_shared.canonical_edge(0, 0, 0)
 
     response = client.post(
@@ -28,6 +27,7 @@ def test_returns_404_when_game_does_not_exist(
                 }
             ]
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 404, response.text
@@ -45,7 +45,6 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/pathfinder",
         json={
@@ -56,6 +55,7 @@ def test_returns_400_when_action_not_allowed(
                 }
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -67,7 +67,6 @@ def test_returns_400_when_player_not_in_turn(
 ) -> None:
     _, game_id, tokens, _, other, first, _ = _setup_pathfinder_phase(app)
 
-    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/pathfinder",
         json={
@@ -78,6 +77,7 @@ def test_returns_400_when_player_not_in_turn(
                 }
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[other]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -94,7 +94,6 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/pathfinder",
         json={
@@ -105,6 +104,7 @@ def test_returns_501_when_phase_not_implemented(
                 }
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 501, response.text
@@ -117,7 +117,6 @@ def test_returns_400_when_invalid_path_location(
     repository, game_id, tokens, active_player, _, _, _ = _setup_pathfinder_phase(app)
     disconnected = teyuna_shared.canonical_edge(1, 1, 1)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/pathfinder",
         json={
@@ -128,6 +127,7 @@ def test_returns_400_when_invalid_path_location(
                 }
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -141,7 +141,6 @@ def test_places_paths_and_returns_them(
         _setup_pathfinder_phase(app)
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/pathfinder",
         json={
@@ -156,6 +155,7 @@ def test_places_paths_and_returns_them(
                 },
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 200, response.text
@@ -179,7 +179,6 @@ def test_places_paths_during_trade_and_build_play_pathfinder(
         )
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/pathfinder",
         json={
@@ -194,6 +193,7 @@ def test_places_paths_during_trade_and_build_play_pathfinder(
                 },
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 200, response.text

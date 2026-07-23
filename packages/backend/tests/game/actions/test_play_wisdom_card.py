@@ -21,10 +21,12 @@ def test_raises_when_player_does_not_have_card(
     card: teyuna_shared.WisdomCard,
 ) -> None:
     player = game.active_player
+    action = teyuna_shared.PlayWisdomCardAction(by=player, card=card)
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(by=player, card=card),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {player} does not have card {card.value}"
     assert result.card is None
 
@@ -33,13 +35,15 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     game.players[game.active_player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     other = game.turn_order[1]
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=other,
+        card=teyuna_shared.WisdomCard.WARRIOR,
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=other,
-            card=teyuna_shared.WisdomCard.WARRIOR,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.card is None
 
@@ -55,12 +59,14 @@ def test_raises_when_card_cannot_be_played(
     unknown_card = _UnplayableCard.UNKNOWN
     game.players[player].cards[unknown_card] = 1  # type: ignore[index]
 
+    action = teyuna_shared.PlayWisdomCardAction.model_construct(
+        by=player, card=unknown_card
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction.model_construct(
-            by=player, card=unknown_card
-        ),
+        action,
     )
+    assert result.action == action
     assert (
         result.error
         == "Card 'unknown card' cannot be played during the dice roll phase."
@@ -101,10 +107,12 @@ def test_uses_card_and_transitions_to_expected_dice_phase(
     player = game.active_player
     game.players[player].cards[card] = 1
 
+    action = teyuna_shared.PlayWisdomCardAction(by=player, card=card)
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(by=player, card=card),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is expected_phase
@@ -120,12 +128,14 @@ def test_playing_warrior_below_min_leaves_biggest_army_unchanged(
     game.players[player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.WARRIOR] = 1
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.WARRIOR
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.WARRIOR
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
@@ -139,12 +149,14 @@ def test_third_warrior_claims_biggest_army(game: entities.Game) -> None:
     game.players[player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.WARRIOR] = 2
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.WARRIOR
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.WARRIOR
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
@@ -161,12 +173,14 @@ def test_matching_stored_count_does_not_steal_biggest_army(
     game.players[player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.WARRIOR] = 2
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.WARRIOR
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.WARRIOR
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
@@ -184,12 +198,14 @@ def test_more_warriors_than_stored_steals_biggest_army(
     game.players[player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.WARRIOR] = 3
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.WARRIOR
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.WARRIOR
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
@@ -205,12 +221,14 @@ def test_holder_playing_another_warrior_bumps_stored_count(
     game.players[player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.WARRIOR] = 3
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.WARRIOR
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.WARRIOR
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
@@ -223,12 +241,14 @@ def test_playing_legacy_to_ten_vp_ends_game(game: entities.Game) -> None:
     game.players[player].cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
@@ -246,12 +266,14 @@ def test_playing_legacy_below_ten_vp_stays_in_dice_roll(
     game.players[player].cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS
+    )
     result = actions.handle_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL

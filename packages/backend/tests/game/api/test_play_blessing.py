@@ -15,8 +15,6 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
-
     response = client.post(
         f"/games/{uuid.uuid4()}/wisdom-cards/blessing",
         json={
@@ -25,6 +23,7 @@ def test_returns_404_when_game_does_not_exist(
                 teyuna_shared.ResourceCard.STONE.value,
             ]
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 404, response.text
@@ -40,7 +39,6 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/blessing",
         json={
@@ -49,6 +47,7 @@ def test_returns_400_when_action_not_allowed(
                 teyuna_shared.ResourceCard.STONE.value,
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -64,7 +63,6 @@ def test_returns_400_when_called_during_mamo_phase(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/blessing",
         json={
@@ -73,6 +71,7 @@ def test_returns_400_when_called_during_mamo_phase(
                 teyuna_shared.ResourceCard.STONE.value,
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -84,7 +83,6 @@ def test_returns_400_when_player_not_in_turn(
 ) -> None:
     _, game_id, tokens, _, other = _setup_blessed_phase(app)
 
-    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/blessing",
         json={
@@ -93,6 +91,7 @@ def test_returns_400_when_player_not_in_turn(
                 teyuna_shared.ResourceCard.STONE.value,
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[other]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -107,7 +106,6 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/blessing",
         json={
@@ -116,6 +114,7 @@ def test_returns_501_when_phase_not_implemented(
                 teyuna_shared.ResourceCard.STONE.value,
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 501, response.text
@@ -132,7 +131,6 @@ def test_returns_400_when_supply_is_insufficient(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/blessing",
         json={
@@ -141,6 +139,7 @@ def test_returns_400_when_supply_is_insufficient(
                 teyuna_shared.ResourceCard.WOOD.value,
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -152,7 +151,6 @@ def test_takes_two_resources_from_supply(
 ) -> None:
     repository, game_id, tokens, active_player, _ = _setup_blessed_phase(app)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/blessing",
         json={
@@ -161,6 +159,7 @@ def test_takes_two_resources_from_supply(
                 teyuna_shared.ResourceCard.STONE.value,
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 200, response.text
@@ -180,7 +179,6 @@ def test_takes_two_resources_during_trade_and_build_play_blessed(
         app, phase=teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/wisdom-cards/blessing",
         json={
@@ -189,6 +187,7 @@ def test_takes_two_resources_during_trade_and_build_play_blessed(
                 teyuna_shared.ResourceCard.STONE.value,
             ]
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 200, response.text

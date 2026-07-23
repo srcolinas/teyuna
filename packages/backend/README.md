@@ -18,7 +18,7 @@ The FastAPI server exposes interactive OpenAPI docs when running:
 - ReDoc: http://127.0.0.1:8000/redoc
 - OpenAPI JSON: http://127.0.0.1:8000/openapi.json
 
-A short HTTP/SSE overview for agent authors is in [`docs/api-reference.md`](../../docs/api-reference.md). Game rules are documented in the root [`rulebook.md`](../../rulebook.md).
+A short HTTP/SSE overview for agent authors is in the interactive OpenAPI docs when the server is running (see above). Game rules are documented in [`docs/rulebook.md`](../../docs/rulebook.md).
 
 ## Extra guidelines:
 

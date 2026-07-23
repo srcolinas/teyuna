@@ -15,11 +15,10 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
-
     response = client.post(
         f"/games/{uuid.uuid4()}/trades/supply",
         json={"offers": "gold", "requests": "stone"},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 404, response.text
@@ -35,10 +34,10 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades/supply",
         json={"offers": "gold", "requests": "stone"},
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -53,10 +52,10 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades/supply",
         json={"offers": "gold", "requests": "stone"},
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 501, response.text
@@ -74,10 +73,10 @@ def test_returns_400_when_player_not_in_turn(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/trades/supply",
         json={"offers": "gold", "requests": "stone"},
+        headers={"Authorization": f"Bearer {tokens[other]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -89,10 +88,10 @@ def test_returns_400_when_insufficient_resources(
 ) -> None:
     _, game_id, tokens, active_player = _setup_trade_and_build(app, grant_offer=False)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades/supply",
         json={"offers": "gold", "requests": "stone"},
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -109,10 +108,10 @@ def test_returns_400_when_supply_is_empty(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades/supply",
         json={"offers": "gold", "requests": "stone"},
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -124,10 +123,10 @@ def test_trades_with_supply_at_default_rate(
 ) -> None:
     repository, game_id, tokens, active_player = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades/supply",
         json={"offers": "gold", "requests": "stone"},
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 200, response.text

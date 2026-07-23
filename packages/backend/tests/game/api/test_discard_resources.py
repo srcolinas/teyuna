@@ -15,11 +15,10 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
-
     response = client.post(
         f"/games/{uuid.uuid4()}/discard",
         json={"count": {"wood": 4}},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 404, response.text
@@ -34,10 +33,10 @@ def test_returns_400_when_player_not_required_to_discard(
     game.to_discard_resources = {other: 4}
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
     response = client.post(
         f"/games/{game_id}/discard",
         json={"count": {"wood": 4}},
+        headers={"Authorization": f"Bearer {tokens[player_nick]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -55,10 +54,10 @@ def test_returns_400_when_discard_count_is_wrong(
     )
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
     response = client.post(
         f"/games/{game_id}/discard",
         json={"count": {"wood": 5}},
+        headers={"Authorization": f"Bearer {tokens[player_nick]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -73,10 +72,10 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[player_nick])
     response = client.post(
         f"/games/{game_id}/discard",
         json={"count": {"wood": 4}},
+        headers={"Authorization": f"Bearer {tokens[player_nick]}"},
     )
 
     assert response.status_code == 501, response.text
@@ -94,10 +93,10 @@ def test_discards_and_stays_in_phase_when_others_remain(
     )
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
     response = client.post(
         f"/games/{game_id}/discard",
         json={"count": {"wood": 4}},
+        headers={"Authorization": f"Bearer {tokens[player_nick]}"},
     )
 
     assert response.status_code == 200, response.text
@@ -122,10 +121,10 @@ def test_last_discard_moves_to_move_conquistator(
     )
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[player_nick])
     response = client.post(
         f"/games/{game_id}/discard",
         json={"count": {"wood": 2, "gold": 2}},
+        headers={"Authorization": f"Bearer {tokens[player_nick]}"},
     )
 
     assert response.status_code == 200, response.text

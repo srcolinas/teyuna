@@ -33,7 +33,7 @@ def test_status_code(
     assert response.status_code == 400, response.text
 
 
-def test_identifty_token_is_retrieved(client: testclient.TestClient) -> None:
+def test_identity_token_is_retrieved(client: testclient.TestClient) -> None:
     num_players = 3
     response = client.post("/games", json={"num_players": num_players})
     game_id = response.json()["id"]
@@ -42,10 +42,11 @@ def test_identifty_token_is_retrieved(client: testclient.TestClient) -> None:
         response = client.post(
             f"/games/{game_id}/players", json={"nickname": f"srcolinas-{i}"}
         )
-        header = response.headers["Set-Cookie"]
-        assert "HttpOnly" in header, header
-        assert "session-token" in client.cookies, client.cookies
-        secrets.add(client.cookies["session-token"])
+        body = response.json()
+        assert "token" in body, body
+        assert body["token"], body
+        assert "Set-Cookie" not in response.headers
+        secrets.add(body["token"])
     assert len(secrets) == num_players
 
 
@@ -67,10 +68,11 @@ def test_player_can_be_added_before_expiration(
     game_id = game_repository.add(game)
     response = client.post(f"/games/{game_id}/players", json={"nickname": "srcolinas"})
     assert response.status_code == 200, response.text
-    nicknames = {p["nickname"] for p in response.json()["players"]}
+    game = response.json()["game"]
+    nicknames = {p["nickname"] for p in game["players"]}
     assert "srcolinas" in nicknames
-    assert response.json()["available_slots"] == 2
-    assert response.json()["phase"] == teyuna_shared.GamePhaseName.LOBBY
+    assert game["available_slots"] == 2
+    assert game["phase"] == teyuna_shared.GamePhaseName.LOBBY
 
 
 def test_player_cannot_be_added_after_lobby_timeout(
@@ -126,11 +128,11 @@ def test_full_game_starts(client: testclient.TestClient) -> None:
     for nickname in players[:-1]:
         response = client.post(f"/games/{game_id}/players", json={"nickname": nickname})
         assert response.status_code == 200, response.text
-        assert response.json()["phase"] == teyuna_shared.GamePhaseName.LOBBY
+        assert response.json()["game"]["phase"] == teyuna_shared.GamePhaseName.LOBBY
 
     response = client.post(f"/games/{game_id}/players", json={"nickname": players[-1]})
     assert response.status_code == 200, response.text
-    payload = response.json()
+    payload = response.json()["game"]
     assert payload["id"] == game_id
     assert payload["phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT
 
@@ -148,7 +150,9 @@ def test_early_joiner_can_retrieve_game_by_same_id(
     client.post(f"/games/{game_id}/players", json={"nickname": "mid"})
     response = client.post(f"/games/{game_id}/players", json={"nickname": "last"})
     assert response.status_code == 200, response.text
-    assert response.json()["phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    assert (
+        response.json()["game"]["phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    )
 
     response = client.get(f"/games/{game_id}")
     assert response.status_code == 200, response.text
@@ -167,9 +171,13 @@ def test_map_available_while_in_lobby(client: testclient.TestClient) -> None:
 def test_action_fails_while_in_lobby(client: testclient.TestClient) -> None:
     response = client.post("/games", json={"num_players": 3})
     game_id = response.json()["id"]
-    client.post(f"/games/{game_id}/players", json={"nickname": "only"})
+    response = client.post(f"/games/{game_id}/players", json={"nickname": "only"})
+    token = response.json()["token"]
 
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(
+        f"/games/{game_id}/turn-order",
+        headers={"Authorization": f"Bearer {token}"},
+    )
     assert response.status_code == 400, response.text
     assert response.json()["detail"] == "game is not active"
 
@@ -195,8 +203,8 @@ def test_not_full_game_stays_in_lobby(client: testclient.TestClient) -> None:
             json={"nickname": f"srcolinas-{i}"},
         )
         assert response.status_code == 200, response.text
-        assert response.json()["phase"] == teyuna_shared.GamePhaseName.LOBBY
-        assert response.json()["turn_order"] == []
+        assert response.json()["game"]["phase"] == teyuna_shared.GamePhaseName.LOBBY
+        assert response.json()["game"]["turn_order"] == []
 
 
 def test_cannot_join_nonexistent_game(client: testclient.TestClient) -> None:

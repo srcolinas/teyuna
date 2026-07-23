@@ -29,7 +29,7 @@ sequenceDiagram
     Game Server->>Player B: Notifies about move
     Game Server->>Viewer: Notifies about move
     deactivate Game Server
-    Note over Player A, Viewer: All interactions from any players are sent to other players and viewers using websockets
+    Note over Player A, Viewer: All interactions from any players are sent to other players and viewers using server-sent events (SSE)
 ```
 
 To achieve this we need the following componts:

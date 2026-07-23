@@ -26,14 +26,16 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
         }
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=other,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=other,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.item is None
     assert result.coordinate is None
@@ -58,14 +60,16 @@ def test_builds_terrace_spends_resources_and_stays_in_phase(
         }
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -97,13 +101,15 @@ def test_builds_path_spends_resources_and_stays_in_phase(
         }
     )
 
+    action = teyuna_shared.BuildPathAction(
+        by=player,
+        coordinate=path,
+    )
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(
-            by=player,
-            coordinate=path,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -131,10 +137,12 @@ def test_builds_path_chained_from_owned_path(game: entities.Game) -> None:
         }
     )
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=adjacent)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=adjacent),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -164,10 +172,12 @@ def test_raises_invalid_path_location_when_disconnected(
         free_edges=game.free_edges,
     )
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=disconnected)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=disconnected),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.coordinate is None
 
@@ -197,10 +207,12 @@ def test_raises_invalid_path_location_when_already_taken(
         free_edges=game.free_edges,
     )
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=path)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=path),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.coordinate is None
 
@@ -218,14 +230,16 @@ def test_builds_great_terrace_upgrades_and_stays_in_phase(
         }
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.GREAT_TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.GREAT_TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -257,14 +271,16 @@ def test_building_terrace_to_ten_vp_ends_game(game: entities.Game) -> None:
         }
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
@@ -286,14 +302,16 @@ def test_building_great_terrace_to_ten_vp_ends_game(
         }
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.GREAT_TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.GREAT_TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
@@ -316,10 +334,12 @@ def test_building_path_at_ten_vp_ends_game(game: entities.Game) -> None:
         }
     )
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=path)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=path),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
@@ -343,10 +363,12 @@ def test_building_path_below_ten_vp_stays_in_phase(
         }
     )
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=path)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=path),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -363,14 +385,16 @@ def test_raises_insufficient_resources_for_terrace(
     )
     game.players[player].paths.add(path)
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == "Insufficient stone to build"
     assert result.item is None
     assert result.coordinate is None
@@ -383,14 +407,16 @@ def test_raises_insufficient_resources_for_great_terrace(
     terrace = teyuna_shared.canonical_vertex(0, 0, 0)
     game.players[player].settlements[terrace] = teyuna_shared.SettlementType.TERRACE
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.GREAT_TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.GREAT_TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == "Insufficient gold to build"
     assert result.item is None
     assert result.coordinate is None
@@ -418,14 +444,16 @@ def test_raises_invalid_settlement_location_without_path(
         existing_paths=player_state.paths,
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.item is None
     assert result.coordinate is None
@@ -464,14 +492,16 @@ def test_raises_invalid_settlement_location_when_restricted(
         existing_paths=player_state.paths,
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=restricted,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=restricted,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.item is None
     assert result.coordinate is None
@@ -504,14 +534,16 @@ def test_raises_invalid_settlement_location_when_occupied(
         existing_paths=player_state.paths,
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.item is None
     assert result.coordinate is None
@@ -537,14 +569,16 @@ def test_raises_when_terrace_cap_reached(game: entities.Game) -> None:
             teyuna_shared.Coordinate(q=9, r=i // 6, d=i % 6)
         ] = teyuna_shared.SettlementType.TERRACE
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == "No terraces remaining"
     assert result.item is None
     assert result.coordinate is None
@@ -565,14 +599,16 @@ def test_raises_when_great_terrace_cap_reached(game: entities.Game) -> None:
             teyuna_shared.Coordinate(q=9, r=i // 6, d=i % 6)
         ] = teyuna_shared.SettlementType.GREAT_TERRACE
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.GREAT_TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.GREAT_TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == "No great terraces remaining"
     assert result.item is None
     assert result.coordinate is None
@@ -598,14 +634,16 @@ def test_raises_when_upgrading_without_terrace(game: entities.Game) -> None:
         reason="You must first build a terrace at specified location.",
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.GREAT_TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.GREAT_TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.item is None
     assert result.coordinate is None
@@ -634,14 +672,16 @@ def test_raises_when_already_great_terrace(game: entities.Game) -> None:
         reason="You have already built a great terrace at specified location.",
     )
 
+    action = teyuna_shared.BuildSettlementAction(
+        by=player,
+        item=teyuna_shared.SettlementType.GREAT_TERRACE,
+        coordinate=terrace,
+    )
     result = actions.handle_build_terrace(
         game,
-        teyuna_shared.BuildSettlementAction(
-            by=player,
-            item=teyuna_shared.SettlementType.GREAT_TERRACE,
-            coordinate=terrace,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == expected
     assert result.item is None
     assert result.coordinate is None
@@ -663,10 +703,12 @@ def test_raises_when_path_cap_reached(game: entities.Game) -> None:
     for i in range(teyuna_shared.MAX_PATHS):
         game.players[player].paths.add(teyuna_shared.Coordinate(q=9, r=i // 6, d=i % 6))
 
+    action = teyuna_shared.BuildPathAction(by=player, coordinate=path)
     result = actions.handle_build_path(
         game,
-        teyuna_shared.BuildPathAction(by=player, coordinate=path),
+        action,
     )
+    assert result.action == action
     assert result.error == "No paths remaining"
     assert result.coordinate is None
 
@@ -677,10 +719,12 @@ def test_end_turn_advances_player_and_returns_to_dice_roll(
     game.player_idx = 0
     player = game.active_player
 
+    action = teyuna_shared.PlayerAction(by=player)
     result = actions.handle_end_trade_and_build(
         game,
-        teyuna_shared.PlayerAction(by=player),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -696,10 +740,12 @@ def test_end_turn_promotes_cards_bought_this_turn(
     card = teyuna_shared.WisdomCard.WARRIOR
     game.players[player].cards_bought_this_turn[card] = 1
 
+    action = teyuna_shared.PlayerAction(by=player)
     result = actions.handle_end_trade_and_build(
         game,
-        teyuna_shared.PlayerAction(by=player),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -712,10 +758,12 @@ def test_end_turn_wraps_to_first_player(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     player = game.active_player
 
+    action = teyuna_shared.PlayerAction(by=player)
     result = actions.handle_end_trade_and_build(
         game,
-        teyuna_shared.PlayerAction(by=player),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -735,10 +783,12 @@ def test_end_turn_clears_trade_proposals(game: entities.Game) -> None:
         )
     }
 
+    action = teyuna_shared.PlayerAction(by=player)
     result = actions.handle_end_trade_and_build(
         game,
-        teyuna_shared.PlayerAction(by=player),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
@@ -750,10 +800,12 @@ def test_end_turn_raises_when_player_not_in_turn(
     game: entities.Game,
 ) -> None:
     other = game.turn_order[1]
+    action = teyuna_shared.PlayerAction(by=other)
     result = actions.handle_end_trade_and_build(
         game,
-        teyuna_shared.PlayerAction(by=other),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.next_player == ""
 
@@ -773,10 +825,12 @@ def test_play_wisdom_card_raises_when_player_does_not_have_card(
     card: teyuna_shared.WisdomCard,
 ) -> None:
     player = game.active_player
+    action = teyuna_shared.PlayWisdomCardAction(by=player, card=card)
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(by=player, card=card),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {player} does not have card {card.value}"
     assert result.card is None
 
@@ -787,13 +841,15 @@ def test_play_wisdom_card_raises_when_player_not_in_turn(
     game.players[game.active_player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     other = game.turn_order[1]
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=other,
+        card=teyuna_shared.WisdomCard.WARRIOR,
+    )
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=other,
-            card=teyuna_shared.WisdomCard.WARRIOR,
-        ),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.card is None
 
@@ -809,12 +865,14 @@ def test_play_wisdom_card_raises_when_card_cannot_be_played(
     unknown_card = _UnplayableCard.UNKNOWN
     game.players[player].cards[unknown_card] = 1  # type: ignore[index]
 
+    action = teyuna_shared.PlayWisdomCardAction.model_construct(
+        by=player, card=unknown_card
+    )
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction.model_construct(
-            by=player, card=unknown_card
-        ),
+        action,
     )
+    assert result.action == action
     assert (
         result.error
         == "Card 'unknown card' cannot be played during the trade and build phase."
@@ -855,10 +913,12 @@ def test_play_wisdom_card_transitions_to_expected_phase(
     player = game.active_player
     game.players[player].cards[card] = 1
 
+    action = teyuna_shared.PlayWisdomCardAction(by=player, card=card)
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(by=player, card=card),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is expected_phase
@@ -872,12 +932,14 @@ def test_playing_legacy_to_ten_vp_ends_game(game: entities.Game) -> None:
     game.players[player].cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS
+    )
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
@@ -895,12 +957,14 @@ def test_playing_third_warrior_claims_biggest_army(
     game.players[player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[teyuna_shared.WisdomCard.WARRIOR] = 2
 
+    action = teyuna_shared.PlayWisdomCardAction(
+        by=player, card=teyuna_shared.WisdomCard.WARRIOR
+    )
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
-        teyuna_shared.PlayWisdomCardAction(
-            by=player, card=teyuna_shared.WisdomCard.WARRIOR
-        ),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
@@ -926,10 +990,12 @@ def test_buy_wisdom_card_spends_resources_and_draws_top(
         resource: game.resource_supply[resource] for resource in _WISDOM_CARD_COST
     }
 
+    action = teyuna_shared.BuyWisdomCardAction(by=player)
     result = actions.handle_buy_wisdom_card(
         game,
-        teyuna_shared.BuyWisdomCardAction(by=player),
+        action,
     )
+    assert result.action == action
 
     assert result.error is None
     assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
@@ -955,10 +1021,12 @@ def test_buy_wisdom_card_raises_when_insufficient_resources(
         }
     )
 
+    action = teyuna_shared.BuyWisdomCardAction(by=player)
     result = actions.handle_buy_wisdom_card(
         game,
-        teyuna_shared.BuyWisdomCardAction(by=player),
+        action,
     )
+    assert result.action == action
     assert result.error == "Insufficient cotton to build"
     assert result.card is None
 
@@ -970,10 +1038,12 @@ def test_buy_wisdom_card_raises_when_deck_is_empty(
     game.wisdom_deck = []
     game.players[player].resources.update(_WISDOM_CARD_COST)
 
+    action = teyuna_shared.BuyWisdomCardAction(by=player)
     result = actions.handle_buy_wisdom_card(
         game,
-        teyuna_shared.BuyWisdomCardAction(by=player),
+        action,
     )
+    assert result.action == action
     assert result.error == "Cannot buy more wisdom cards"
     assert result.card is None
 
@@ -985,9 +1055,11 @@ def test_buy_wisdom_card_raises_when_player_not_in_turn(
     game.wisdom_deck = [teyuna_shared.WisdomCard.WARRIOR]
     game.players[other].resources.update(_WISDOM_CARD_COST)
 
+    action = teyuna_shared.BuyWisdomCardAction(by=other)
     result = actions.handle_buy_wisdom_card(
         game,
-        teyuna_shared.BuyWisdomCardAction(by=other),
+        action,
     )
+    assert result.action == action
     assert result.error == f"Player {other} is not in turn"
     assert result.card is None

@@ -42,20 +42,14 @@ services:
       retries: 5
       start_period: 30s
 
-  players:
+  frontend:
     build:
       context: .
-      dockerfile: docker/players.Dockerfile
+      dockerfile: docker/frontend.Dockerfile
       args:
-        UV_VERSION: ${UV_VERSION:-0.11.26}
-        PYTHON_VERSION: ${PYTHON_VERSION:-3.14.6}
-        PYTHON_MINOR: ${PYTHON_MINOR:-3.14}
-    environment:
-      NUM_PLAYERS: ${NUM_PLAYERS:-3}
-      TEYUNA_HOST: http://backend:8000
-      TEYUNA_LOG_ROOT: /var/log/teyuna
-    volumes:
-      - ./logs:/var/log/teyuna
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
     depends_on:
       backend:
         condition: service_healthy

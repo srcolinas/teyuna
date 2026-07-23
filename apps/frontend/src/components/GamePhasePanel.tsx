@@ -1,4 +1,3 @@
-
 interface GamePhasePanelProps {
   phase: string
   activePlayer: string
@@ -45,24 +44,68 @@ export default function GamePhasePanel({
       </div>
 
       <div className="space-y-2">
-        {isPlacement && <p className="text-sm text-gray-700">Click an empty board corner, then an adjacent edge.</p>}
-        {isMoveConquistator && <p className="text-sm text-gray-700">Click a different hex to move the conquistator.</p>}
+        {isPlacement && (
+          <p className="text-sm text-gray-700">
+            Click an empty board corner, then an adjacent edge.
+          </p>
+        )}
+        {isMoveConquistator && (
+          <p className="text-sm text-gray-700">Click a different hex to move the conquistator.</p>
+        )}
 
         {isDiceRoll && (
-          <button onClick={onRollDice} disabled={!isCurrentPlayerActive || loading} className="w-full px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:bg-gray-300 font-semibold">🎲 Roll Dice</button>
+          <button
+            onClick={onRollDice}
+            disabled={!isCurrentPlayerActive || loading}
+            className="w-full px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:bg-gray-300 font-semibold"
+          >
+            🎲 Roll Dice
+          </button>
         )}
 
         {isTradeAndBuild && (
           <>
-            <button onClick={() => onChooseBuild('terrace')} disabled={!isCurrentPlayerActive || loading} className="w-full px-4 py-2 bg-emerald-600 text-white rounded disabled:bg-gray-300 font-semibold">Build Terrace</button>
-            <button onClick={() => onChooseBuild('great terrace')} disabled={!isCurrentPlayerActive || loading} className="w-full px-4 py-2 bg-teal-700 text-white rounded disabled:bg-gray-300 font-semibold">Upgrade to Great Terrace</button>
-            <button onClick={() => onChooseBuild('path')} disabled={!isCurrentPlayerActive || loading} className="w-full px-4 py-2 bg-stone-600 text-white rounded disabled:bg-gray-300 font-semibold">Build Path</button>
-            <button onClick={onBuyWisdomCard} disabled={!isCurrentPlayerActive || loading} className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 font-semibold">🃏 Buy Wisdom Card</button>
-            <button onClick={onAdvanceTurn} disabled={!isCurrentPlayerActive || loading} className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 font-semibold">➡️ End Turn</button>
+            <button
+              onClick={() => onChooseBuild('terrace')}
+              disabled={!isCurrentPlayerActive || loading}
+              className="w-full px-4 py-2 bg-emerald-600 text-white rounded disabled:bg-gray-300 font-semibold"
+            >
+              Build Terrace
+            </button>
+            <button
+              onClick={() => onChooseBuild('great terrace')}
+              disabled={!isCurrentPlayerActive || loading}
+              className="w-full px-4 py-2 bg-teal-700 text-white rounded disabled:bg-gray-300 font-semibold"
+            >
+              Upgrade to Great Terrace
+            </button>
+            <button
+              onClick={() => onChooseBuild('path')}
+              disabled={!isCurrentPlayerActive || loading}
+              className="w-full px-4 py-2 bg-stone-600 text-white rounded disabled:bg-gray-300 font-semibold"
+            >
+              Build Path
+            </button>
+            <button
+              onClick={onBuyWisdomCard}
+              disabled={!isCurrentPlayerActive || loading}
+              className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 font-semibold"
+            >
+              🃏 Buy Wisdom Card
+            </button>
+            <button
+              onClick={onAdvanceTurn}
+              disabled={!isCurrentPlayerActive || loading}
+              className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 font-semibold"
+            >
+              ➡️ End Turn
+            </button>
           </>
         )}
 
-        {!isCurrentPlayerActive && activePlayer && <p className="text-sm text-amber-700">Waiting for {activePlayer}.</p>}
+        {!isCurrentPlayerActive && activePlayer && (
+          <p className="text-sm text-amber-700">Waiting for {activePlayer}.</p>
+        )}
       </div>
 
       {loading && (

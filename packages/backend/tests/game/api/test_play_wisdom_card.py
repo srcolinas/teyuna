@@ -16,11 +16,10 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
-
     response = client.post(
         f"/games/{uuid.uuid4()}/wisdom-cards",
         json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 404, response.text
@@ -38,10 +37,10 @@ def test_returns_400_when_action_not_allowed(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
     response = client.post(
         f"/games/{game_id}/wisdom-cards",
         json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 400, response.text
@@ -63,10 +62,10 @@ def test_returns_501_when_phase_not_implemented(
     )
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
     response = client.post(
         f"/games/{game_id}/wisdom-cards",
         json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 501, response.text
@@ -86,10 +85,10 @@ def test_returns_400_when_player_not_in_turn(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(other)
 
-    client.cookies.set("session-token", token)
     response = client.post(
         f"/games/{game_id}/wisdom-cards",
         json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 400, response.text
@@ -107,10 +106,10 @@ def test_returns_400_when_player_does_not_have_card(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
     response = client.post(
         f"/games/{game_id}/wisdom-cards",
         json={"card": teyuna_shared.WisdomCard.WARRIOR.value},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 400, response.text
@@ -156,10 +155,10 @@ def test_plays_card_during_trade_and_build(
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
     response = client.post(
         f"/games/{game_id}/wisdom-cards",
         json={"card": card.value},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 200, response.text

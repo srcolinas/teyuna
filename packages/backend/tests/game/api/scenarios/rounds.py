@@ -34,8 +34,10 @@ def advance_phase(
     game_id: uuid.UUID,
     token: Token,
 ) -> tuple[teyuna_shared.GamePhaseName, player.Nickname]:
-    client.cookies["session-token"] = token
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(
+        f"/games/{game_id}/turn-order",
+        headers=utils.auth_headers(token),
+    )
     assert response.status_code == 200, pprint.pformat(response.text)
     state, active_player = response.json()
     return state, active_player

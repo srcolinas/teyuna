@@ -15,9 +15,10 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
-
-    response = client.post(f"/games/{uuid.uuid4()}/trades/{uuid.uuid4()}/accept")
+    response = client.post(
+        f"/games/{uuid.uuid4()}/trades/{uuid.uuid4()}/accept",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
     assert response.status_code == 404, response.text
 
@@ -32,8 +33,10 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = client.post(
+        f"/games/{game_id}/trades/{proposal_id}/accept",
+        headers={"Authorization": f"Bearer {tokens[accepts]}"},
+    )
 
     assert response.status_code == 400, response.text
 
@@ -47,8 +50,10 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = client.post(
+        f"/games/{game_id}/trades/{proposal_id}/accept",
+        headers={"Authorization": f"Bearer {tokens[accepts]}"},
+    )
 
     assert response.status_code == 501, response.text
 
@@ -59,8 +64,10 @@ def test_returns_400_when_proposal_not_found(
 ) -> None:
     _, game_id, tokens, _, accepts, _ = _setup_with_proposal(app)
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{uuid.uuid4()}/accept")
+    response = client.post(
+        f"/games/{game_id}/trades/{uuid.uuid4()}/accept",
+        headers={"Authorization": f"Bearer {tokens[accepts]}"},
+    )
 
     assert response.status_code == 400, response.text
 
@@ -72,8 +79,10 @@ def test_returns_400_when_not_addressed_to_player(
     repository, game_id, tokens, _, _, proposal_id = _setup_with_proposal(app)
     outsider = repository.retrieve(game_id).turn_order[2]
 
-    client.cookies.set("session-token", tokens[outsider])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = client.post(
+        f"/games/{game_id}/trades/{proposal_id}/accept",
+        headers={"Authorization": f"Bearer {tokens[outsider]}"},
+    )
 
     assert response.status_code == 400, response.text
 
@@ -86,8 +95,10 @@ def test_returns_400_when_insufficient_resources(
         app, grant_request=False
     )
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = client.post(
+        f"/games/{game_id}/trades/{proposal_id}/accept",
+        headers={"Authorization": f"Bearer {tokens[accepts]}"},
+    )
 
     assert response.status_code == 400, response.text
 
@@ -100,8 +111,10 @@ def test_accepts_trade(
         app
     )
 
-    client.cookies.set("session-token", tokens[accepts])
-    response = client.post(f"/games/{game_id}/trades/{proposal_id}/accept")
+    response = client.post(
+        f"/games/{game_id}/trades/{proposal_id}/accept",
+        headers={"Authorization": f"Bearer {tokens[accepts]}"},
+    )
 
     assert response.status_code == 200, response.text
     assert response.json() == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value

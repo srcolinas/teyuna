@@ -15,8 +15,6 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
-
     response = client.post(
         f"/games/{uuid.uuid4()}/trades",
         json={
@@ -24,6 +22,7 @@ def test_returns_404_when_game_does_not_exist(
             "request": {"stone": 1},
             "to": ["srcolinas-1"],
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 404, response.text
@@ -39,7 +38,6 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -47,6 +45,7 @@ def test_returns_400_when_action_not_allowed(
             "request": {"stone": 1},
             "to": [other],
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -61,7 +60,6 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -69,6 +67,7 @@ def test_returns_501_when_phase_not_implemented(
             "request": {"stone": 1},
             "to": [other],
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 501, response.text
@@ -82,7 +81,6 @@ def test_returns_400_when_insufficient_resources(
         app, grant_offer=False
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -90,6 +88,7 @@ def test_returns_400_when_insufficient_resources(
             "request": {"stone": 1},
             "to": [other],
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -101,7 +100,6 @@ def test_returns_400_when_targets_are_empty(
 ) -> None:
     _, game_id, tokens, active_player, _ = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -109,6 +107,7 @@ def test_returns_400_when_targets_are_empty(
             "request": {"stone": 1},
             "to": [],
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -120,7 +119,6 @@ def test_proposes_trade(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -128,6 +126,7 @@ def test_proposes_trade(
             "request": {"stone": 1},
             "to": [other],
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 200, response.text
@@ -163,7 +162,6 @@ def test_non_active_player_can_propose(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -171,6 +169,7 @@ def test_non_active_player_can_propose(
             "request": {"stone": 1},
             "to": [active_player],
         },
+        headers={"Authorization": f"Bearer {tokens[other]}"},
     )
 
     assert response.status_code == 200, response.text
@@ -206,7 +205,6 @@ def test_non_active_player_can_propose_during_dice_roll(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -214,6 +212,7 @@ def test_non_active_player_can_propose_during_dice_roll(
             "request": {"stone": 1},
             "to": [active_player],
         },
+        headers={"Authorization": f"Bearer {tokens[other]}"},
     )
 
     assert response.status_code == 200, response.text
@@ -242,7 +241,6 @@ def test_non_active_player_cannot_propose_to_non_active(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/trades",
         json={
@@ -250,6 +248,7 @@ def test_non_active_player_cannot_propose_to_non_active(
             "request": {"stone": 1},
             "to": [third],
         },
+        headers={"Authorization": f"Bearer {tokens[other]}"},
     )
 
     assert response.status_code == 400, response.text

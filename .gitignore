@@ -14,3 +14,6 @@ logs/
 **/.coverage.*
 **/htmlcov/
 **/coverage.xml
+
+
+.pnpm-store/

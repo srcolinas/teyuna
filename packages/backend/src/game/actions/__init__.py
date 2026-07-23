@@ -24,6 +24,7 @@ from .handlers._trade import (
     handle_propose_trade,
     handle_trade_with_supply,
 )
+from .handlers._message import handle_sent_message
 from .handlers._trade_and_build import (
     handle_build_terrace,
     handle_build_path,
@@ -57,6 +58,7 @@ __all__ = [
     "handle_first_placement",
     "handle_play_wisdom_card",
     "handle_propose_trade",
+    "handle_sent_message",
     "handle_trade_and_build_play_wisdom_card",
     "handle_trade_with_supply",
     "handle_dice_play_blessed",

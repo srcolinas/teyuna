@@ -20,7 +20,6 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
     terrace = teyuna_shared.canonical_vertex(0, 0, 0)
 
     response = client.post(
@@ -32,6 +31,7 @@ def test_returns_404_when_game_does_not_exist(
                 "direction": terrace.d,
             },
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 404, response.text
@@ -43,7 +43,6 @@ def test_returns_400_when_player_not_in_turn(
 ) -> None:
     repository, game_id, tokens, _, other, terrace = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[other])
     response = client.post(
         f"/games/{game_id}/settlements",
         json={
@@ -53,6 +52,7 @@ def test_returns_400_when_player_not_in_turn(
                 "direction": terrace.d,
             },
         },
+        headers={"Authorization": f"Bearer {tokens[other]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -64,7 +64,6 @@ def test_builds_terrace_and_returns_settlement(
 ) -> None:
     repository, game_id, tokens, active_player, _, terrace = _setup_trade_and_build(app)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/settlements",
         json={
@@ -74,6 +73,7 @@ def test_builds_terrace_and_returns_settlement(
                 "direction": terrace.d,
             },
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 200, response.text
@@ -106,7 +106,6 @@ def test_returns_400_when_insufficient_resources(
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
     response = client.post(
         f"/games/{game_id}/settlements",
         json={
@@ -116,6 +115,7 @@ def test_returns_400_when_insufficient_resources(
                 "direction": terrace.d,
             },
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 400, response.text
@@ -131,7 +131,6 @@ def test_returns_400_when_action_not_allowed(
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/settlements",
         json={
@@ -141,6 +140,7 @@ def test_returns_400_when_action_not_allowed(
                 "direction": terrace.d,
             },
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 400, response.text
@@ -155,7 +155,6 @@ def test_returns_501_when_phase_not_implemented(
         actions.ActionsRegistry()
     )
 
-    client.cookies.set("session-token", tokens[active_player])
     response = client.post(
         f"/games/{game_id}/settlements",
         json={
@@ -165,6 +164,7 @@ def test_returns_501_when_phase_not_implemented(
                 "direction": terrace.d,
             },
         },
+        headers={"Authorization": f"Bearer {tokens[active_player]}"},
     )
 
     assert response.status_code == 501, response.text
@@ -191,7 +191,6 @@ def test_returns_400_when_invalid_settlement_location(
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
     response = client.post(
         f"/games/{game_id}/settlements",
         json={
@@ -201,6 +200,7 @@ def test_returns_400_when_invalid_settlement_location(
                 "direction": terrace.d,
             },
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 400, response.text

@@ -3,8 +3,8 @@ import { Hex } from './types'
 const HEX_SIZE = 60
 
 export function hexToPixel(q: number, r: number): { x: number; y: number } {
-  const x = HEX_SIZE * (3 / 2 * q)
-  const y = HEX_SIZE * (Math.sqrt(3) / 2 * q + Math.sqrt(3) * r)
+  const x = HEX_SIZE * ((3 / 2) * q)
+  const y = HEX_SIZE * ((Math.sqrt(3) / 2) * q + Math.sqrt(3) * r)
   return { x, y }
 }
 
@@ -26,7 +26,10 @@ export function getHexCenter(q: number, r: number): { x: number; y: number } {
   return hexToPixel(q, r)
 }
 
-export function getHexEdges(q: number, r: number): Array<{ x: number; y: number; direction: number }> {
+export function getHexEdges(
+  q: number,
+  r: number,
+): Array<{ x: number; y: number; direction: number }> {
   const vertices = getHexVertices(q, r)
   const edges = []
 
@@ -43,7 +46,11 @@ export function getHexEdges(q: number, r: number): Array<{ x: number; y: number;
   return edges
 }
 
-export function getHexVertexCoord(q: number, r: number, direction: number): { x: number; y: number } {
+export function getHexVertexCoord(
+  q: number,
+  r: number,
+  direction: number,
+): { x: number; y: number } {
   const vertices = getHexVertices(q, r)
   return { x: vertices[direction][0], y: vertices[direction][1] }
 }
@@ -54,7 +61,7 @@ export function getBoardOffset(hexes: Hex[]): { offsetX: number; offsetY: number
   let minY = Infinity
   let maxY = -Infinity
 
-  hexes.forEach(hex => {
+  hexes.forEach((hex) => {
     const { x, y } = hexToPixel(hex.coordinate.q, hex.coordinate.r)
     minX = Math.min(minX, x)
     maxX = Math.max(maxX, x)

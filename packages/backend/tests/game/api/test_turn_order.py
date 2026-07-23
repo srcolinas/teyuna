@@ -20,37 +20,6 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    client.cookies.set("session-token", token)
-
-    response = client.post(f"/games/{uuid.uuid4()}/turn-order")
-
-    assert response.status_code == 404, response.text
-
-
-def test_returns_401_when_session_cookie_missing(
-    client: testclient.TestClient,
-) -> None:
-    response = client.post(f"/games/{uuid.uuid4()}/turn-order")
-
-    assert response.status_code == 401, response.text
-    assert response.json()["detail"] == "invalid token"
-
-
-def test_returns_401_when_session_token_unknown(
-    client: testclient.TestClient,
-) -> None:
-    client.cookies.set("session-token", "not-a-real-token")
-    response = client.post(f"/games/{uuid.uuid4()}/turn-order")
-
-    assert response.status_code == 401, response.text
-    assert response.json()["detail"] == "player not found"
-
-
-def test_accepts_bearer_token_authentication(
-    client: testclient.TestClient,
-) -> None:
-    token = player.service().add("srcolinas-0")
-
     response = client.post(
         f"/games/{uuid.uuid4()}/turn-order",
         headers={"Authorization": f"Bearer {token}"},
@@ -59,10 +28,30 @@ def test_accepts_bearer_token_authentication(
     assert response.status_code == 404, response.text
 
 
-def test_bearer_token_takes_precedence_over_cookie(
+def test_returns_401_when_authorization_missing(
     client: testclient.TestClient,
 ) -> None:
-    client.cookies.set("session-token", "invalid-cookie")
+    response = client.post(f"/games/{uuid.uuid4()}/turn-order")
+
+    assert response.status_code == 401, response.text
+    assert response.json()["detail"] == "invalid token"
+
+
+def test_returns_401_when_bearer_token_unknown(
+    client: testclient.TestClient,
+) -> None:
+    response = client.post(
+        f"/games/{uuid.uuid4()}/turn-order",
+        headers={"Authorization": "Bearer not-a-real-token"},
+    )
+
+    assert response.status_code == 401, response.text
+    assert response.json()["detail"] == "player not found"
+
+
+def test_accepts_bearer_token_authentication(
+    client: testclient.TestClient,
+) -> None:
     token = player.service().add("srcolinas-0")
 
     response = client.post(
@@ -145,8 +134,9 @@ def test_returns_400_when_action_not_allowed(
     app.dependency_overrides[dependencies.get_repository] = lambda: repository
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(
+        f"/games/{game_id}/turn-order", headers={"Authorization": f"Bearer {token}"}
+    )
 
     assert response.status_code == 400, response.text
 
@@ -168,8 +158,9 @@ def test_returns_501_when_phase_not_implemented(
     )
     token = player.service().add(game.active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(
+        f"/games/{game_id}/turn-order", headers={"Authorization": f"Bearer {token}"}
+    )
 
     assert response.status_code == 501, response.text
 
@@ -189,8 +180,9 @@ def test_returns_400_when_player_not_in_turn(
     other = game.turn_order[1]
     token = player.service().add(other)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(
+        f"/games/{game_id}/turn-order", headers={"Authorization": f"Bearer {token}"}
+    )
 
     assert response.status_code == 400, response.text
 
@@ -210,8 +202,9 @@ def test_rolls_dice_and_advances_phase(
     active_player = game.active_player
     token = player.service().add(active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(
+        f"/games/{game_id}/turn-order", headers={"Authorization": f"Bearer {token}"}
+    )
 
     assert response.status_code == 200, response.text
     phase, nickname = response.json()
@@ -241,8 +234,9 @@ def test_ends_trade_and_build_and_advances_player(
     next_player = game.turn_order[1]
     token = player.service().add(active_player)
 
-    client.cookies.set("session-token", token)
-    response = client.post(f"/games/{game_id}/turn-order")
+    response = client.post(
+        f"/games/{game_id}/turn-order", headers={"Authorization": f"Bearer {token}"}
+    )
 
     assert response.status_code == 200, response.text
     phase, nickname = response.json()

@@ -23,7 +23,7 @@ class ActionExecutionResult(pydantic.BaseModel):
 
     previous_phase: entities.GamePhaseName
     next_phase: entities.GamePhaseName
-    action: PlayerAction
+    action: pydantic.SerializeAsAny[PlayerAction]
     error: str | None = None
 
 
@@ -180,9 +180,14 @@ class AcceptTradeAction(PlayerAction):
 
 class ProposeTradeResult(ActionExecutionResult):
     proposal_id: uuid.UUID | None = None
-    offer: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
-    request: dict[entities.ResourceCard, int] = pydantic.Field(default_factory=dict)
-    to: set[str] = pydantic.Field(default_factory=set)
+
+
+class SentMessageAction(PlayerAction):
+    text: str
+
+
+class SentMessageResult(ActionExecutionResult):
+    pass
 
 
 class AcceptedTradeResult(ActionExecutionResult):

@@ -107,7 +107,6 @@ class GreedyBuilder(BasePlayer):
         item: teyuna_shared.SettlementType,
         location: teyuna_shared.Coordinate,
     ) -> tuple[bool, str]:
-        self._client.cookies["session-token"] = self._token
         response = self._client.post(
             f"/games/{self._game_id}/settlements",
             json={
@@ -117,13 +116,13 @@ class GreedyBuilder(BasePlayer):
                     "direction": location.d,
                 },
             },
+            headers={"Authorization": f"Bearer {self._token}"},
         )
         if response.status_code == 200:
             return True, ""
         return False, response.text
 
     def _post_path(self, location: teyuna_shared.Coordinate) -> tuple[bool, str]:
-        self._client.cookies["session-token"] = self._token
         response = self._client.post(
             f"/games/{self._game_id}/paths",
             json={
@@ -132,6 +131,7 @@ class GreedyBuilder(BasePlayer):
                     "direction": location.d,
                 },
             },
+            headers={"Authorization": f"Bearer {self._token}"},
         )
         if response.status_code == 200:
             return True, ""

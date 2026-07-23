@@ -34,6 +34,15 @@ export interface PlayedStonePath {
   location: EdgeCoordinate
 }
 
+export type ResourceCard = 'gold' | 'stone' | 'cotton' | 'maize' | 'wood'
+export type WisdomCard =
+  'warrior' | 'blessing of aluna' | 'wisdom of mamo' | 'pathfinder' | 'legacy of the elders'
+
+export interface Harbour {
+  resource: ResourceCard | null
+  vertices: [VertexCoordinate, VertexCoordinate]
+}
+
 export interface Player {
   nickname: string
   victory_points: number
@@ -54,6 +63,7 @@ export interface ActiveGame {
   id: string
   map: Hex[]
   conquistator_location: HexCoordinate
+  harbours: Harbour[]
   players: Player[]
   settlements: PlayedSettlement[]
   paths: PlayedStonePath[]
@@ -61,9 +71,6 @@ export interface ActiveGame {
   phase: string
   phase_deadline: string | null
 }
-
-export type ResourceCard = 'gold' | 'stone' | 'cotton' | 'maize' | 'wood'
-export type WisdomCard = 'warrior' | 'blessing of aluna' | 'wisdom of mamo' | 'pathfinder' | 'legacy of the elders'
 
 export const HEX_TYPE_TO_RESOURCE: Record<HexType, ResourceCard> = {
   mountains: 'gold',

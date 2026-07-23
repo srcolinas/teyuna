@@ -1,7 +1,19 @@
 import axios, { AxiosInstance } from 'axios'
-import { ActiveGame, EdgeCoordinate, HexCoordinate, PrivatePlayerInfo, SettlementType, VertexCoordinate } from './types'
+import {
+  ActiveGame,
+  EdgeCoordinate,
+  HexCoordinate,
+  PrivatePlayerInfo,
+  SettlementType,
+  VertexCoordinate,
+} from './types'
 
-const API_BASE_URL = 'http://localhost:8000'
+const rawApiUrl = import.meta.env.VITE_API_URL
+if (typeof rawApiUrl !== 'string' || rawApiUrl.trim() === '') {
+  throw new Error('VITE_API_URL must be set (see apps/frontend/.env.example)')
+}
+
+export const API_BASE_URL = rawApiUrl.replace(/\/$/, '')
 
 class ApiClient {
   private client: AxiosInstance
@@ -10,7 +22,6 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      withCredentials: true,
     })
   }
 
@@ -18,8 +29,12 @@ class ApiClient {
     this.playerNickname = nickname
   }
 
-  async joinGame(gameId: string, nickname: string): Promise<void> {
-    await this.client.post(`/games/${gameId}/players`, { nickname })
+  async joinGame(gameId: string, nickname: string): Promise<string> {
+    const response = await this.client.post<{ game: ActiveGame; token: string }>(
+      `/games/${gameId}/players`,
+      { nickname },
+    )
+    return response.data.token
   }
 
   async getGame(gameId: string): Promise<ActiveGame> {
@@ -29,10 +44,7 @@ class ApiClient {
 
   async getPrivatePlayerInfo(gameId: string, token: string): Promise<PrivatePlayerInfo> {
     const headers = { Authorization: `Bearer ${token}` }
-    const response = await this.client.get<PrivatePlayerInfo>(
-      `/games/${gameId}/hand`,
-      { headers },
-    )
+    const response = await this.client.get<PrivatePlayerInfo>(`/games/${gameId}/hand`, { headers })
     return response.data
   }
 
@@ -47,9 +59,13 @@ class ApiClient {
   }
 
   async advanceTurn(gameId: string): Promise<{ phase: string; active_player: string }> {
-    const response = await this.client.post(`/games/${gameId}/turn-order`, {}, {
-      params: { player: this.playerNickname }
-    })
+    const response = await this.client.post(
+      `/games/${gameId}/turn-order`,
+      {},
+      {
+        params: { player: this.playerNickname },
+      },
+    )
     return response.data
   }
 
@@ -59,13 +75,21 @@ class ApiClient {
   }
 
   async rollDice(gameId: string): Promise<{ phase: string; result: number }> {
-    const response = await this.client.post(`/games/${gameId}/turn-order`, {}, {
-      params: { player: this.playerNickname }
-    })
+    const response = await this.client.post(
+      `/games/${gameId}/turn-order`,
+      {},
+      {
+        params: { player: this.playerNickname },
+      },
+    )
     return response.data
   }
 
-  async placeInitialBuildings(gameId: string, terrace: VertexCoordinate, path: EdgeCoordinate): Promise<void> {
+  async placeInitialBuildings(
+    gameId: string,
+    terrace: VertexCoordinate,
+    path: EdgeCoordinate,
+  ): Promise<void> {
     await this.client.post(`/games/${gameId}/initial-placements`, { terrace, path })
   }
 
@@ -74,13 +98,21 @@ class ApiClient {
   }
 
   async buyWisdomCard(gameId: string): Promise<string> {
-    const response = await this.client.post(`/games/${gameId}/wisdom-cards/buy`, {}, {
-      params: { player: this.playerNickname }
-    })
+    const response = await this.client.post(
+      `/games/${gameId}/wisdom-cards/buy`,
+      {},
+      {
+        params: { player: this.playerNickname },
+      },
+    )
     return response.data
   }
 
-  async buildSettlement(gameId: string, item: SettlementType, location: VertexCoordinate): Promise<string> {
+  async buildSettlement(
+    gameId: string,
+    item: SettlementType,
+    location: VertexCoordinate,
+  ): Promise<string> {
     const response = await this.client.post(`/games/${gameId}/settlements`, { item, location })
     return response.data
   }

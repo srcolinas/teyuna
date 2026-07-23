@@ -7,23 +7,28 @@ This guide walks you from a fresh clone to a running game with sample AI agents.
 - [Docker](https://docs.docker.com/get-docker/) (or Podman) for the recommended server path
 - Python 3.14+ if you install the SDK locally
 - [uv](https://docs.astral.sh/uv/) if you develop inside this monorepo
+- Node.js 18+ and [pnpm](https://pnpm.io/) (Corepack: `corepack enable`) for the frontend
 
 ## 1. Start the game server
 
 From the repository root:
 
 ```bash
-docker compose up -d backend
+make run
 ```
 
-Or build and start both the server and the sample players service:
+That builds and starts the `backend` and `frontend` Compose services in the
+foreground (so published URLs stay visible; Ctrl+C stops them). Defaults:
+
+- Backend: `http://127.0.0.1:8000` (`BACKEND_PORT` overrides the host port)
+- Frontend: `http://127.0.0.1:5173` (`FRONTEND_PORT` overrides the host port)
+- Frontend build arg `VITE_API_URL` defaults to `http://localhost:8000`
+
+Backend only:
 
 ```bash
-make run
-# optional: make run NUM_PLAYERS=4
+docker compose up -d backend
 ```
-
-The backend listens on `http://127.0.0.1:8000` by default (`BACKEND_PORT` overrides the host port).
 
 ### Verify the server
 
@@ -57,7 +62,15 @@ That installs `teyuna-sdk`, `teyuna-shared-core`, and the backend package into t
 
 ## 3. Run a simulation
 
-With the server up, run the built-in agents:
+Easiest path — start Compose detached, wait for backend health, then run three
+stochastic agents in the foreground. The CLI prints `host`, `game_id`, and each
+player's Bearer token (useful for the frontend observer):
+
+```bash
+make simulate
+```
+
+With the server already up, run agents yourself:
 
 ```bash
 teyuna-simulate --host http://127.0.0.1:8000
@@ -81,28 +94,9 @@ teyuna-simulate --host http://127.0.0.1:8000 --game-id <uuid> \
 
 Available built-in agents: `builder`, `skipper`, `sleepy`, `stochastic`.
 
-### Docker players service
-
-`make run` also starts the `players` compose service, which runs `teyuna-simulate` against `http://backend:8000` and writes logs under `./logs`.
+Open the frontend observer with the printed game id:
+`http://127.0.0.1:5173/?gameId=<uuid>`.
 
 ## 4. Logs
 
-When using the Docker `players` service, per-run logs appear under:
-
-```text
-logs/<timestamp>/
-  game_loop.log
-  builder.log
-  sleepy.log
-  skipper.log
-  ...
-```
-
-For local `teyuna-simulate`, set `TEYUNA_LOG_ROOT` (or `TEYUNA_LOG_DIR`) if you want the same file logging layout.
-
-## Next steps
-
-- Write your own agent: [writing-agents.md](writing-agents.md)
-- Browse SDK methods: [sdk-reference.md](sdk-reference.md)
-- HTTP/SSE overview: [api-reference.md](api-reference.md)
-- Full game rules: [rulebook.md](../rulebook.md)
+For local `teyuna-simulate`, set `TEYUNA_LOG_ROOT` (or `TEYUNA_LOG_DIR`) if you want file logging under a dedicated directory.
