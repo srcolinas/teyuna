@@ -359,7 +359,21 @@ async def _accept_trade(
     logger: logging.Logger,
     proposal: teyuna_shared.ActiveTradeProposal,
 ) -> None:
-    phase = await context.client.accept_trade(proposal.id)
+    try:
+        phase = await context.client.accept_trade(proposal.id)
+    except httpx2.HTTPStatusError as error:
+        # Trades and hands can change between selecting a proposal and sending
+        # the request because every simulated player runs concurrently. The
+        # backend must reject that stale acceptance; the agent should then
+        # refresh its state instead of terminating the whole simulation.
+        if error.response.status_code == 400:
+            logger.info(
+                "%s skipped stale trade %s after resources or phase changed",
+                context.nickname,
+                proposal.id,
+            )
+            return
+        raise
     logger.info(
         "%s accepted trade %s from %s (next phase %s)",
         context.nickname,
