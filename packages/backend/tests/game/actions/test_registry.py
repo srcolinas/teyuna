@@ -4,7 +4,7 @@ from typing import Any, cast
 import pytest
 
 from src.game import actions, entities
-import teyuna_shared
+import teyuna_core
 
 
 def test_registered_handler_can_be_executed(game: entities.Game) -> None:
@@ -13,27 +13,27 @@ def test_registered_handler_can_be_executed(game: entities.Game) -> None:
 
     def handle_dummy(
         game: entities.Game, action: DummyAction
-    ) -> teyuna_shared.ActionExecutionResult:
-        return teyuna_shared.ActionExecutionResult(
+    ) -> teyuna_core.ActionExecutionResult:
+        return teyuna_core.ActionExecutionResult(
             previous_phase=game.phase,
-            next_phase=teyuna_shared.GamePhaseName.DICE_ROLL,
+            next_phase=teyuna_core.GamePhaseName.DICE_ROLL,
             action=action,
         )
 
-    registry.register(teyuna_shared.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
+    registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
 
-    game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    game.phase = teyuna_core.GamePhaseName.FIRST_PLACEMENT
     result = registry.execute(game, action)
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert result.next_phase is teyuna_core.GamePhaseName.DICE_ROLL
 
 
 def test_unregistered_phase_raises(game: entities.Game) -> None:
     registry = actions.ActionsRegistry()
     action = DummyAction.model_construct(by="player")
 
-    game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    game.phase = teyuna_core.GamePhaseName.FIRST_PLACEMENT
     with pytest.raises(
         actions.GamePhaseHanlderNotImplementedError,
         match="No handlers defined for game phase: first placement",
@@ -46,16 +46,16 @@ def test_unregistered_action_type_raises(game: entities.Game) -> None:
 
     def handle_dummy(
         game: entities.Game, action: DummyAction
-    ) -> teyuna_shared.ActionExecutionResult:
-        return teyuna_shared.ActionExecutionResult(
+    ) -> teyuna_core.ActionExecutionResult:
+        return teyuna_core.ActionExecutionResult(
             previous_phase=game.phase,
-            next_phase=teyuna_shared.GamePhaseName.DICE_ROLL,
+            next_phase=teyuna_core.GamePhaseName.DICE_ROLL,
             action=action,
         )
 
-    registry.register(teyuna_shared.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
+    registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(handle_dummy)
 
-    game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    game.phase = teyuna_core.GamePhaseName.FIRST_PLACEMENT
     with pytest.raises(
         actions.ActionNotAllowedError,
         match="Action 'OtherAction' by 'player' is not allowed during the 'first placement' phase.",
@@ -65,23 +65,23 @@ def test_unregistered_action_type_raises(game: entities.Game) -> None:
 
 def test_end_game_handler_keeps_phase(game: entities.Game) -> None:
     registry = actions.ActionsRegistry()
-    registry.register(teyuna_shared.GamePhaseName.END_GAME)(actions.handle_end_game)
+    registry.register(teyuna_core.GamePhaseName.END_GAME)(actions.handle_end_game)
 
-    game.phase = teyuna_shared.GamePhaseName.END_GAME
+    game.phase = teyuna_core.GamePhaseName.END_GAME
     result = registry.execute(
         game,
-        teyuna_shared.PlayerAction.model_construct(by="player"),
+        teyuna_core.PlayerAction.model_construct(by="player"),
     )
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
+    assert result.next_phase is teyuna_core.GamePhaseName.END_GAME
 
 
 def test_end_game_rejects_unregistered_action_types(game: entities.Game) -> None:
     registry = actions.ActionsRegistry()
-    registry.register(teyuna_shared.GamePhaseName.END_GAME)(actions.handle_end_game)
+    registry.register(teyuna_core.GamePhaseName.END_GAME)(actions.handle_end_game)
 
-    game.phase = teyuna_shared.GamePhaseName.END_GAME
+    game.phase = teyuna_core.GamePhaseName.END_GAME
     with pytest.raises(actions.ActionNotAllowedError):
         registry.execute(
             game,
@@ -92,15 +92,15 @@ def test_end_game_rejects_unregistered_action_types(game: entities.Game) -> None
 def test_register_requires_at_least_two_parameters() -> None:
     registry = actions.ActionsRegistry()
 
-    def handle_invalid(game: entities.Game) -> teyuna_shared.ActionExecutionResult:
-        return teyuna_shared.ActionExecutionResult(
-            previous_phase=teyuna_shared.GamePhaseName.DICE_ROLL,
-            next_phase=teyuna_shared.GamePhaseName.DICE_ROLL,
-            action=teyuna_shared.PlayerAction.model_construct(by="player"),
+    def handle_invalid(game: entities.Game) -> teyuna_core.ActionExecutionResult:
+        return teyuna_core.ActionExecutionResult(
+            previous_phase=teyuna_core.GamePhaseName.DICE_ROLL,
+            next_phase=teyuna_core.GamePhaseName.DICE_ROLL,
+            action=teyuna_core.PlayerAction.model_construct(by="player"),
         )
 
     with pytest.raises(ValueError, match="must accept at least two parameters"):
-        registry.register(teyuna_shared.GamePhaseName.FIRST_PLACEMENT)(
+        registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(
             cast(Any, handle_invalid)
         )
 
@@ -110,35 +110,35 @@ def test_register_requires_player_action_annotation() -> None:
 
     def handle_invalid(
         game: entities.Game, action: str
-    ) -> teyuna_shared.ActionExecutionResult:
-        return teyuna_shared.ActionExecutionResult(
-            previous_phase=teyuna_shared.GamePhaseName.DICE_ROLL,
-            next_phase=teyuna_shared.GamePhaseName.DICE_ROLL,
-            action=teyuna_shared.PlayerAction.model_construct(by="player"),
+    ) -> teyuna_core.ActionExecutionResult:
+        return teyuna_core.ActionExecutionResult(
+            previous_phase=teyuna_core.GamePhaseName.DICE_ROLL,
+            next_phase=teyuna_core.GamePhaseName.DICE_ROLL,
+            action=teyuna_core.PlayerAction.model_construct(by="player"),
         )
 
     with pytest.raises(TypeError, match="must be annotated with a subclass"):
-        registry.register(teyuna_shared.GamePhaseName.FIRST_PLACEMENT)(
+        registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(
             cast(Any, handle_invalid)
         )
 
 
-class DummyAction(teyuna_shared.PlayerAction):
+class DummyAction(teyuna_core.PlayerAction):
     pass
 
 
-class OtherAction(teyuna_shared.PlayerAction):
+class OtherAction(teyuna_core.PlayerAction):
     pass
 
 
 @pytest.fixture
 def game() -> entities.Game:
-    mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    mountains = teyuna_core.MapHex(
+        q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=1
     )
     game_ = entities.Game(
         map=(mountains,),
-        conquistator_location=teyuna_shared.HexLocation(q=0, r=0),
+        conquistator_location=teyuna_core.HexLocation(q=0, r=0),
         players={"player": entities.Player()},
         available_slots=0,
     )

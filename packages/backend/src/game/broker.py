@@ -4,13 +4,13 @@ import dataclasses
 import uuid
 from collections.abc import AsyncGenerator
 
-import teyuna_shared
+import teyuna_core
 
 
 @dataclasses.dataclass
 class Event:
     id: int
-    data: teyuna_shared.ActionExecutionResult
+    data: teyuna_core.ActionExecutionResult
 
 
 class EventBroker:
@@ -21,7 +21,7 @@ class EventBroker:
         self._next_id: dict[uuid.UUID, int] = collections.defaultdict(int)
 
     async def publish(
-        self, game_id: uuid.UUID, data: teyuna_shared.ActionExecutionResult
+        self, game_id: uuid.UUID, data: teyuna_core.ActionExecutionResult
     ) -> None:
         event = Event(id=self._next_id[game_id], data=data)
         self._next_id[game_id] += 1

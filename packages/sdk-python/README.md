@@ -21,13 +21,13 @@ uv add teyuna-sdk
 
 ## Quick start
 
-Create a game, join as a player, and perform actions with the async HTTP client:
+Create a game, join as a player, and perform actions with the async HTTP client.
+Game types and actions are re-exported from `teyuna-core`:
 
 ```python
 import asyncio
 
-import teyuna_shared
-from teyuna_sdk.sdk import GameClient
+from teyuna_sdk import GameClient, PlayerAction
 
 
 async def main() -> None:
@@ -40,7 +40,7 @@ async def main() -> None:
 
     # Authenticated actions use the token stored by authenticate.
     # Example: advance the turn when it is your turn.
-    # result = await client.submit_action(teyuna_shared.PlayerAction())
+    # result = await client.submit_action(PlayerAction())
 
 
 asyncio.run(main())
@@ -53,8 +53,7 @@ Agents are async callables that receive a `PlayerContext` (nickname, game id, an
 ```python
 import asyncio
 
-import teyuna_shared
-from teyuna_sdk import entities, loop
+from teyuna_sdk import GamePhaseName, PlayerAction, entities, loop
 
 
 async def my_agent(*, context: entities.PlayerContext) -> None:
@@ -64,8 +63,8 @@ async def my_agent(*, context: entities.PlayerContext) -> None:
             await asyncio.sleep(1)
             continue
 
-        if game.phase is teyuna_shared.GamePhaseName.DICE_ROLL:
-            await context.client.submit_action(teyuna_shared.PlayerAction())
+        if game.phase is GamePhaseName.DICE_ROLL:
+            await context.client.submit_action(PlayerAction())
         else:
             await asyncio.sleep(1)
 
@@ -124,8 +123,11 @@ make check
 
 Publish to PyPI (maintainers):
 
+Publish **`teyuna-core` first**, then this package (the SDK depends on core on PyPI):
+
 ```bash
-make publish
+cd ../teyuna-core && make publish
+cd ../sdk-python && make publish
 ```
 
 ## License

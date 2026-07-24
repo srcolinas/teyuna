@@ -10,12 +10,12 @@ from src.game import actions, repository as repository_module
 
 from . import utils
 import datetime
-import teyuna_shared
+import teyuna_core
 
 
 _BLESSING_RESOURCES = [
-    teyuna_shared.ResourceCard.WOOD.value,
-    teyuna_shared.ResourceCard.STONE.value,
+    teyuna_core.ResourceCard.WOOD.value,
+    teyuna_core.ResourceCard.STONE.value,
 ]
 
 
@@ -40,7 +40,7 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository, game_id, tokens, active_player, _ = _setup_blessed_phase(app)
     game = repository.retrieve(game_id)
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -60,7 +60,7 @@ def test_returns_400_when_called_during_mamo_phase(
 ) -> None:
     repository, game_id, tokens, active_player, _ = _setup_blessed_phase(app)
     game = repository.retrieve(game_id)
-    game.phase = teyuna_shared.GamePhaseName.DICE_PLAY_MAMO
+    game.phase = teyuna_core.GamePhaseName.DICE_PLAY_MAMO
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -115,8 +115,8 @@ def test_returns_400_when_supply_is_insufficient(
 ) -> None:
     repository, game_id, tokens, active_player, _ = _setup_blessed_phase(app)
     game = repository.retrieve(game_id)
-    game.resource_supply[teyuna_shared.ResourceCard.WOOD] = 0
-    game.phase = teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED
+    game.resource_supply[teyuna_core.ResourceCard.WOOD] = 0
+    game.phase = teyuna_core.GamePhaseName.DICE_PLAY_BLESSED
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -126,8 +126,8 @@ def test_returns_400_when_supply_is_insufficient(
         {
             "kind": "play_blessed",
             "resources": [
-                teyuna_shared.ResourceCard.WOOD.value,
-                teyuna_shared.ResourceCard.WOOD.value,
+                teyuna_core.ResourceCard.WOOD.value,
+                teyuna_core.ResourceCard.WOOD.value,
             ],
         },
         token=tokens[active_player],
@@ -153,18 +153,18 @@ def test_takes_two_resources_from_supply(
     body = response.json()
     assert body["action"]["kind"] == "play_blessed"
     assert body["resources"] == _BLESSING_RESOURCES
-    assert body["next_phase"] == teyuna_shared.GamePhaseName.DICE_ROLL.value
+    assert body["next_phase"] == teyuna_core.GamePhaseName.DICE_ROLL.value
 
     hand = client.get(
         f"/games/{game_id}/hand",
         headers=utils.auth_headers(tokens[active_player]),
     )
     assert hand.status_code == 200, hand.text
-    assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 1
-    assert hand.json()["resources"][teyuna_shared.ResourceCard.STONE.value] == 1
+    assert hand.json()["resources"][teyuna_core.ResourceCard.WOOD.value] == 1
+    assert hand.json()["resources"][teyuna_core.ResourceCard.STONE.value] == 1
 
     stored = repository.retrieve(game_id)
-    assert stored.phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert stored.phase is teyuna_core.GamePhaseName.DICE_ROLL
 
 
 def test_takes_two_resources_during_trade_and_build_play_blessed(
@@ -172,7 +172,7 @@ def test_takes_two_resources_during_trade_and_build_play_blessed(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, _ = _setup_blessed_phase(
-        app, phase=teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
+        app, phase=teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
     )
 
     response = utils.post_action(
@@ -186,23 +186,23 @@ def test_takes_two_resources_during_trade_and_build_play_blessed(
     body = response.json()
     assert body["action"]["kind"] == "play_blessed"
     assert body["resources"] == _BLESSING_RESOURCES
-    assert body["next_phase"] == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
+    assert body["next_phase"] == teyuna_core.GamePhaseName.TRADE_AND_BUILD.value
 
     hand = client.get(
         f"/games/{game_id}/hand",
         headers=utils.auth_headers(tokens[active_player]),
     )
     assert hand.status_code == 200, hand.text
-    assert hand.json()["resources"][teyuna_shared.ResourceCard.WOOD.value] == 1
-    assert hand.json()["resources"][teyuna_shared.ResourceCard.STONE.value] == 1
+    assert hand.json()["resources"][teyuna_core.ResourceCard.WOOD.value] == 1
+    assert hand.json()["resources"][teyuna_core.ResourceCard.STONE.value] == 1
 
     stored = repository.retrieve(game_id)
-    assert stored.phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert stored.phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
 
 
 def _setup_blessed_phase(
     app: fastapi.FastAPI,
-    phase: teyuna_shared.GamePhaseName = teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED,
+    phase: teyuna_core.GamePhaseName = teyuna_core.GamePhaseName.DICE_PLAY_BLESSED,
 ) -> tuple[
     repository_module.InMemoryGameRepository,
     uuid.UUID,
@@ -214,7 +214,7 @@ def _setup_blessed_phase(
     game = _create_game()
     active_player = game.active_player
     other = game.turn_order[1]
-    game.players[active_player].cards[teyuna_shared.WisdomCard.BLESSING_OF_ALUNA] = 1
+    game.players[active_player].cards[teyuna_core.WisdomCard.BLESSING_OF_ALUNA] = 1
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     game.phase = phase
@@ -229,12 +229,12 @@ def _setup_blessed_phase(
 
 
 def _create_game() -> entities.Game:
-    mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    mountains = teyuna_core.MapHex(
+        q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=1
     )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_core.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

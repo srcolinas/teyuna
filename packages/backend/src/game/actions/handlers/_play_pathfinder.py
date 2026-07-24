@@ -1,25 +1,25 @@
-import teyuna_shared
+import teyuna_core
 
 from ... import entities
 from . import _placement, _longest_road, _victory
 
 
 def handle_dice_play_pathfinder(
-    game: entities.Game, action: teyuna_shared.PlayPathfinderAction
-) -> teyuna_shared.PlayedPathfinderResult:
+    game: entities.Game, action: teyuna_core.PlayPathfinderAction
+) -> teyuna_core.PlayedPathfinderResult:
     previous_phase = game.phase
     error, placed = _apply_pathfinder(game, action)
     if error is not None:
-        return teyuna_shared.PlayedPathfinderResult(
+        return teyuna_core.PlayedPathfinderResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
     game.phase = _victory.phase_after_victory_check(
-        game, action.by, teyuna_shared.GamePhaseName.DICE_ROLL
+        game, action.by, teyuna_core.GamePhaseName.DICE_ROLL
     )
-    return teyuna_shared.PlayedPathfinderResult(
+    return teyuna_core.PlayedPathfinderResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -28,21 +28,21 @@ def handle_dice_play_pathfinder(
 
 
 def handle_trade_and_build_play_pathfinder(
-    game: entities.Game, action: teyuna_shared.PlayPathfinderAction
-) -> teyuna_shared.PlayedPathfinderResult:
+    game: entities.Game, action: teyuna_core.PlayPathfinderAction
+) -> teyuna_core.PlayedPathfinderResult:
     previous_phase = game.phase
     error, placed = _apply_pathfinder(game, action)
     if error is not None:
-        return teyuna_shared.PlayedPathfinderResult(
+        return teyuna_core.PlayedPathfinderResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
     game.phase = _victory.phase_after_victory_check(
-        game, action.by, teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+        game, action.by, teyuna_core.GamePhaseName.TRADE_AND_BUILD
     )
-    return teyuna_shared.PlayedPathfinderResult(
+    return teyuna_core.PlayedPathfinderResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -51,15 +51,15 @@ def handle_trade_and_build_play_pathfinder(
 
 
 def _apply_pathfinder(
-    game: entities.Game, action: teyuna_shared.PlayPathfinderAction
-) -> tuple[str | None, tuple[teyuna_shared.Coordinate, ...]]:
+    game: entities.Game, action: teyuna_core.PlayPathfinderAction
+) -> tuple[str | None, tuple[teyuna_core.Coordinate, ...]]:
     if game.active_player != action.by:
         return f"Player {action.by} is not in turn", ()
 
     player_state = game.players[action.by]
-    remaining = teyuna_shared.MAX_PATHS - len(player_state.paths)
+    remaining = teyuna_core.MAX_PATHS - len(player_state.paths)
     to_place = action.paths[:remaining]
-    placed: list[teyuna_shared.Coordinate] = []
+    placed: list[teyuna_core.Coordinate] = []
 
     for path in to_place:
         can = _placement.can_add_free_path_at(

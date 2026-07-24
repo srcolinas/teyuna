@@ -7,7 +7,7 @@ import pydantic
 from fastapi import status, sse
 
 
-import teyuna_shared
+import teyuna_core
 
 from .. import settings
 
@@ -28,13 +28,13 @@ router = fastapi.APIRouter(prefix="/games", route_class=http.GameRoute)
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_game(
-    payload: teyuna_shared.CreateGameRequest,
+    payload: teyuna_core.CreateGameRequest,
     repository_: Annotated[
         repository_module.InMemoryGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
     settings_: Annotated[settings.Settings, fastapi.Depends(settings.get_settings)],
-) -> teyuna_shared.Game:
+) -> teyuna_core.Game:
     return services.create_game(
         params=payload,
         repository=repository_,
@@ -58,7 +58,7 @@ def join_game(
         player.PlayerAuthenticationService, fastapi.Depends(player.service)
     ],
     settings_: Annotated[settings.Settings, fastapi.Depends(settings.get_settings)],
-) -> teyuna_shared.JoinGameResponse:
+) -> teyuna_core.JoinGameResponse:
     result, token = services.add_player(
         game_id=game_id,
         nickname=payload.nickname,
@@ -66,34 +66,34 @@ def join_game(
         auth=auth,
         first_placement_timeout=settings_.first_placement_timeout,
     )
-    return teyuna_shared.JoinGameResponse(game=result, token=token)
+    return teyuna_core.JoinGameResponse(game=result, token=token)
 
 
 @router.get("/{game_id}")
 def get_game(
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> teyuna_shared.Game:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_core.Game:
     return game
 
 
 @router.get("/{game_id}/map")
 def get_game_map(
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> tuple[teyuna_shared.Hex, ...]:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> tuple[teyuna_core.Hex, ...]:
     return game.map
 
 
 @router.get("/{game_id}/turn-order")
 def get_turn_order(
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
 ) -> tuple[player.Nickname, ...]:
     return game.turn_order
 
 
 @router.get("/{game_id}/conquistator")
 def get_conquistator_location(
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> teyuna_shared.HexCoordinate:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_core.HexCoordinate:
     return game.conquistator_location
 
 
@@ -102,7 +102,7 @@ async def submit_action(
     nickname: Annotated[player.Nickname, fastapi.Depends(dependencies.get_player)],
     _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
     game_id: uuid.UUID,
-    payload: teyuna_shared.AnyPlayerAction,
+    payload: teyuna_core.AnyPlayerAction,
     repository: Annotated[
         repository_module.InMemoryGameRepository,
         fastapi.Depends(dependencies.get_repository),
@@ -117,7 +117,7 @@ async def submit_action(
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
     rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
-) -> teyuna_shared.AnyActionExecutionResult:
+) -> teyuna_core.AnyActionExecutionResult:
     updates: dict[str, object] = {"by": nickname, "due_to_timeout": False}
     if payload.kind == "advance":
         updates["rng_"] = rng
@@ -137,16 +137,16 @@ async def submit_action(
 
 @router.get("/{game_id}/players")
 def list_players(
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> list[teyuna_shared.Player]:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> list[teyuna_core.Player]:
     return game.players
 
 
 @router.get("/{game_id}/players/{nickname}")
 def get_player(
     nickname: player.Nickname,
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> teyuna_shared.Player:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_core.Player:
     for p in game.players:
         if p.nickname == nickname:
             return p
@@ -161,14 +161,14 @@ def get_hand(
         repository_module.InMemoryGameRepository,
         fastapi.Depends(dependencies.get_repository),
     ],
-) -> teyuna_shared.PlayerHand:
+) -> teyuna_core.PlayerHand:
     return services.retrieve_hand(game_id, nickname, repository=repository)
 
 
 @router.get("/{game_id}/settlements")
 def list_settlements(
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> list[teyuna_shared.PlayedSettlement]:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> list[teyuna_core.PlayedSettlement]:
     return game.settlements
 
 
@@ -177,8 +177,8 @@ def get_settlement(
     q: int,
     r: int,
     direction: int,
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> teyuna_shared.PlayedSettlement | None:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_core.PlayedSettlement | None:
     for s in game.settlements:
         if (
             s.location.hex_coord.q == q
@@ -191,8 +191,8 @@ def get_settlement(
 
 @router.get("/{game_id}/paths")
 def list_paths(
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> list[teyuna_shared.PlayedStonePath]:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> list[teyuna_core.PlayedStonePath]:
     return game.paths
 
 
@@ -203,8 +203,8 @@ def get_path(
     q: int,
     r: int,
     direction: int,
-    game: Annotated[teyuna_shared.Game, fastapi.Depends(dependencies.get_game)],
-) -> teyuna_shared.PlayedStonePath | None:
+    game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
+) -> teyuna_core.PlayedStonePath | None:
     for p in game.paths:
         if (
             p.location.hex_coord.q == q
@@ -243,7 +243,7 @@ async def send_message(
 ) -> None:
     result, _ = await services.apply_player_action(
         game_id,
-        teyuna_shared.SentMessageAction(by=nickname, text=payload.text),
+        teyuna_core.SentMessageAction(by=nickname, text=payload.text),
         repository=repository,
         registry=registry,
         game_locks=game_locks,

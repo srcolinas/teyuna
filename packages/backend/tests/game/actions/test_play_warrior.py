@@ -1,11 +1,11 @@
 from src.game import actions, entities
 from src.game.actions.handlers import _placement
-import teyuna_shared
+import teyuna_core
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
-    action = teyuna_shared.MoveConquistatorAction(by=other, q=1, r=0)
+    action = teyuna_core.MoveConquistatorAction(by=other, q=1, r=0)
     result = actions.handle_dice_play_warrior(
         game,
         action,
@@ -26,7 +26,7 @@ def test_raises_when_location_is_unchanged(game: entities.Game) -> None:
         player=player,
         current_location=location,
     )
-    action = teyuna_shared.MoveConquistatorAction(by=player, q=location.q, r=location.r)
+    action = teyuna_core.MoveConquistatorAction(by=player, q=location.q, r=location.r)
     result = actions.handle_dice_play_warrior(
         game,
         action,
@@ -44,7 +44,7 @@ def test_moves_conquistator_and_returns_to_dice_roll(
 ) -> None:
     player = game.active_player
 
-    action = teyuna_shared.MoveConquistatorAction(by=player, q=1, r=-1)
+    action = teyuna_core.MoveConquistatorAction(by=player, q=1, r=-1)
     result = actions.handle_dice_play_warrior(
         game,
         action,
@@ -52,12 +52,12 @@ def test_moves_conquistator_and_returns_to_dice_roll(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert result.next_phase is teyuna_core.GamePhaseName.DICE_ROLL
     assert result.q == 1
     assert result.r == -1
     assert result.from_player is None
     assert result.stolen is None
-    assert game.conquistator_location == teyuna_shared.HexLocation(q=1, r=-1)
+    assert game.conquistator_location == teyuna_core.HexLocation(q=1, r=-1)
     assert game.player_idx == 0
 
 
@@ -66,7 +66,7 @@ def test_moves_conquistator_and_returns_to_trade_and_build(
 ) -> None:
     player = game.active_player
 
-    action = teyuna_shared.MoveConquistatorAction(by=player, q=1, r=-1)
+    action = teyuna_core.MoveConquistatorAction(by=player, q=1, r=-1)
     result = actions.handle_move_conquistator(
         game,
         action,
@@ -74,12 +74,12 @@ def test_moves_conquistator_and_returns_to_trade_and_build(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.q == 1
     assert result.r == -1
     assert result.from_player is None
     assert result.stolen is None
-    assert game.conquistator_location == teyuna_shared.HexLocation(q=1, r=-1)
+    assert game.conquistator_location == teyuna_core.HexLocation(q=1, r=-1)
     assert game.player_idx == 0
 
 
@@ -88,9 +88,9 @@ def test_does_not_take_resources_when_from_player_is_none(
 ) -> None:
     player = game.active_player
     other = game.turn_order[1]
-    game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
+    game.players[other].resources[teyuna_core.ResourceCard.WOOD] = 2
 
-    action = teyuna_shared.MoveConquistatorAction(by=player, q=1, r=0, from_player=None)
+    action = teyuna_core.MoveConquistatorAction(by=player, q=1, r=0, from_player=None)
     result = actions.handle_dice_play_warrior(
         game,
         action,
@@ -102,8 +102,8 @@ def test_does_not_take_resources_when_from_player_is_none(
     assert result.r == 0
     assert result.from_player is None
     assert result.stolen is None
-    assert game.players[other].resources[teyuna_shared.ResourceCard.WOOD] == 2
-    assert game.players[player].resources[teyuna_shared.ResourceCard.WOOD] == 0
+    assert game.players[other].resources[teyuna_core.ResourceCard.WOOD] == 2
+    assert game.players[player].resources[teyuna_core.ResourceCard.WOOD] == 0
 
 
 def test_takes_one_resource_when_from_player_is_set(
@@ -111,11 +111,9 @@ def test_takes_one_resource_when_from_player_is_set(
 ) -> None:
     player = game.active_player
     other = game.turn_order[1]
-    game.players[other].resources[teyuna_shared.ResourceCard.WOOD] = 2
+    game.players[other].resources[teyuna_core.ResourceCard.WOOD] = 2
 
-    action = teyuna_shared.MoveConquistatorAction(
-        by=player, q=1, r=0, from_player=other
-    )
+    action = teyuna_core.MoveConquistatorAction(by=player, q=1, r=0, from_player=other)
     result = actions.handle_dice_play_warrior(
         game,
         action,
@@ -126,6 +124,6 @@ def test_takes_one_resource_when_from_player_is_set(
     assert result.q == 1
     assert result.r == 0
     assert result.from_player == other
-    assert result.stolen is teyuna_shared.ResourceCard.WOOD
-    assert game.players[other].resources[teyuna_shared.ResourceCard.WOOD] == 1
-    assert game.players[player].resources[teyuna_shared.ResourceCard.WOOD] == 1
+    assert result.stolen is teyuna_core.ResourceCard.WOOD
+    assert game.players[other].resources[teyuna_core.ResourceCard.WOOD] == 1
+    assert game.players[player].resources[teyuna_core.ResourceCard.WOOD] == 1

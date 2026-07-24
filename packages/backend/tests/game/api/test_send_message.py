@@ -11,7 +11,7 @@ import uvicorn
 from src.game import broker, dependencies
 
 from . import utils
-import teyuna_shared
+import teyuna_core
 
 
 def test_send_message_appears_on_events(
@@ -43,8 +43,8 @@ def test_send_message_appears_on_events(
                 event = _read_first_data_event(lines)
 
     assert event["error"] is None
-    assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["previous_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["next_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["by"] == sender
     assert event["action"]["text"] == text
 

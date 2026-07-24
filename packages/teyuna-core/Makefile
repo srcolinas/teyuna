@@ -1,4 +1,4 @@
-.PHONY: format lint test check clean setup
+.PHONY: format lint test check publish clean setup
 
 clean:
 	rm -rf .venv __pycache__ .mypy_cache .ruff_cache dist
@@ -21,3 +21,7 @@ test:
 
 check: lint test
 	@echo "All checks passed!"
+
+publish:
+	uv build
+	uv publish

@@ -11,7 +11,7 @@ import uvicorn
 from src.game import broker, dependencies
 
 from . import utils
-import teyuna_shared
+import teyuna_core
 
 _VALID_TERRACE = (0, -1, 2)
 _VALID_PATH = (0, -1, 2)
@@ -46,8 +46,8 @@ def test_single_client_receives_action_event(
                 event = _read_first_data_event(lines)
 
     assert event["error"] is None
-    assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["previous_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["next_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["kind"] == "free_placement"
     assert event["action"]["by"] == active_player
     assert event["action"]["terrace"] == [0, -1, 2]
@@ -90,8 +90,8 @@ def test_disconnect_does_not_break_remaining_clients(
                     event = _read_first_data_event(remaining_lines)
 
     assert event["error"] is None
-    assert event["previous_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["next_phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["previous_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
+    assert event["next_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["kind"] == "free_placement"
     assert event["action"]["by"] == active_player
 

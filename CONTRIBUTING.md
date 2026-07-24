@@ -19,7 +19,7 @@ Package-specific guidelines:
 | Package | Guide |
 | --- | --- |
 | Backend | [packages/backend/README.md](packages/backend/README.md) |
-| Shared core | [packages/shared-core/README.md](packages/shared-core/README.md) |
+| Teyuna core | [packages/teyuna-core/README.md](packages/teyuna-core/README.md) |
 | Python SDK | [packages/sdk-python/README.md](packages/sdk-python/README.md) |
 | Frontend | [apps/frontend/README.md](apps/frontend/README.md) |
 

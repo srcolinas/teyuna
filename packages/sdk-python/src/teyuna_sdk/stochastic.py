@@ -5,7 +5,7 @@ import random
 from collections.abc import Awaitable, Callable, Mapping
 
 import httpx2
-import teyuna_shared
+import teyuna_core
 
 from . import entities, logging_config, rules
 
@@ -54,8 +54,8 @@ async def build(
         is_active = bool(turn_order) and turn_order[0] == context.nickname
         if not is_active:
             if game.phase in (
-                teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
-                teyuna_shared.GamePhaseName.DICE_ROLL,
+                teyuna_core.GamePhaseName.TRADE_AND_BUILD,
+                teyuna_core.GamePhaseName.DICE_ROLL,
             ):
                 await _maybe_propose_off_turn_trade(context, logger, game)
             await asyncio.sleep(sleep_time)
@@ -63,19 +63,19 @@ async def build(
 
         match game.phase:
             case (
-                teyuna_shared.GamePhaseName.FIRST_PLACEMENT
-                | teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+                teyuna_core.GamePhaseName.FIRST_PLACEMENT
+                | teyuna_core.GamePhaseName.SECOND_PLACEMENT
             ):
                 await _initial_placement(context, logger, game)
-            case teyuna_shared.GamePhaseName.DICE_ROLL:
+            case teyuna_core.GamePhaseName.DICE_ROLL:
                 await _dice_roll(context, logger)
             case (
-                teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
-                | teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR
-                | teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
+                teyuna_core.GamePhaseName.MOVE_CONQUISTATOR
+                | teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR
+                | teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR
             ):
                 await _move_conquistator(context, logger, game)
-            case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
+            case teyuna_core.GamePhaseName.TRADE_AND_BUILD:
                 await _trade_and_build(context, logger, game)
             case _:
                 pass
@@ -90,7 +90,7 @@ async def _discard(
     hand = await context.client.get_hand()
     count = rules.pick_discard(hand.resources, required, _RNG)
     result = await context.client.submit_action(
-        teyuna_shared.DiscardResourcesAction(count=count)
+        teyuna_core.DiscardResourcesAction(count=count)
     )
     logger.info(
         "%s discarded %s (next phase %s)",
@@ -103,7 +103,7 @@ async def _discard(
 async def _maybe_propose_off_turn_trade(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    game: teyuna_shared.Game,
+    game: teyuna_core.Game,
 ) -> None:
     if not game.turn_order or _RNG.random() >= _OFF_TURN_TRADE_PROBABILITY:
         return
@@ -112,12 +112,12 @@ async def _maybe_propose_off_turn_trade(
     if offer_resource is None:
         return
     request_resource = _RNG.choice(
-        [r for r in teyuna_shared.ResourceCard if r is not offer_resource]
+        [r for r in teyuna_core.ResourceCard if r is not offer_resource]
     )
     active = game.turn_order[0]
     try:
         await context.client.submit_action(
-            teyuna_shared.ProposeTradeAction(
+            teyuna_core.ProposeTradeAction(
                 offer={offer_resource: 1},
                 request={request_resource: 1},
                 to={active},
@@ -146,11 +146,11 @@ async def _maybe_propose_off_turn_trade(
 async def _initial_placement(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    game: teyuna_shared.Game,
+    game: teyuna_core.Game,
 ) -> None:
     if _RNG.random() < 0.5:
         logger.info("%s skipping initial placement", context.nickname)
-        await context.client.submit_action(teyuna_shared.FreePlacementAction())
+        await context.client.submit_action(teyuna_core.FreePlacementAction())
         return
 
     vertices = rules.vertices_available_for_free_placement(game)
@@ -166,7 +166,7 @@ async def _initial_placement(
         return
     path = _RNG.choice(edges)
     await context.client.submit_action(
-        teyuna_shared.FreePlacementAction(
+        teyuna_core.FreePlacementAction(
             terrace=rules.from_vertex(terrace),
             path=rules.from_edge(path),
         )
@@ -184,22 +184,22 @@ async def _dice_roll(
     logger: logging.Logger,
 ) -> None:
     hand = await context.client.get_hand()
-    if teyuna_shared.WisdomCard.WARRIOR in hand.wisdom_cards and _RNG.random() < 0.5:
+    if teyuna_core.WisdomCard.WARRIOR in hand.wisdom_cards and _RNG.random() < 0.5:
         result = await context.client.submit_action(
-            teyuna_shared.PlayWisdomCardAction(card=teyuna_shared.WisdomCard.WARRIOR)
+            teyuna_core.PlayWisdomCardAction(card=teyuna_core.WisdomCard.WARRIOR)
         )
         logger.info(
             "%s played warrior (next phase %s)", context.nickname, result.next_phase
         )
         return
     logger.info("%s advancing turn (dice roll)", context.nickname)
-    await context.client.submit_action(teyuna_shared.PlayerAction())
+    await context.client.submit_action(teyuna_core.PlayerAction())
 
 
 async def _move_conquistator(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    game: teyuna_shared.Game,
+    game: teyuna_core.Game,
 ) -> None:
     current = game.conquistator_location
     candidates = [
@@ -218,7 +218,7 @@ async def _move_conquistator(
     ]
     take_from = _RNG.choice(others) if others and _RNG.random() < 0.5 else None
     await context.client.submit_action(
-        teyuna_shared.MoveConquistatorAction(
+        teyuna_core.MoveConquistatorAction(
             q=location.q,
             r=location.r,
             from_player=take_from,
@@ -235,7 +235,7 @@ async def _move_conquistator(
 async def _trade_and_build(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    game: teyuna_shared.Game,
+    game: teyuna_core.Game,
 ) -> None:
     hand = await context.client.get_hand()
     resources = hand.resources
@@ -244,20 +244,20 @@ async def _trade_and_build(
     ]
 
     if terraces := rules.built_terraces(game, by=context.nickname):
-        if rules.can_afford(resources, teyuna_shared.GREAT_TERRACE_COST):
+        if rules.can_afford(resources, teyuna_core.GREAT_TERRACE_COST):
             terrace = _RNG.choice(terraces)
             options.append(
                 functools.partial(_build_great_terrace, context, logger, terrace)
             )
     if vertices := rules.vertices_available_for_building(game, by=context.nickname):
-        if rules.can_afford(resources, teyuna_shared.TERRACE_COST):
+        if rules.can_afford(resources, teyuna_core.TERRACE_COST):
             vertex = _RNG.choice(vertices)
             options.append(functools.partial(_build_terrace, context, logger, vertex))
     if edges := rules.edges_available_for_building(game, by=context.nickname):
-        if rules.can_afford(resources, teyuna_shared.PATH_COST):
+        if rules.can_afford(resources, teyuna_core.PATH_COST):
             edge = _RNG.choice(edges)
             options.append(functools.partial(_build_path, context, logger, edge))
-    if rules.can_afford(resources, teyuna_shared.WISDOM_CARD_COST):
+    if rules.can_afford(resources, teyuna_core.WISDOM_CARD_COST):
         options.append(functools.partial(_buy_wisdom, context, logger))
 
     if offer_resource := _random_owned_resource(resources):
@@ -268,7 +268,7 @@ async def _trade_and_build(
         ]
         if targets:
             request_resource = _RNG.choice(
-                [r for r in teyuna_shared.ResourceCard if r is not offer_resource]
+                [r for r in teyuna_core.ResourceCard if r is not offer_resource]
             )
             to = set(_RNG.sample(targets, k=_RNG.randint(1, len(targets))))
             options.append(
@@ -295,13 +295,11 @@ async def _trade_and_build(
     offerable = [
         resource
         for resource, amount in resources.items()
-        if amount >= teyuna_shared.DEFAULT_TRADE_RATE
+        if amount >= teyuna_core.DEFAULT_TRADE_RATE
     ]
     if offerable:
         offers = _RNG.choice(offerable)
-        requests = _RNG.choice(
-            [r for r in teyuna_shared.ResourceCard if r is not offers]
-        )
+        requests = _RNG.choice([r for r in teyuna_core.ResourceCard if r is not offers])
         options.append(
             functools.partial(_trade_with_supply, context, logger, offers, requests)
         )
@@ -311,17 +309,17 @@ async def _trade_and_build(
 
 async def _skip_turn(context: entities.PlayerContext, logger: logging.Logger) -> None:
     logger.info("%s advancing turn (trade and build)", context.nickname)
-    await context.client.submit_action(teyuna_shared.PlayerAction())
+    await context.client.submit_action(teyuna_core.PlayerAction())
 
 
 async def _build_great_terrace(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    terrace: teyuna_shared.VertexCoordinate,
+    terrace: teyuna_core.VertexCoordinate,
 ) -> None:
     await context.client.submit_action(
-        teyuna_shared.BuildSettlementAction(
-            item=teyuna_shared.SettlementType.GREAT_TERRACE,
+        teyuna_core.BuildSettlementAction(
+            item=teyuna_core.SettlementType.GREAT_TERRACE,
             coordinate=rules.from_vertex(terrace),
         )
     )
@@ -331,11 +329,11 @@ async def _build_great_terrace(
 async def _build_terrace(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    vertex: teyuna_shared.VertexCoordinate,
+    vertex: teyuna_core.VertexCoordinate,
 ) -> None:
     await context.client.submit_action(
-        teyuna_shared.BuildSettlementAction(
-            item=teyuna_shared.SettlementType.TERRACE,
+        teyuna_core.BuildSettlementAction(
+            item=teyuna_core.SettlementType.TERRACE,
             coordinate=rules.from_vertex(vertex),
         )
     )
@@ -345,16 +343,16 @@ async def _build_terrace(
 async def _build_path(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    edge: teyuna_shared.EdgeCoordinate,
+    edge: teyuna_core.EdgeCoordinate,
 ) -> None:
     await context.client.submit_action(
-        teyuna_shared.BuildPathAction(coordinate=rules.from_edge(edge))
+        teyuna_core.BuildPathAction(coordinate=rules.from_edge(edge))
     )
     logger.info("%s built path at %s", context.nickname, edge)
 
 
 async def _buy_wisdom(context: entities.PlayerContext, logger: logging.Logger) -> None:
-    result = await context.client.submit_action(teyuna_shared.BuyWisdomCardAction())
+    result = await context.client.submit_action(teyuna_core.BuyWisdomCardAction())
     logger.info(
         "%s bought wisdom card (next phase %s)", context.nickname, result.next_phase
     )
@@ -363,12 +361,12 @@ async def _buy_wisdom(context: entities.PlayerContext, logger: logging.Logger) -
 async def _propose_trade(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    offer: teyuna_shared.ResourceCard,
-    request: teyuna_shared.ResourceCard,
+    offer: teyuna_core.ResourceCard,
+    request: teyuna_core.ResourceCard,
     to: set[str],
 ) -> None:
     await context.client.submit_action(
-        teyuna_shared.ProposeTradeAction(
+        teyuna_core.ProposeTradeAction(
             offer={offer: 1},
             request={request: 1},
             to=to,
@@ -386,11 +384,11 @@ async def _propose_trade(
 async def _accept_trade(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    proposal: teyuna_shared.ActiveTradeProposal,
+    proposal: teyuna_core.ActiveTradeProposal,
 ) -> None:
     try:
         result = await context.client.submit_action(
-            teyuna_shared.AcceptTradeAction(id=proposal.id)
+            teyuna_core.AcceptTradeAction(id=proposal.id)
         )
     except httpx2.HTTPStatusError as error:
         # Trades and hands can change between selecting a proposal and sending
@@ -417,11 +415,11 @@ async def _accept_trade(
 async def _trade_with_supply(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    offers: teyuna_shared.ResourceCard,
-    requests: teyuna_shared.ResourceCard,
+    offers: teyuna_core.ResourceCard,
+    requests: teyuna_core.ResourceCard,
 ) -> None:
     result = await context.client.submit_action(
-        teyuna_shared.TradeWithSupplyAction(offers=offers, requests=requests)
+        teyuna_core.TradeWithSupplyAction(offers=offers, requests=requests)
     )
     logger.info(
         "%s traded with supply %s for %s (next phase %s)",
@@ -433,8 +431,8 @@ async def _trade_with_supply(
 
 
 def _random_owned_resource(
-    resources: Mapping[teyuna_shared.ResourceCard, int],
-) -> teyuna_shared.ResourceCard | None:
+    resources: Mapping[teyuna_core.ResourceCard, int],
+) -> teyuna_core.ResourceCard | None:
     owned = [resource for resource, amount in resources.items() if amount > 0]
     if not owned:
         return None

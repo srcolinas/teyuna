@@ -3,7 +3,7 @@ import fastapi.testclient as testclient
 
 from .. import utils
 from . import rounds, asserts
-import teyuna_shared
+import teyuna_core
 
 
 def test_three_players_complete_first_placements(
@@ -41,45 +41,45 @@ def test_three_players_complete_first_placements(
         [
             (
                 first,
-                teyuna_shared.SettlementType.TERRACE,
-                teyuna_shared.canonical_vertex(-2, 0, 0),
+                teyuna_core.SettlementType.TERRACE,
+                teyuna_core.canonical_vertex(-2, 0, 0),
             ),
             (
                 first,
-                teyuna_shared.SettlementType.TERRACE,
-                teyuna_shared.canonical_vertex(1, 0, 0),
+                teyuna_core.SettlementType.TERRACE,
+                teyuna_core.canonical_vertex(1, 0, 0),
             ),
             (
                 second,
-                teyuna_shared.SettlementType.TERRACE,
-                teyuna_shared.canonical_vertex(-2, 0, 2),
+                teyuna_core.SettlementType.TERRACE,
+                teyuna_core.canonical_vertex(-2, 0, 2),
             ),
             (
                 second,
-                teyuna_shared.SettlementType.TERRACE,
-                teyuna_shared.canonical_vertex(1, 0, 2),
+                teyuna_core.SettlementType.TERRACE,
+                teyuna_core.canonical_vertex(1, 0, 2),
             ),
             (
                 third,
-                teyuna_shared.SettlementType.TERRACE,
-                teyuna_shared.canonical_vertex(-2, 0, 4),
+                teyuna_core.SettlementType.TERRACE,
+                teyuna_core.canonical_vertex(-2, 0, 4),
             ),
             (
                 third,
-                teyuna_shared.SettlementType.TERRACE,
-                teyuna_shared.canonical_vertex(1, 0, 4),
+                teyuna_core.SettlementType.TERRACE,
+                teyuna_core.canonical_vertex(1, 0, 4),
             ),
         ],
     )
     asserts.assert_paths(
         game["paths"],
         [
-            (first, teyuna_shared.canonical_edge(-2, -1, 1)),
-            (first, teyuna_shared.canonical_edge(1, -1, 1)),
-            (second, teyuna_shared.canonical_edge(-2, 0, 1)),
-            (second, teyuna_shared.canonical_edge(1, 0, 1)),
-            (third, teyuna_shared.canonical_edge(-2, 0, 4)),
-            (third, teyuna_shared.canonical_edge(1, 0, 4)),
+            (first, teyuna_core.canonical_edge(-2, -1, 1)),
+            (first, teyuna_core.canonical_edge(1, -1, 1)),
+            (second, teyuna_core.canonical_edge(-2, 0, 1)),
+            (second, teyuna_core.canonical_edge(1, 0, 1)),
+            (third, teyuna_core.canonical_edge(-2, 0, 4)),
+            (third, teyuna_core.canonical_edge(1, 0, 4)),
         ],
     )
     asserts.assert_players_attributes_equal(
@@ -91,9 +91,9 @@ def test_three_players_complete_first_placements(
         },
     )
     second_terraces = {
-        first: teyuna_shared.canonical_vertex(1, 0, 0),
-        second: teyuna_shared.canonical_vertex(1, 0, 2),
-        third: teyuna_shared.canonical_vertex(1, 0, 4),
+        first: teyuna_core.canonical_vertex(1, 0, 0),
+        second: teyuna_core.canonical_vertex(1, 0, 2),
+        third: teyuna_core.canonical_vertex(1, 0, 4),
     }
     asserts.assert_num_resources(
         game["players"],

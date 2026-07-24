@@ -9,8 +9,8 @@ resolution-markers = [
 [manifest]
 members = [
     "backend",
+    "teyuna-core",
     "teyuna-sdk",
-    "teyuna-shared-core",
 ]
 
 [[package]]
@@ -94,7 +94,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pytest-asyncio" },
-    { name = "teyuna-shared-core" },
+    { name = "teyuna-core" },
     { name = "uvicorn" },
 ]
 
@@ -117,7 +117,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
-    { name = "teyuna-shared-core", editable = "packages/shared-core" },
+    { name = "teyuna-core", editable = "packages/teyuna-core" },
     { name = "uvicorn", specifier = ">=0.51.0" },
 ]
 
@@ -678,40 +678,9 @@ wheels = [
 ]
 
 [[package]]
-name = "teyuna-sdk"
+name = "teyuna-core"
 version = "0.1.0"
-source = { editable = "packages/sdk-python" }
-dependencies = [
-    { name = "httpx2" },
-    { name = "pydantic" },
-    { name = "teyuna-shared-core" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx2", specifier = ">=2.5.0" },
-    { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "teyuna-shared-core", editable = "packages/shared-core" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=2.3.0" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "ruff", specifier = ">=0.15.22" },
-]
-
-[[package]]
-name = "teyuna-shared-core"
-version = "0.1.0"
-source = { editable = "packages/shared-core" }
+source = { editable = "packages/teyuna-core" }
 dependencies = [
     { name = "pydantic" },
 ]
@@ -728,6 +697,37 @@ requires-dist = [{ name = "pydantic", specifier = ">=2.12.5" }]
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=2.3.0" },
+    { name = "ruff", specifier = ">=0.15.22" },
+]
+
+[[package]]
+name = "teyuna-sdk"
+version = "0.1.0"
+source = { editable = "packages/sdk-python" }
+dependencies = [
+    { name = "httpx2" },
+    { name = "pydantic" },
+    { name = "teyuna-core" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx2", specifier = ">=2.5.0" },
+    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "teyuna-core", editable = "packages/teyuna-core" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=2.3.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
     { name = "ruff", specifier = ">=0.15.22" },
 ]
 

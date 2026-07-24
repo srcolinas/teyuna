@@ -1,4 +1,4 @@
-import teyuna_shared
+import teyuna_core
 
 from ... import entities
 
@@ -10,7 +10,7 @@ def update_longest_road(
     by: str,
     /,
     *,
-    edge: teyuna_shared.Coordinate,
+    edge: teyuna_core.Coordinate,
 ) -> None:
     """Recompute longest road through ``edge`` after ``by`` places a path.
 
@@ -20,7 +20,7 @@ def update_longest_road(
         return
 
     length = _longest_path_length_through(
-        game, by, teyuna_shared.Coordinate(q=edge.q, r=edge.r, d=edge.d)
+        game, by, teyuna_core.Coordinate(q=edge.q, r=edge.r, d=edge.d)
     )
     if length < _MIN_LONGEST_ROAD:
         return
@@ -36,7 +36,7 @@ def recompute_longest_road(
     by: str,
     /,
     *,
-    vertex: teyuna_shared.Coordinate,
+    vertex: teyuna_core.Coordinate,
 ) -> None:
     """Recompute longest road after ``by`` places a terrace at ``vertex``.
 
@@ -72,11 +72,11 @@ def _terrace_breaks_longest_road(
     by: str,
     /,
     *,
-    vertex: teyuna_shared.Coordinate,
+    vertex: teyuna_core.Coordinate,
 ) -> bool:
     """True when exactly two adjacent edges belong to one adversary and one to ``by``."""
     owners: list[str | None] = []
-    for edge in teyuna_shared.edges_adjacent_to_vertex(vertex.q, vertex.r, vertex.d):
+    for edge in teyuna_core.edges_adjacent_to_vertex(vertex.q, vertex.r, vertex.d):
         owner: str | None = None
         for nickname, player_state in game.players.items():
             if edge in player_state.paths:
@@ -104,27 +104,27 @@ def player_longest_path_length(
 def _longest_path_length_through(
     game: entities.Game,
     by: str,
-    start: teyuna_shared.Coordinate,
+    start: teyuna_core.Coordinate,
 ) -> int:
     paths = game.players[by].paths
     settlements = game.players[by].settlements
     visited_edges = {start}
 
-    def vertex_is_valid(vertex: teyuna_shared.Coordinate) -> bool:
+    def vertex_is_valid(vertex: teyuna_core.Coordinate) -> bool:
         return vertex in settlements or vertex in game.free_verticies
 
-    def edge_is_valid(edge: teyuna_shared.Coordinate) -> bool:
+    def edge_is_valid(edge: teyuna_core.Coordinate) -> bool:
         return edge in paths and edge not in visited_edges
 
-    def dfs(vertex: teyuna_shared.Coordinate) -> int:
+    def dfs(vertex: teyuna_core.Coordinate) -> int:
         if not vertex_is_valid(vertex):
             return 0
         longest = 0
-        stack: list[tuple[teyuna_shared.Coordinate, int]] = [(vertex, 0)]
+        stack: list[tuple[teyuna_core.Coordinate, int]] = [(vertex, 0)]
         while stack:
             current, length = stack.pop()
             longest = max(longest, length)
-            for edge in teyuna_shared.edges_adjacent_to_vertex(
+            for edge in teyuna_core.edges_adjacent_to_vertex(
                 current.q, current.r, current.d
             ):
                 if not edge_is_valid(edge):
@@ -134,10 +134,10 @@ def _longest_path_length_through(
                 visited_edges.add(edge)
                 # Continue from the far vertex when traversable; an edge that
                 # ends on an opponent settlement still counts above.
-                for other in teyuna_shared.vertices_of_edge(edge):
+                for other in teyuna_core.vertices_of_edge(edge):
                     if other != current and vertex_is_valid(other):
                         stack.append((other, new_length))
         return longest
 
-    v1, v2 = teyuna_shared.vertices_of_edge(start)
+    v1, v2 = teyuna_core.vertices_of_edge(start)
     return dfs(v1) + dfs(v2) + 1

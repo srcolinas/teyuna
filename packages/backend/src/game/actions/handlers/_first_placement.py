@@ -1,4 +1,4 @@
-import teyuna_shared
+import teyuna_core
 
 from ... import entities
 from .. import timeouts
@@ -6,11 +6,11 @@ from . import _placement
 
 
 def handle_first_placement(
-    game: entities.Game, action: teyuna_shared.FreePlacementAction
-) -> teyuna_shared.PlacedBuildingsResult:
+    game: entities.Game, action: teyuna_core.FreePlacementAction
+) -> teyuna_core.PlacedBuildingsResult:
     previous_phase = game.phase
     if game.active_player != action.by:
-        return teyuna_shared.PlacedBuildingsResult(
+        return teyuna_core.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -26,7 +26,7 @@ def handle_first_placement(
         due_to_timeout=action.due_to_timeout,
     )
     if action.terrace is None or action.path is None:
-        return teyuna_shared.PlacedBuildingsResult(
+        return teyuna_core.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -39,7 +39,7 @@ def handle_first_placement(
         target=action.terrace,
     )
     if not can:
-        return teyuna_shared.PlacedBuildingsResult(
+        return teyuna_core.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -61,7 +61,7 @@ def handle_first_placement(
         new_settlement=action.terrace,
     )
     if not can:
-        return teyuna_shared.PlacedBuildingsResult(
+        return teyuna_core.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -74,15 +74,15 @@ def handle_first_placement(
             ),
         )
 
-    game.use_vertex(action.by, action.terrace, teyuna_shared.SettlementType.TERRACE)
+    game.use_vertex(action.by, action.terrace, teyuna_core.SettlementType.TERRACE)
     game.use_edge(action.by, action.path)
 
     if game.player_idx < len(game.players) - 1:
         game.player_idx += 1
-        game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+        game.phase = teyuna_core.GamePhaseName.FIRST_PLACEMENT
     else:
-        game.phase = teyuna_shared.GamePhaseName.SECOND_PLACEMENT
-    return teyuna_shared.PlacedBuildingsResult(
+        game.phase = teyuna_core.GamePhaseName.SECOND_PLACEMENT
+    return teyuna_core.PlacedBuildingsResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,

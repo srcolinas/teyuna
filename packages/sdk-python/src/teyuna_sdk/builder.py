@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-import teyuna_shared
+import teyuna_core
 
 from . import entities, logging_config, rules
 
@@ -27,14 +27,14 @@ async def build(
 
         match game.phase:
             case (
-                teyuna_shared.GamePhaseName.FIRST_PLACEMENT
-                | teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+                teyuna_core.GamePhaseName.FIRST_PLACEMENT
+                | teyuna_core.GamePhaseName.SECOND_PLACEMENT
             ):
                 await _initial_placement(context, logger, game)
-            case teyuna_shared.GamePhaseName.DICE_ROLL:
+            case teyuna_core.GamePhaseName.DICE_ROLL:
                 logger.info("%s advancing turn (dice roll)", context.nickname)
-                await context.client.submit_action(teyuna_shared.PlayerAction())
-            case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
+                await context.client.submit_action(teyuna_core.PlayerAction())
+            case teyuna_core.GamePhaseName.TRADE_AND_BUILD:
                 await _trade_and_build(context, logger, sleep_time)
             case _:
                 await asyncio.sleep(sleep_time)
@@ -43,7 +43,7 @@ async def build(
 async def _initial_placement(
     context: entities.PlayerContext,
     logger: logging.Logger,
-    game: teyuna_shared.Game,
+    game: teyuna_core.Game,
 ) -> None:
     vertices = rules.vertices_available_for_free_placement(game)
     preferred = tuple(
@@ -64,7 +64,7 @@ async def _initial_placement(
 
     path = edges[0]
     await context.client.submit_action(
-        teyuna_shared.FreePlacementAction(
+        teyuna_core.FreePlacementAction(
             terrace=rules.from_vertex(terrace),
             path=rules.from_edge(path),
         )
@@ -85,7 +85,7 @@ async def _trade_and_build(
     while True:
         await asyncio.sleep(sleep_time)
         game = await context.client.get_game()
-        if game.phase is not teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
+        if game.phase is not teyuna_core.GamePhaseName.TRADE_AND_BUILD:
             return
         if not game.turn_order or game.turn_order[0] != context.nickname:
             return
@@ -94,36 +94,36 @@ async def _trade_and_build(
         resources = hand.resources
 
         if terraces := rules.built_terraces(game, by=context.nickname):
-            if rules.can_afford(resources, teyuna_shared.GREAT_TERRACE_COST):
+            if rules.can_afford(resources, teyuna_core.GREAT_TERRACE_COST):
                 terrace = terraces[0]
                 await context.client.submit_action(
-                    teyuna_shared.BuildSettlementAction(
-                        item=teyuna_shared.SettlementType.GREAT_TERRACE,
+                    teyuna_core.BuildSettlementAction(
+                        item=teyuna_core.SettlementType.GREAT_TERRACE,
                         coordinate=rules.from_vertex(terrace),
                     )
                 )
                 logger.info("%s built great terrace at %s", context.nickname, terrace)
                 continue
         if vertices := rules.vertices_available_for_building(game, by=context.nickname):
-            if rules.can_afford(resources, teyuna_shared.TERRACE_COST):
+            if rules.can_afford(resources, teyuna_core.TERRACE_COST):
                 vertex = vertices[0]
                 await context.client.submit_action(
-                    teyuna_shared.BuildSettlementAction(
-                        item=teyuna_shared.SettlementType.TERRACE,
+                    teyuna_core.BuildSettlementAction(
+                        item=teyuna_core.SettlementType.TERRACE,
                         coordinate=rules.from_vertex(vertex),
                     )
                 )
                 logger.info("%s built terrace at %s", context.nickname, vertex)
                 continue
         if edges := rules.edges_available_for_building(game, by=context.nickname):
-            if rules.can_afford(resources, teyuna_shared.PATH_COST):
+            if rules.can_afford(resources, teyuna_core.PATH_COST):
                 edge = edges[0]
                 await context.client.submit_action(
-                    teyuna_shared.BuildPathAction(coordinate=rules.from_edge(edge))
+                    teyuna_core.BuildPathAction(coordinate=rules.from_edge(edge))
                 )
                 logger.info("%s built path at %s", context.nickname, edge)
                 continue
 
         logger.info("%s advancing turn (trade and build)", context.nickname)
-        await context.client.submit_action(teyuna_shared.PlayerAction())
+        await context.client.submit_action(teyuna_core.PlayerAction())
         return

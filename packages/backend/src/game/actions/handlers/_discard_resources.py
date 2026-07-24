@@ -1,15 +1,15 @@
-import teyuna_shared
+import teyuna_core
 
 from ... import entities
 
 
 def handle_discard_resources(
-    game: entities.Game, action: teyuna_shared.DiscardResourcesAction
-) -> teyuna_shared.DiscardedResourcesResult:
+    game: entities.Game, action: teyuna_core.DiscardResourcesAction
+) -> teyuna_core.DiscardedResourcesResult:
     previous_phase = game.phase
     required = game.to_discard_resources.get(action.by)
     if required is None:
-        return teyuna_shared.DiscardedResourcesResult(
+        return teyuna_core.DiscardedResourcesResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -17,7 +17,7 @@ def handle_discard_resources(
         )
 
     if sum(action.count.values()) != required:
-        return teyuna_shared.DiscardedResourcesResult(
+        return teyuna_core.DiscardedResourcesResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
@@ -27,7 +27,7 @@ def handle_discard_resources(
     player_resources = game.players[action.by].resources
     for resource, amount in action.count.items():
         if player_resources[resource] < amount:
-            return teyuna_shared.DiscardedResourcesResult(
+            return teyuna_core.DiscardedResourcesResult(
                 previous_phase=previous_phase,
                 next_phase=game.phase,
                 action=action,
@@ -38,10 +38,10 @@ def handle_discard_resources(
     del game.to_discard_resources[action.by]
 
     if game.to_discard_resources:
-        game.phase = teyuna_shared.GamePhaseName.DISCARD_RESOURCES
+        game.phase = teyuna_core.GamePhaseName.DISCARD_RESOURCES
     else:
-        game.phase = teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
-    return teyuna_shared.DiscardedResourcesResult(
+        game.phase = teyuna_core.GamePhaseName.MOVE_CONQUISTATOR
+    return teyuna_core.DiscardedResourcesResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,

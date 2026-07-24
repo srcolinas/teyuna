@@ -4,7 +4,7 @@ import fastapi.testclient as testclient
 import pytest
 
 from ... import utils
-import teyuna_shared
+import teyuna_core
 
 
 @pytest.mark.parametrize("num_players,status", [(3, 201), (4, 201), (2, 422), (5, 422)])
@@ -39,12 +39,12 @@ def test_create_with_custom_map_and_conquistator(
             "map": [
                 {
                     "coordinate": {"q": 0, "r": 0},
-                    "type": teyuna_shared.HexType.DESERT.value,
+                    "type": teyuna_core.HexType.DESERT.value,
                     "number": 7,
                 },
                 {
                     "coordinate": {"q": 1, "r": 0},
-                    "type": teyuna_shared.HexType.MOUNTAINS.value,
+                    "type": teyuna_core.HexType.MOUNTAINS.value,
                     "number": 6,
                 },
             ],
@@ -55,7 +55,7 @@ def test_create_with_custom_map_and_conquistator(
     payload = response.json()
     assert payload["conquistator_location"] == {"q": 0, "r": 0}
     assert len(payload["map"]) == 2
-    assert payload["map"][0]["type"] == teyuna_shared.HexType.DESERT.value
+    assert payload["map"][0]["type"] == teyuna_core.HexType.DESERT.value
 
 
 def test_create_includes_default_harbours(client: testclient.TestClient) -> None:
@@ -63,7 +63,7 @@ def test_create_includes_default_harbours(client: testclient.TestClient) -> None
     assert response.status_code == 201, response.text
     harbours = response.json()["harbours"]
     expected = [
-        harbour.model_dump(mode="json") for harbour in teyuna_shared.grouped_harbours()
+        harbour.model_dump(mode="json") for harbour in teyuna_core.grouped_harbours()
     ]
     assert harbours == expected
 
@@ -89,7 +89,7 @@ def test_create_with_custom_harbours(client: testclient.TestClient) -> None:
             "map": [
                 {
                     "coordinate": {"q": 0, "r": 0},
-                    "type": teyuna_shared.HexType.DESERT.value,
+                    "type": teyuna_core.HexType.DESERT.value,
                     "number": 7,
                 },
             ],
@@ -102,9 +102,9 @@ def test_create_with_custom_harbours(client: testclient.TestClient) -> None:
     assert payload["conquistator_location"] == {"q": 0, "r": 0}
     assert len(payload["harbours"]) == 1
     assert payload["harbours"][0]["resource"] == "gold"
-    expected = teyuna_shared.grouped_harbours(
-        teyuna_shared.harbour_pairs_from_ports(
-            (teyuna_shared.Harbour.model_validate(custom_harbour),)
+    expected = teyuna_core.grouped_harbours(
+        teyuna_core.harbour_pairs_from_ports(
+            (teyuna_core.Harbour.model_validate(custom_harbour),)
         )
     )
     assert payload["harbours"] == [

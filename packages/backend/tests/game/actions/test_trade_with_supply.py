@@ -3,19 +3,19 @@ import collections
 import pytest
 
 from src.game import actions, entities
-import teyuna_shared
+import teyuna_core
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
     game.players[other].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 4}
+        {teyuna_core.ResourceCard.GOLD: 4}
     )
 
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=other,
-        offers=teyuna_shared.ResourceCard.GOLD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.GOLD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
@@ -31,10 +31,10 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
 def test_cannot_trade_if_not_enough_resources_from_player(
     game: entities.Game,
 ) -> None:
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=game.active_player,
-        offers=teyuna_shared.ResourceCard.GOLD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.GOLD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
@@ -51,13 +51,13 @@ def test_cannot_trade_if_not_enough_resources_from_supply(
     game: entities.Game,
 ) -> None:
     game.players[game.active_player].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 4}
+        {teyuna_core.ResourceCard.GOLD: 4}
     )
-    game.resource_supply[teyuna_shared.ResourceCard.STONE] = 0
-    action = teyuna_shared.TradeWithSupplyAction(
+    game.resource_supply[teyuna_core.ResourceCard.STONE] = 0
+    action = teyuna_core.TradeWithSupplyAction(
         by=game.active_player,
-        offers=teyuna_shared.ResourceCard.GOLD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.GOLD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
@@ -73,15 +73,15 @@ def test_cannot_trade_if_not_enough_resources_from_supply(
 def test_default_rate_is_four_for_one(game: entities.Game) -> None:
     player = game.active_player
     game.players[player].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 4}
+        {teyuna_core.ResourceCard.GOLD: 4}
     )
-    supply_gold_before = game.resource_supply[teyuna_shared.ResourceCard.GOLD]
-    supply_stone_before = game.resource_supply[teyuna_shared.ResourceCard.STONE]
+    supply_gold_before = game.resource_supply[teyuna_core.ResourceCard.GOLD]
+    supply_stone_before = game.resource_supply[teyuna_core.ResourceCard.STONE]
 
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=player,
-        offers=teyuna_shared.ResourceCard.GOLD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.GOLD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
@@ -90,38 +90,35 @@ def test_default_rate_is_four_for_one(game: entities.Game) -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
-    assert result.offers is teyuna_shared.ResourceCard.GOLD
-    assert result.requests is teyuna_shared.ResourceCard.STONE
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    assert result.offers is teyuna_core.ResourceCard.GOLD
+    assert result.requests is teyuna_core.ResourceCard.STONE
     assert result.rate == 4
     assert game.players[player].resources == collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 0, teyuna_shared.ResourceCard.STONE: 1}
+        {teyuna_core.ResourceCard.GOLD: 0, teyuna_core.ResourceCard.STONE: 1}
     )
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == supply_gold_before + 4
     assert (
-        game.resource_supply[teyuna_shared.ResourceCard.GOLD] == supply_gold_before + 4
-    )
-    assert (
-        game.resource_supply[teyuna_shared.ResourceCard.STONE]
-        == supply_stone_before - 1
+        game.resource_supply[teyuna_core.ResourceCard.STONE] == supply_stone_before - 1
     )
 
 
 @pytest.mark.parametrize(
-    "location", [k for k, v in teyuna_shared.HARBOUR_LOCATIONS.items() if v is None]
+    "location", [k for k, v in teyuna_core.HARBOUR_LOCATIONS.items() if v is None]
 )
 def test_discounted_rate_if_player_has_generic_harbour(
-    location: teyuna_shared.Coordinate, game: entities.Game
+    location: teyuna_core.Coordinate, game: entities.Game
 ) -> None:
     game.players[game.active_player].settlements[location] = (
-        teyuna_shared.SettlementType.TERRACE
+        teyuna_core.SettlementType.TERRACE
     )
     game.players[game.active_player].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 3}
+        {teyuna_core.ResourceCard.GOLD: 3}
     )
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=game.active_player,
-        offers=teyuna_shared.ResourceCard.GOLD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.GOLD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
@@ -129,33 +126,33 @@ def test_discounted_rate_if_player_has_generic_harbour(
     )
     assert result.action == action
     assert result.error is None
-    assert result.offers is teyuna_shared.ResourceCard.GOLD
-    assert result.requests is teyuna_shared.ResourceCard.STONE
+    assert result.offers is teyuna_core.ResourceCard.GOLD
+    assert result.requests is teyuna_core.ResourceCard.STONE
     assert result.rate == 3
     assert game.players[game.active_player].resources == collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 0, teyuna_shared.ResourceCard.STONE: 1}
+        {teyuna_core.ResourceCard.GOLD: 0, teyuna_core.ResourceCard.STONE: 1}
     )
 
 
 @pytest.mark.parametrize(
     "location,resource",
-    [(k, v) for k, v in teyuna_shared.HARBOUR_LOCATIONS.items() if v is not None],
+    [(k, v) for k, v in teyuna_core.HARBOUR_LOCATIONS.items() if v is not None],
 )
 def test_discounted_rate_if_player_has_specific_harbour(
-    location: teyuna_shared.Coordinate,
-    resource: teyuna_shared.ResourceCard,
+    location: teyuna_core.Coordinate,
+    resource: teyuna_core.ResourceCard,
     game: entities.Game,
 ) -> None:
     game.players[game.active_player].settlements[location] = (
-        teyuna_shared.SettlementType.TERRACE
+        teyuna_core.SettlementType.TERRACE
     )
     requests = (
-        teyuna_shared.ResourceCard.GOLD
-        if resource is teyuna_shared.ResourceCard.STONE
-        else teyuna_shared.ResourceCard.STONE
+        teyuna_core.ResourceCard.GOLD
+        if resource is teyuna_core.ResourceCard.STONE
+        else teyuna_core.ResourceCard.STONE
     )
     game.players[game.active_player].resources = collections.Counter({resource: 2})
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=game.active_player,
         offers=resource,
         requests=requests,
@@ -179,21 +176,19 @@ def test_specific_harbour_does_not_apply_to_other_resources(
 ) -> None:
     wood_harbour = next(
         location
-        for location, resource in teyuna_shared.HARBOUR_LOCATIONS.items()
-        if resource is teyuna_shared.ResourceCard.WOOD
+        for location, resource in teyuna_core.HARBOUR_LOCATIONS.items()
+        if resource is teyuna_core.ResourceCard.WOOD
     )
     player = game.active_player
-    game.players[player].settlements[wood_harbour] = (
-        teyuna_shared.SettlementType.TERRACE
-    )
+    game.players[player].settlements[wood_harbour] = teyuna_core.SettlementType.TERRACE
     game.players[player].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 3}
+        {teyuna_core.ResourceCard.GOLD: 3}
     )
 
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=player,
-        offers=teyuna_shared.ResourceCard.GOLD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.GOLD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
@@ -209,31 +204,29 @@ def test_specific_harbour_does_not_apply_to_other_resources(
 def test_custom_harbour_applies_and_default_does_not(
     game: entities.Game,
 ) -> None:
-    custom_vertex = teyuna_shared.canonical_vertex(0, 0, 0)
-    other_vertex = teyuna_shared.canonical_vertex(0, 0, 1)
+    custom_vertex = teyuna_core.canonical_vertex(0, 0, 0)
+    other_vertex = teyuna_core.canonical_vertex(0, 0, 1)
     default_wood = next(
         location
-        for location, resource in teyuna_shared.HARBOUR_LOCATIONS.items()
-        if resource is teyuna_shared.ResourceCard.WOOD
+        for location, resource in teyuna_core.HARBOUR_LOCATIONS.items()
+        if resource is teyuna_core.ResourceCard.WOOD
     )
     game.harbours = (
-        teyuna_shared.HarbourPair(
-            resource=teyuna_shared.ResourceCard.GOLD,
+        teyuna_core.HarbourPair(
+            resource=teyuna_core.ResourceCard.GOLD,
             vertices=(custom_vertex, other_vertex),
         ),
     )
 
     player = game.active_player
-    game.players[player].settlements[custom_vertex] = (
-        teyuna_shared.SettlementType.TERRACE
-    )
+    game.players[player].settlements[custom_vertex] = teyuna_core.SettlementType.TERRACE
     game.players[player].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 2}
+        {teyuna_core.ResourceCard.GOLD: 2}
     )
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=player,
-        offers=teyuna_shared.ResourceCard.GOLD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.GOLD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(game, action)
     assert result.error is None
@@ -241,15 +234,15 @@ def test_custom_harbour_applies_and_default_does_not(
 
     # Default wood harbour is no longer on this game.
     game.players[player].settlements = entities.SettlementsCollection(
-        _locations={default_wood: teyuna_shared.SettlementType.TERRACE}
+        _locations={default_wood: teyuna_core.SettlementType.TERRACE}
     )
     game.players[player].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.WOOD: 2}
+        {teyuna_core.ResourceCard.WOOD: 2}
     )
-    action = teyuna_shared.TradeWithSupplyAction(
+    action = teyuna_core.TradeWithSupplyAction(
         by=player,
-        offers=teyuna_shared.ResourceCard.WOOD,
-        requests=teyuna_shared.ResourceCard.STONE,
+        offers=teyuna_core.ResourceCard.WOOD,
+        requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(game, action)
     assert result.error == "You do not have enough wood to offer."

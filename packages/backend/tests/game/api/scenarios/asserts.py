@@ -1,7 +1,7 @@
 from typing import Any
 
 from src.game import player
-import teyuna_shared
+import teyuna_core
 
 type Json = dict[str, Any]
 
@@ -24,7 +24,7 @@ def assert_players_attributes(
 def assert_settlements(
     buildings: list[dict[str, Any]],
     expected: list[
-        tuple[player.Nickname, teyuna_shared.SettlementType, teyuna_shared.Coordinate]
+        tuple[player.Nickname, teyuna_core.SettlementType, teyuna_core.Coordinate]
     ],
 ) -> None:
     expected_buildings = []
@@ -49,7 +49,7 @@ def assert_settlements(
 
 def assert_paths(
     buildings: list[dict[str, Any]],
-    expected: list[tuple[player.Nickname, teyuna_shared.Coordinate]],
+    expected: list[tuple[player.Nickname, teyuna_core.Coordinate]],
 ) -> None:
     expected_buildings = []
     for owner, (q, r, d) in expected:
@@ -78,7 +78,7 @@ def assert_num_resources(
 
 
 def count_adjacent_producing_hexes(
-    game_map: list[dict[str, Any]], terrace: teyuna_shared.Coordinate
+    game_map: list[dict[str, Any]], terrace: teyuna_core.Coordinate
 ) -> int:
     """Count non-desert hexes adjacent to a terrace (second-placement grants)."""
     types_by_hex = {
@@ -87,8 +87,6 @@ def count_adjacent_producing_hexes(
     }
     return sum(
         1
-        for loc in teyuna_shared.hex_locations_at_vertex(
-            terrace.q, terrace.r, terrace.d
-        )
-        if types_by_hex.get((loc.q, loc.r)) not in (None, teyuna_shared.HexType.DESERT)
+        for loc in teyuna_core.hex_locations_at_vertex(terrace.q, terrace.r, terrace.d)
+        if types_by_hex.get((loc.q, loc.r)) not in (None, teyuna_core.HexType.DESERT)
     )

@@ -3,7 +3,7 @@ import logging
 import uuid
 from typing import Self
 
-import teyuna_shared
+import teyuna_core
 
 from . import entities, sdk
 
@@ -56,7 +56,7 @@ class GameLoop:
         """Block until the lobby closes; ``/events`` rejects lobby-phase games."""
         while True:
             state = await self._client.get_game()
-            if state.phase is not teyuna_shared.GamePhaseName.LOBBY:
+            if state.phase is not teyuna_core.GamePhaseName.LOBBY:
                 return
             logger.info("Waiting for game to start...")
             await asyncio.sleep(2)

@@ -1,22 +1,22 @@
-import teyuna_shared
+import teyuna_core
 
 from ... import entities
 
 
 def handle_dice_play_mamo(
-    game: entities.Game, action: teyuna_shared.PlayMamoAction
-) -> teyuna_shared.PlayedMamoResult:
+    game: entities.Game, action: teyuna_core.PlayMamoAction
+) -> teyuna_core.PlayedMamoResult:
     previous_phase = game.phase
     error = _apply_mamo(game, action)
     if error is not None:
-        return teyuna_shared.PlayedMamoResult(
+        return teyuna_core.PlayedMamoResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
-    return teyuna_shared.PlayedMamoResult(
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
+    return teyuna_core.PlayedMamoResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -25,19 +25,19 @@ def handle_dice_play_mamo(
 
 
 def handle_trade_and_build_play_mamo(
-    game: entities.Game, action: teyuna_shared.PlayMamoAction
-) -> teyuna_shared.PlayedMamoResult:
+    game: entities.Game, action: teyuna_core.PlayMamoAction
+) -> teyuna_core.PlayedMamoResult:
     previous_phase = game.phase
     error = _apply_mamo(game, action)
     if error is not None:
-        return teyuna_shared.PlayedMamoResult(
+        return teyuna_core.PlayedMamoResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
-    return teyuna_shared.PlayedMamoResult(
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    return teyuna_core.PlayedMamoResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -45,9 +45,7 @@ def handle_trade_and_build_play_mamo(
     )
 
 
-def _apply_mamo(
-    game: entities.Game, action: teyuna_shared.PlayMamoAction
-) -> str | None:
+def _apply_mamo(game: entities.Game, action: teyuna_core.PlayMamoAction) -> str | None:
     if game.active_player != action.by:
         return f"Player {action.by} is not in turn"
 

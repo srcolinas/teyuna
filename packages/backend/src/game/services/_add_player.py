@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import Protocol
 
-import teyuna_shared
+import teyuna_core
 
 from .. import player, entities
 from . import _retrieve
@@ -27,9 +27,9 @@ def add_player(
     repository: UpdateGameRepository,
     auth: player.PlayerAuthenticationService,
     first_placement_timeout: datetime.timedelta,
-) -> tuple[teyuna_shared.Game, str]:
+) -> tuple[teyuna_core.Game, str]:
     game = repository.retrieve(game_id)
-    if game.phase is not teyuna_shared.GamePhaseName.LOBBY:
+    if game.phase is not teyuna_core.GamePhaseName.LOBBY:
         raise GameAlreadyStartedError("game already started")
     token = auth.add(nickname)
     game.add_player(nickname)

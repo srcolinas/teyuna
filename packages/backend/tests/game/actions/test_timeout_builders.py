@@ -6,18 +6,18 @@ import pytest
 
 from src.game import entities
 from src.game.actions import timeouts
-import teyuna_shared
+import teyuna_core
 
 
 @pytest.fixture
 def game() -> entities.Game:
     nicknames = ("player-0", "player-1", "player-2")
-    mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    mountains = teyuna_core.MapHex(
+        q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=1
     )
     game_ = entities.Game(
         map=(mountains,),
-        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_core.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),
@@ -39,7 +39,7 @@ def test_timeout_dice_roll_returns_active_player_action(
 ) -> None:
     action = timeouts.timeout_dice_roll(game, random.Random(0))
 
-    assert type(action) is teyuna_shared.PlayerAction
+    assert type(action) is teyuna_core.PlayerAction
     assert action.by == game.active_player
 
 
@@ -48,7 +48,7 @@ def test_timeout_trade_and_build_returns_active_player_action(
 ) -> None:
     action = timeouts.timeout_trade_and_build(game, random.Random(0))
 
-    assert type(action) is teyuna_shared.PlayerAction
+    assert type(action) is teyuna_core.PlayerAction
     assert action.by == game.active_player
 
 
@@ -57,11 +57,11 @@ def test_timeout_first_placement_returns_explicit_free_placement(
 ) -> None:
     action = timeouts.timeout_first_placement(game, random.Random(0))
 
-    assert action == teyuna_shared.FreePlacementAction(
+    assert action == teyuna_core.FreePlacementAction(
         by=game.active_player,
         due_to_timeout=True,
-        terrace=teyuna_shared.Coordinate(q=-2, r=0, d=4),
-        path=teyuna_shared.Coordinate(q=-2, r=0, d=4),
+        terrace=teyuna_core.Coordinate(q=-2, r=0, d=4),
+        path=teyuna_core.Coordinate(q=-2, r=0, d=4),
         rng_=action.rng_,
     )
 
@@ -71,11 +71,11 @@ def test_timeout_second_placement_returns_explicit_free_placement(
 ) -> None:
     action = timeouts.timeout_second_placement(game, random.Random(1))
 
-    assert action == teyuna_shared.FreePlacementAction(
+    assert action == teyuna_core.FreePlacementAction(
         by=game.active_player,
         due_to_timeout=True,
-        terrace=teyuna_shared.Coordinate(q=0, r=-2, d=1),
-        path=teyuna_shared.Coordinate(q=0, r=-2, d=1),
+        terrace=teyuna_core.Coordinate(q=0, r=-2, d=1),
+        path=teyuna_core.Coordinate(q=0, r=-2, d=1),
         rng_=action.rng_,
     )
 
@@ -83,7 +83,7 @@ def test_timeout_second_placement_returns_explicit_free_placement(
 def test_resolve_free_placement_fills_missing_path(
     game: entities.Game,
 ) -> None:
-    terrace = teyuna_shared.Coordinate(q=0, r=-1, d=2)
+    terrace = teyuna_core.Coordinate(q=0, r=-1, d=2)
     action = timeouts.resolve_free_placement(
         game,
         random.Random(0),
@@ -100,7 +100,7 @@ def test_resolve_free_placement_fills_missing_path(
 def test_resolve_free_placement_fills_missing_terrace(
     game: entities.Game,
 ) -> None:
-    path = teyuna_shared.Coordinate(q=0, r=-1, d=2)
+    path = teyuna_core.Coordinate(q=0, r=-1, d=2)
     action = timeouts.resolve_free_placement(
         game,
         random.Random(0),
@@ -111,14 +111,14 @@ def test_resolve_free_placement_fills_missing_terrace(
     assert action.by == game.active_player
     assert action.path == path
     assert action.terrace is not None
-    assert action.terrace in teyuna_shared.vertices_of_edge(path)
+    assert action.terrace in teyuna_core.vertices_of_edge(path)
 
 
 def test_resolve_free_placement_keeps_both_when_provided(
     game: entities.Game,
 ) -> None:
-    terrace = teyuna_shared.Coordinate(q=0, r=-1, d=2)
-    path = teyuna_shared.Coordinate(q=0, r=-1, d=2)
+    terrace = teyuna_core.Coordinate(q=0, r=-1, d=2)
+    path = teyuna_core.Coordinate(q=0, r=-1, d=2)
     action = timeouts.resolve_free_placement(
         game,
         random.Random(0),
@@ -147,12 +147,12 @@ def test_timeout_move_conquistator_returns_explicit_move() -> None:
     active = game.active_player
     victim = next(n for n in game.turn_order if n != active)
     game.players[victim].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.WOOD: 2}
+        {teyuna_core.ResourceCard.WOOD: 2}
     )
 
     action = timeouts.timeout_move_conquistator(game, random.Random(0))
 
-    assert action == teyuna_shared.MoveConquistatorAction(
+    assert action == teyuna_core.MoveConquistatorAction(
         by=active,
         due_to_timeout=True,
         q=0,
@@ -167,7 +167,7 @@ def test_timeout_move_conquistator_without_victims_sets_from_player_none() -> No
 
     action = timeouts.timeout_move_conquistator(game, random.Random(0))
 
-    assert action == teyuna_shared.MoveConquistatorAction(
+    assert action == teyuna_core.MoveConquistatorAction(
         by=game.active_player,
         due_to_timeout=True,
         q=0,
@@ -182,21 +182,21 @@ def test_timeout_discard_resources_returns_explicit_count(
 ) -> None:
     game.players["player-0"].resources = collections.Counter(
         {
-            teyuna_shared.ResourceCard.WOOD: 5,
-            teyuna_shared.ResourceCard.GOLD: 4,
+            teyuna_core.ResourceCard.WOOD: 5,
+            teyuna_core.ResourceCard.GOLD: 4,
         }
     )
     game.to_discard_resources = {"player-0": 4}
 
     action = timeouts.timeout_discard_resources(game, random.Random(0))
 
-    assert action == teyuna_shared.DiscardResourcesAction(
+    assert action == teyuna_core.DiscardResourcesAction(
         by="player-0",
         due_to_timeout=True,
         count=collections.Counter(
             {
-                teyuna_shared.ResourceCard.GOLD: 2,
-                teyuna_shared.ResourceCard.WOOD: 2,
+                teyuna_core.ResourceCard.GOLD: 2,
+                teyuna_core.ResourceCard.WOOD: 2,
             }
         ),
         rng_=action.rng_,
@@ -208,10 +208,10 @@ def test_timeout_play_mamo_returns_explicit_resource(
 ) -> None:
     action = timeouts.timeout_play_mamo(game, random.Random(0))
 
-    assert action == teyuna_shared.PlayMamoAction(
+    assert action == teyuna_core.PlayMamoAction(
         by=game.active_player,
         due_to_timeout=True,
-        resource=teyuna_shared.ResourceCard.MAIZE,
+        resource=teyuna_core.ResourceCard.MAIZE,
         rng_=action.rng_,
     )
 
@@ -221,12 +221,12 @@ def test_timeout_play_blessed_samples_from_supply(
 ) -> None:
     action = timeouts.timeout_play_blessed(game, random.Random(0))
 
-    assert action == teyuna_shared.PlayBlessedAction(
+    assert action == teyuna_core.PlayBlessedAction(
         by=game.active_player,
         due_to_timeout=True,
         resources=(
-            teyuna_shared.ResourceCard.COTTON,
-            teyuna_shared.ResourceCard.COTTON,
+            teyuna_core.ResourceCard.COTTON,
+            teyuna_core.ResourceCard.COTTON,
         ),
         rng_=action.rng_,
     )
@@ -239,10 +239,10 @@ def test_timeout_play_blessed_falls_back_when_supply_too_small(
 
     action = timeouts.timeout_play_blessed(game, random.Random(0))
 
-    assert action == teyuna_shared.PlayBlessedAction(
+    assert action == teyuna_core.PlayBlessedAction(
         by=game.active_player,
         due_to_timeout=True,
-        resources=(teyuna_shared.ResourceCard.GOLD, teyuna_shared.ResourceCard.STONE),
+        resources=(teyuna_core.ResourceCard.GOLD, teyuna_core.ResourceCard.STONE),
         rng_=action.rng_,
     )
 
@@ -252,7 +252,7 @@ def test_timeout_play_pathfinder_returns_empty_when_no_legal_paths(
 ) -> None:
     action = timeouts.timeout_play_pathfinder(game, random.Random(0))
 
-    assert action == teyuna_shared.PlayPathfinderAction(
+    assert action == teyuna_core.PlayPathfinderAction(
         by=game.active_player,
         due_to_timeout=True,
         paths=(),
@@ -265,18 +265,18 @@ def test_timeout_play_pathfinder_returns_explicit_paths(
 ) -> None:
     game.use_vertex(
         game.active_player,
-        teyuna_shared.canonical_vertex(0, 0, 0),
-        teyuna_shared.SettlementType.TERRACE,
+        teyuna_core.canonical_vertex(0, 0, 0),
+        teyuna_core.SettlementType.TERRACE,
     )
 
     action = timeouts.timeout_play_pathfinder(game, random.Random(0))
 
-    assert action == teyuna_shared.PlayPathfinderAction(
+    assert action == teyuna_core.PlayPathfinderAction(
         by=game.active_player,
         due_to_timeout=True,
         paths=(
-            teyuna_shared.Coordinate(q=0, r=-1, d=1),
-            teyuna_shared.Coordinate(q=0, r=-1, d=2),
+            teyuna_core.Coordinate(q=0, r=-1, d=1),
+            teyuna_core.Coordinate(q=0, r=-1, d=2),
         ),
         rng_=action.rng_,
     )
@@ -286,13 +286,11 @@ def _multi_hex_game() -> entities.Game:
     nicknames = ("player-0", "player-1", "player-2")
     game_ = entities.Game(
         map=(
-            teyuna_shared.MapHex(q=0, r=0, type=teyuna_shared.HexType.DESERT, number=7),
-            teyuna_shared.MapHex(
-                q=1, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=6
-            ),
-            teyuna_shared.MapHex(q=0, r=1, type=teyuna_shared.HexType.JUNGLE, number=5),
+            teyuna_core.MapHex(q=0, r=0, type=teyuna_core.HexType.DESERT, number=7),
+            teyuna_core.MapHex(q=1, r=0, type=teyuna_core.HexType.MOUNTAINS, number=6),
+            teyuna_core.MapHex(q=0, r=1, type=teyuna_core.HexType.JUNGLE, number=5),
         ),
-        conquistator_location=teyuna_shared.HexLocation(q=0, r=0),
+        conquistator_location=teyuna_core.HexLocation(q=0, r=0),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

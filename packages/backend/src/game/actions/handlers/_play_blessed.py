@@ -1,24 +1,24 @@
 import collections
 
-import teyuna_shared
+import teyuna_core
 
 from ... import entities
 
 
 def handle_dice_play_blessed(
-    game: entities.Game, action: teyuna_shared.PlayBlessedAction
-) -> teyuna_shared.PlayedBlessedResult:
+    game: entities.Game, action: teyuna_core.PlayBlessedAction
+) -> teyuna_core.PlayedBlessedResult:
     previous_phase = game.phase
     error = _apply_blessed(game, action)
     if error is not None:
-        return teyuna_shared.PlayedBlessedResult(
+        return teyuna_core.PlayedBlessedResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
-    return teyuna_shared.PlayedBlessedResult(
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
+    return teyuna_core.PlayedBlessedResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -27,19 +27,19 @@ def handle_dice_play_blessed(
 
 
 def handle_trade_and_build_play_blessed(
-    game: entities.Game, action: teyuna_shared.PlayBlessedAction
-) -> teyuna_shared.PlayedBlessedResult:
+    game: entities.Game, action: teyuna_core.PlayBlessedAction
+) -> teyuna_core.PlayedBlessedResult:
     previous_phase = game.phase
     error = _apply_blessed(game, action)
     if error is not None:
-        return teyuna_shared.PlayedBlessedResult(
+        return teyuna_core.PlayedBlessedResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
             error=error,
         )
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
-    return teyuna_shared.PlayedBlessedResult(
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    return teyuna_core.PlayedBlessedResult(
         previous_phase=previous_phase,
         next_phase=game.phase,
         action=action,
@@ -48,12 +48,12 @@ def handle_trade_and_build_play_blessed(
 
 
 def _apply_blessed(
-    game: entities.Game, action: teyuna_shared.PlayBlessedAction
+    game: entities.Game, action: teyuna_core.PlayBlessedAction
 ) -> str | None:
     if game.active_player != action.by:
         return f"Player {action.by} is not in turn"
 
-    amount: collections.Counter[teyuna_shared.ResourceCard] = collections.Counter(
+    amount: collections.Counter[teyuna_core.ResourceCard] = collections.Counter(
         action.resources
     )
     for resource, count in amount.items():

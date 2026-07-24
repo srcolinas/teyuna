@@ -10,10 +10,10 @@ from src.game import actions, repository as repository_module
 
 from . import utils
 import datetime
-import teyuna_shared
+import teyuna_core
 
 
-def _coord(path: teyuna_shared.Coordinate) -> dict[str, int]:
+def _coord(path: teyuna_core.Coordinate) -> dict[str, int]:
     return {"q": path.q, "r": path.r, "d": path.d}
 
 
@@ -21,7 +21,7 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    path = teyuna_shared.canonical_edge(0, 0, 0)
+    path = teyuna_core.canonical_edge(0, 0, 0)
 
     response = utils.post_action(
         client,
@@ -55,7 +55,7 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository, game_id, tokens, active_player, _, path = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -90,10 +90,10 @@ def test_builds_path_and_returns_it(
 
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert path in game.players[active_player].paths
-    assert game.players[active_player].resources[teyuna_shared.ResourceCard.STONE] == 0
-    assert game.players[active_player].resources[teyuna_shared.ResourceCard.WOOD] == 0
+    assert game.players[active_player].resources[teyuna_core.ResourceCard.STONE] == 0
+    assert game.players[active_player].resources[teyuna_core.ResourceCard.WOOD] == 0
 
 
 def test_returns_400_when_insufficient_resources(
@@ -102,14 +102,14 @@ def test_returns_400_when_insufficient_resources(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    terrace = teyuna_core.canonical_vertex(0, 0, 0)
     path = next(
-        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
     game.players[game.active_player].settlements[terrace] = (
-        teyuna_shared.SettlementType.TERRACE
+        teyuna_core.SettlementType.TERRACE
     )
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -149,7 +149,7 @@ def test_returns_400_when_invalid_path_location(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, _, _ = _setup_trade_and_build(app)
-    disconnected = teyuna_shared.canonical_edge(1, 1, 1)
+    disconnected = teyuna_core.canonical_edge(1, 1, 1)
 
     response = utils.post_action(
         client,
@@ -167,7 +167,7 @@ def test_returns_path_by_coordinate(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    path = teyuna_shared.canonical_edge(0, 0, 0)
+    path = teyuna_core.canonical_edge(0, 0, 0)
     game.players[game.active_player].paths.add(path)
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
@@ -190,26 +190,26 @@ def _setup_trade_and_build(
     dict[str, str],
     str,
     str,
-    teyuna_shared.Coordinate,
+    teyuna_core.Coordinate,
 ]:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
     active_player = game.active_player
     other = game.turn_order[1]
-    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    terrace = teyuna_core.canonical_vertex(0, 0, 0)
     path = next(
-        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
     game.players[active_player].settlements[terrace] = (
-        teyuna_shared.SettlementType.TERRACE
+        teyuna_core.SettlementType.TERRACE
     )
     game.players[active_player].resources.update(
         {
-            teyuna_shared.ResourceCard.STONE: 1,
-            teyuna_shared.ResourceCard.WOOD: 1,
+            teyuna_core.ResourceCard.STONE: 1,
+            teyuna_core.ResourceCard.WOOD: 1,
         }
     )
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -221,12 +221,12 @@ def _setup_trade_and_build(
 
 
 def _create_game() -> entities.Game:
-    mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=2
+    mountains = teyuna_core.MapHex(
+        q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=2
     )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_core.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

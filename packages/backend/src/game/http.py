@@ -7,7 +7,7 @@ from fastapi.routing import APIRoute
 from starlette.requests import Request
 from starlette.responses import Response
 
-import teyuna_shared
+import teyuna_core
 
 from . import actions, entities, repository as repository_module, services
 
@@ -34,7 +34,7 @@ class GameRoute(APIRoute):
         return handler
 
 
-def raise_if_failed(result: teyuna_shared.ActionExecutionResult) -> None:
+def raise_if_failed(result: teyuna_core.ActionExecutionResult) -> None:
     if result.error is None:
         return
     raise fastapi.HTTPException(

@@ -6,7 +6,7 @@ import fastapi.testclient as testclient
 from src.game import player
 
 from .. import utils
-import teyuna_shared
+import teyuna_core
 
 
 type VertrexCoordinate = tuple[int, int, int]
@@ -33,7 +33,7 @@ def advance_phase(
     client: testclient.TestClient,
     game_id: uuid.UUID,
     token: Token,
-) -> tuple[teyuna_shared.GamePhaseName, player.Nickname]:
+) -> tuple[teyuna_core.GamePhaseName, player.Nickname]:
     response = utils.post_action(
         client,
         game_id,
@@ -46,4 +46,4 @@ def advance_phase(
     if not active_player:
         game = client.get(f"/games/{game_id}").json()
         active_player = game["turn_order"][0] if game["turn_order"] else ""
-    return teyuna_shared.GamePhaseName(body["next_phase"]), active_player
+    return teyuna_core.GamePhaseName(body["next_phase"]), active_player

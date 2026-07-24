@@ -3,12 +3,12 @@ import datetime
 import random
 
 from src.game import actions, entities
-import teyuna_shared
+import teyuna_core
 
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
-    action = teyuna_shared.PlayerAction(
+    action = teyuna_core.PlayerAction(
         by=other,
         rng_=FixedRandom([1, 1]),
     )
@@ -30,7 +30,7 @@ def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
     game.player_idx = 0
     player = game.active_player
 
-    action = teyuna_shared.PlayerAction(by=player, rng_=FixedRandom([3, 4]))
+    action = teyuna_core.PlayerAction(by=player, rng_=FixedRandom([3, 4]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -38,7 +38,7 @@ def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR
+    assert result.next_phase is teyuna_core.GamePhaseName.MOVE_CONQUISTATOR
     assert result.die_1 == 3
     assert result.die_2 == 4
     assert result.to_discard == {}
@@ -56,13 +56,13 @@ def test_rolls_seven_with_players_over_seven_moves_to_discard_resources(
     over_limit = game.turn_order[1]
     under_limit = game.turn_order[2]
     game.players[over_limit].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.WOOD: 8}
+        {teyuna_core.ResourceCard.WOOD: 8}
     )
     game.players[under_limit].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.WOOD: 7}
+        {teyuna_core.ResourceCard.WOOD: 7}
     )
 
-    action = teyuna_shared.PlayerAction(by=player, rng_=FixedRandom([3, 4]))
+    action = teyuna_core.PlayerAction(by=player, rng_=FixedRandom([3, 4]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -70,7 +70,7 @@ def test_rolls_seven_with_players_over_seven_moves_to_discard_resources(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.DISCARD_RESOURCES
+    assert result.next_phase is teyuna_core.GamePhaseName.DISCARD_RESOURCES
     assert result.die_1 == 3
     assert result.die_2 == 4
     assert result.to_discard == {over_limit: 4}
@@ -84,7 +84,7 @@ def test_rolls_non_seven_moves_to_trade_and_build(
     game.player_idx = 0
     player = game.active_player
 
-    action = teyuna_shared.PlayerAction(by=player, rng_=FixedRandom([2, 3]))
+    action = teyuna_core.PlayerAction(by=player, rng_=FixedRandom([2, 3]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -92,7 +92,7 @@ def test_rolls_non_seven_moves_to_trade_and_build(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 2
     assert result.die_2 == 3
     assert result.to_discard == {}
@@ -106,9 +106,9 @@ def test_produces_one_resource_from_terrace() -> None:
         settlements={
             0: _settlements(
                 {
-                    teyuna_shared.Coordinate(
+                    teyuna_core.Coordinate(
                         q=0, r=-1, d=2
-                    ): teyuna_shared.SettlementType.TERRACE
+                    ): teyuna_core.SettlementType.TERRACE
                 }
             ),
         },
@@ -116,7 +116,7 @@ def test_produces_one_resource_from_terrace() -> None:
     active = game.active_player
     other = game.turn_order[1]
 
-    action = teyuna_shared.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -124,14 +124,14 @@ def test_produces_one_resource_from_terrace() -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
-    assert result.produced == {active: {teyuna_shared.ResourceCard.GOLD: 1}}
-    assert game.players[active].resources[teyuna_shared.ResourceCard.GOLD] == 1
-    assert game.players[other].resources[teyuna_shared.ResourceCard.GOLD] == 0
-    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 18
+    assert result.produced == {active: {teyuna_core.ResourceCard.GOLD: 1}}
+    assert game.players[active].resources[teyuna_core.ResourceCard.GOLD] == 1
+    assert game.players[other].resources[teyuna_core.ResourceCard.GOLD] == 0
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == 18
 
 
 def test_produces_two_resources_from_great_terrace() -> None:
@@ -139,16 +139,16 @@ def test_produces_two_resources_from_great_terrace() -> None:
         settlements={
             0: _settlements(
                 {
-                    teyuna_shared.Coordinate(
+                    teyuna_core.Coordinate(
                         q=0, r=-1, d=2
-                    ): teyuna_shared.SettlementType.GREAT_TERRACE,
+                    ): teyuna_core.SettlementType.GREAT_TERRACE,
                 }
             ),
         },
     )
     active = game.active_player
 
-    action = teyuna_shared.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -156,13 +156,13 @@ def test_produces_two_resources_from_great_terrace() -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
-    assert result.produced == {active: {teyuna_shared.ResourceCard.GOLD: 2}}
-    assert game.players[active].resources[teyuna_shared.ResourceCard.GOLD] == 2
-    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 17
+    assert result.produced == {active: {teyuna_core.ResourceCard.GOLD: 2}}
+    assert game.players[active].resources[teyuna_core.ResourceCard.GOLD] == 2
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == 17
 
 
 def test_does_not_grant_when_supply_is_empty() -> None:
@@ -170,9 +170,9 @@ def test_does_not_grant_when_supply_is_empty() -> None:
         settlements={
             0: _settlements(
                 {
-                    teyuna_shared.Coordinate(
+                    teyuna_core.Coordinate(
                         q=0, r=-1, d=2
-                    ): teyuna_shared.SettlementType.TERRACE
+                    ): teyuna_core.SettlementType.TERRACE
                 }
             ),
         },
@@ -180,7 +180,7 @@ def test_does_not_grant_when_supply_is_empty() -> None:
     )
     active = game.active_player
 
-    action = teyuna_shared.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -188,13 +188,13 @@ def test_does_not_grant_when_supply_is_empty() -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
     assert result.produced == {}
-    assert game.players[active].resources[teyuna_shared.ResourceCard.GOLD] == 0
-    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 0
+    assert game.players[active].resources[teyuna_core.ResourceCard.GOLD] == 0
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == 0
 
 
 def test_grants_partial_when_supply_has_less_than_requested() -> None:
@@ -202,9 +202,9 @@ def test_grants_partial_when_supply_has_less_than_requested() -> None:
         settlements={
             0: _settlements(
                 {
-                    teyuna_shared.Coordinate(
+                    teyuna_core.Coordinate(
                         q=0, r=-1, d=2
-                    ): teyuna_shared.SettlementType.GREAT_TERRACE,
+                    ): teyuna_core.SettlementType.GREAT_TERRACE,
                 }
             ),
         },
@@ -212,7 +212,7 @@ def test_grants_partial_when_supply_has_less_than_requested() -> None:
     )
     active = game.active_player
 
-    action = teyuna_shared.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -220,13 +220,13 @@ def test_grants_partial_when_supply_has_less_than_requested() -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
-    assert result.produced == {active: {teyuna_shared.ResourceCard.GOLD: 1}}
-    assert game.players[active].resources[teyuna_shared.ResourceCard.GOLD] == 1
-    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 0
+    assert result.produced == {active: {teyuna_core.ResourceCard.GOLD: 1}}
+    assert game.players[active].resources[teyuna_core.ResourceCard.GOLD] == 1
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == 0
 
 
 def test_turn_order_gets_remaining_supply_first() -> None:
@@ -234,16 +234,16 @@ def test_turn_order_gets_remaining_supply_first() -> None:
         settlements={
             0: _settlements(
                 {
-                    teyuna_shared.Coordinate(
+                    teyuna_core.Coordinate(
                         q=0, r=-1, d=2
-                    ): teyuna_shared.SettlementType.TERRACE
+                    ): teyuna_core.SettlementType.TERRACE
                 }
             ),
             1: _settlements(
                 {
-                    teyuna_shared.Coordinate(
+                    teyuna_core.Coordinate(
                         q=0, r=0, d=1
-                    ): teyuna_shared.SettlementType.TERRACE
+                    ): teyuna_core.SettlementType.TERRACE
                 }
             ),
         },
@@ -252,7 +252,7 @@ def test_turn_order_gets_remaining_supply_first() -> None:
     active = game.active_player
     next_in_order = game.turn_order[1]
 
-    action = teyuna_shared.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -260,14 +260,14 @@ def test_turn_order_gets_remaining_supply_first() -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
-    assert result.produced == {active: {teyuna_shared.ResourceCard.GOLD: 1}}
-    assert game.players[active].resources[teyuna_shared.ResourceCard.GOLD] == 1
-    assert game.players[next_in_order].resources[teyuna_shared.ResourceCard.GOLD] == 0
-    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 0
+    assert result.produced == {active: {teyuna_core.ResourceCard.GOLD: 1}}
+    assert game.players[active].resources[teyuna_core.ResourceCard.GOLD] == 1
+    assert game.players[next_in_order].resources[teyuna_core.ResourceCard.GOLD] == 0
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == 0
 
 
 def test_does_not_produce_from_conquistator_hex() -> None:
@@ -275,17 +275,17 @@ def test_does_not_produce_from_conquistator_hex() -> None:
         settlements={
             0: _settlements(
                 {
-                    teyuna_shared.Coordinate(
+                    teyuna_core.Coordinate(
                         q=0, r=-1, d=2
-                    ): teyuna_shared.SettlementType.TERRACE
+                    ): teyuna_core.SettlementType.TERRACE
                 }
             ),
         },
     )
     active = game.active_player
-    game.conquistator_location = teyuna_shared.HexLocation(q=0, r=0)
+    game.conquistator_location = teyuna_core.HexLocation(q=0, r=0)
 
-    action = teyuna_shared.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -293,24 +293,22 @@ def test_does_not_produce_from_conquistator_hex() -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 3
     assert result.die_2 == 5
     assert result.to_discard == {}
     assert result.produced == {}
-    assert game.players[active].resources[teyuna_shared.ResourceCard.GOLD] == 0
-    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 19
+    assert game.players[active].resources[teyuna_core.ResourceCard.GOLD] == 0
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == 19
 
 
 def test_does_not_produce_from_desert_or_non_matching_roll() -> None:
     game = entities.Game(
         map=(
-            teyuna_shared.MapHex(q=0, r=0, type=teyuna_shared.HexType.DESERT, number=5),
-            teyuna_shared.MapHex(
-                q=1, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=8
-            ),
+            teyuna_core.MapHex(q=0, r=0, type=teyuna_core.HexType.DESERT, number=5),
+            teyuna_core.MapHex(q=1, r=0, type=teyuna_core.HexType.MOUNTAINS, number=8),
         ),
-        conquistator_location=teyuna_shared.HexLocation(q=0, r=1),
+        conquistator_location=teyuna_core.HexLocation(q=0, r=1),
         players={
             "player-0": entities.Player(),
             "player-1": entities.Player(),
@@ -322,16 +320,12 @@ def test_does_not_produce_from_desert_or_non_matching_roll() -> None:
     active = game.active_player
     game.players[active].settlements = _settlements(
         {
-            teyuna_shared.Coordinate(
-                q=0, r=-1, d=2
-            ): teyuna_shared.SettlementType.TERRACE,
-            teyuna_shared.Coordinate(
-                q=1, r=-1, d=2
-            ): teyuna_shared.SettlementType.TERRACE,
+            teyuna_core.Coordinate(q=0, r=-1, d=2): teyuna_core.SettlementType.TERRACE,
+            teyuna_core.Coordinate(q=1, r=-1, d=2): teyuna_core.SettlementType.TERRACE,
         }
     )
 
-    action = teyuna_shared.PlayerAction(by=active, rng_=FixedRandom([2, 3]))
+    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([2, 3]))
     result = actions.handle_dice_roll(
         game,
         action,
@@ -339,17 +333,17 @@ def test_does_not_produce_from_desert_or_non_matching_roll() -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.die_1 == 2
     assert result.die_2 == 3
     assert result.to_discard == {}
     assert result.produced == {}
-    assert game.players[active].resources[teyuna_shared.ResourceCard.GOLD] == 0
-    assert game.resource_supply[teyuna_shared.ResourceCard.GOLD] == 19
+    assert game.players[active].resources[teyuna_core.ResourceCard.GOLD] == 0
+    assert game.resource_supply[teyuna_core.ResourceCard.GOLD] == 19
 
 
 def _settlements(
-    locations: dict[teyuna_shared.Coordinate, teyuna_shared.SettlementType],
+    locations: dict[teyuna_core.Coordinate, teyuna_core.SettlementType],
 ) -> entities.SettlementsCollection:
     settlements = entities.SettlementsCollection()
     for coord, settlement_type in locations.items():
@@ -365,12 +359,10 @@ def _mountains_game(
     nicknames = ("player-0", "player-1", "player-2")
     game = entities.Game(
         map=(
-            teyuna_shared.MapHex(
-                q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=8
-            ),
-            teyuna_shared.MapHex(q=0, r=1, type=teyuna_shared.HexType.DESERT, number=7),
+            teyuna_core.MapHex(q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=8),
+            teyuna_core.MapHex(q=0, r=1, type=teyuna_core.HexType.DESERT, number=7),
         ),
-        conquistator_location=teyuna_shared.HexLocation(q=0, r=1),
+        conquistator_location=teyuna_core.HexLocation(q=0, r=1),
         players={nickname: entities.Player() for nickname in nicknames},
         available_slots=0,
     )
@@ -378,7 +370,7 @@ def _mountains_game(
     for turn_index, settlement_collection in settlements.items():
         game.players[game.turn_order[turn_index]].settlements = settlement_collection
     if supply_gold is not None:
-        game.resource_supply[teyuna_shared.ResourceCard.GOLD] = supply_gold
+        game.resource_supply[teyuna_core.ResourceCard.GOLD] = supply_gold
     return game
 
 

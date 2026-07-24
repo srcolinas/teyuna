@@ -10,14 +10,14 @@ from src.game import actions, repository as repository_module
 
 from . import utils
 import datetime
-import teyuna_shared
+import teyuna_core
 
 
-def _path_coord(path: teyuna_shared.Coordinate) -> dict[str, int]:
+def _path_coord(path: teyuna_core.Coordinate) -> dict[str, int]:
     return {"q": path.q, "r": path.r, "d": path.d}
 
 
-def _path_result(path: teyuna_shared.Coordinate) -> list[int]:
+def _path_result(path: teyuna_core.Coordinate) -> list[int]:
     return [path.q, path.r, path.d]
 
 
@@ -25,7 +25,7 @@ def test_returns_404_when_game_does_not_exist(
     client: testclient.TestClient,
 ) -> None:
     token = player.service().add("srcolinas-0")
-    path = teyuna_shared.canonical_edge(0, 0, 0)
+    path = teyuna_core.canonical_edge(0, 0, 0)
 
     response = utils.post_action(
         client,
@@ -45,7 +45,7 @@ def test_returns_400_when_action_not_allowed(
         app
     )
     game = repository.retrieve(game_id)
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -101,7 +101,7 @@ def test_returns_400_when_invalid_path_location(
     client: testclient.TestClient,
 ) -> None:
     repository, game_id, tokens, active_player, _, _, _ = _setup_pathfinder_phase(app)
-    disconnected = teyuna_shared.canonical_edge(1, 1, 1)
+    disconnected = teyuna_core.canonical_edge(1, 1, 1)
 
     response = utils.post_action(
         client,
@@ -135,11 +135,11 @@ def test_places_paths_and_returns_them(
     body = response.json()
     assert body["action"]["kind"] == "play_pathfinder"
     assert body["paths"] == [_path_result(first), _path_result(second)]
-    assert body["next_phase"] == teyuna_shared.GamePhaseName.DICE_ROLL.value
+    assert body["next_phase"] == teyuna_core.GamePhaseName.DICE_ROLL.value
 
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert phase is teyuna_core.GamePhaseName.DICE_ROLL
     assert first in game.players[active_player].paths
     assert second in game.players[active_player].paths
 
@@ -150,7 +150,7 @@ def test_places_paths_during_trade_and_build_play_pathfinder(
 ) -> None:
     repository, game_id, tokens, active_player, _, first, second = (
         _setup_pathfinder_phase(
-            app, phase=teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER
+            app, phase=teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER
         )
     )
 
@@ -168,45 +168,45 @@ def test_places_paths_during_trade_and_build_play_pathfinder(
     body = response.json()
     assert body["action"]["kind"] == "play_pathfinder"
     assert body["paths"] == [_path_result(first), _path_result(second)]
-    assert body["next_phase"] == teyuna_shared.GamePhaseName.TRADE_AND_BUILD.value
+    assert body["next_phase"] == teyuna_core.GamePhaseName.TRADE_AND_BUILD.value
 
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert first in game.players[active_player].paths
     assert second in game.players[active_player].paths
 
 
 def _setup_pathfinder_phase(
     app: fastapi.FastAPI,
-    phase: teyuna_shared.GamePhaseName = teyuna_shared.GamePhaseName.DICE_PLAY_PATHFINDER,
+    phase: teyuna_core.GamePhaseName = teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER,
 ) -> tuple[
     repository_module.InMemoryGameRepository,
     uuid.UUID,
     dict[str, str],
     str,
     str,
-    teyuna_shared.Coordinate,
-    teyuna_shared.Coordinate,
+    teyuna_core.Coordinate,
+    teyuna_core.Coordinate,
 ]:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
     active_player = game.active_player
     other = game.turn_order[1]
-    game.players[active_player].cards[teyuna_shared.WisdomCard.PATHFINDER] = 1
+    game.players[active_player].cards[teyuna_core.WisdomCard.PATHFINDER] = 1
 
-    terrace = teyuna_shared.canonical_vertex(0, 0, 0)
+    terrace = teyuna_core.canonical_vertex(0, 0, 0)
     game.players[active_player].settlements[terrace] = (
-        teyuna_shared.SettlementType.TERRACE
+        teyuna_core.SettlementType.TERRACE
     )
     first = next(
-        iter(teyuna_shared.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
+        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
-    v0, v1 = teyuna_shared.vertices_of_edge(first)
+    v0, v1 = teyuna_core.vertices_of_edge(first)
     shared = v1 if v1 != terrace else v0
     second = next(
         e
-        for e in teyuna_shared.edges_adjacent_to_vertex(shared.q, shared.r, shared.d)
+        for e in teyuna_core.edges_adjacent_to_vertex(shared.q, shared.r, shared.d)
         if e != first
     )
 
@@ -224,12 +224,12 @@ def _setup_pathfinder_phase(
 
 
 def _create_game() -> entities.Game:
-    mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    mountains = teyuna_core.MapHex(
+        q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=1
     )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_core.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

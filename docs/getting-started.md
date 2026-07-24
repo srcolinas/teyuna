@@ -58,7 +58,7 @@ From this monorepo (editable workspace):
 make setup
 ```
 
-That installs `teyuna-sdk`, `teyuna-shared-core`, and the backend package into the workspace venv.
+That installs `teyuna-sdk`, `teyuna-core`, and the backend package into the workspace venv.
 
 ## 3. Run a simulation
 

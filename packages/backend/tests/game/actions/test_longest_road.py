@@ -1,5 +1,5 @@
 from src.game import actions, entities
-import teyuna_shared
+import teyuna_core
 
 
 def test_first_award_at_five_consecutive_paths(game: entities.Game) -> None:
@@ -54,8 +54,8 @@ def test_opponent_settlement_breaks_road(game: entities.Game) -> None:
     # Opponent terrace at the midpoint splits into two length-3 segments.
     game.use_vertex(
         opponent,
-        teyuna_shared.canonical_vertex(0, 0, 3),
-        teyuna_shared.SettlementType.TERRACE,
+        teyuna_core.canonical_vertex(0, 0, 3),
+        teyuna_core.SettlementType.TERRACE,
     )
 
     actions.update_longest_road(game, builder, edge=edge)
@@ -73,17 +73,17 @@ def test_new_path_endpoint_on_opponent_settlement_skips_that_side(
     # Far tip of the next path the builder will add.
     game.use_vertex(
         opponent,
-        teyuna_shared.canonical_vertex(0, 0, 3),
-        teyuna_shared.SettlementType.TERRACE,
+        teyuna_core.canonical_vertex(0, 0, 3),
+        teyuna_core.SettlementType.TERRACE,
     )
 
-    game.use_edge(builder, teyuna_shared.canonical_edge(0, 0, 2))
-    start = teyuna_shared.canonical_edge(0, 0, 2)
-    blocked = teyuna_shared.canonical_vertex(0, 0, 3)
+    game.use_edge(builder, teyuna_core.canonical_edge(0, 0, 2))
+    start = teyuna_core.canonical_edge(0, 0, 2)
+    blocked = teyuna_core.canonical_vertex(0, 0, 3)
 
     assert blocked in game.players[opponent].settlements
     assert blocked not in game.free_verticies
-    assert blocked in teyuna_shared.vertices_of_edge(start)
+    assert blocked in teyuna_core.vertices_of_edge(start)
 
     actions.update_longest_road(game, builder, edge=start)
 
@@ -128,16 +128,14 @@ def test_player_longest_path_length_ignores_spur_iteration_order(
         (-1, 0, 0),
     ]
     _place_paths(game, builder, main, terrace=(0, 0, 0))
-    spur = teyuna_shared.canonical_edge(1, -1, 2)
+    spur = teyuna_core.canonical_edge(1, -1, 2)
     game.use_edge(builder, spur)
 
     # Through the spur alone the continuous length is only 6; through the main
     # road it is 8. Force spur-first iteration to catch visited-edge skips.
     actions.update_longest_road(game, builder, edge=spur)
     assert game.longest_road == (builder, 6)
-    actions.update_longest_road(
-        game, builder, edge=teyuna_shared.canonical_edge(0, 0, 2)
-    )
+    actions.update_longest_road(game, builder, edge=teyuna_core.canonical_edge(0, 0, 2))
     assert game.longest_road == (builder, 8)
 
     class _SpurFirstPaths(set):
@@ -166,8 +164,8 @@ def test_recompute_no_break_leaves_award_unchanged(game: entities.Game) -> None:
     breaker = game.active_player
     game.longest_road = (holder, 5)
     _place_paths(game, breaker, [(0, 0, 0), (0, 0, 1)])
-    vertex = teyuna_shared.canonical_vertex(0, 0, 2)
-    game.use_vertex(breaker, vertex, teyuna_shared.SettlementType.TERRACE)
+    vertex = teyuna_core.canonical_vertex(0, 0, 2)
+    game.use_vertex(breaker, vertex, teyuna_core.SettlementType.TERRACE)
 
     actions.recompute_longest_road(game, breaker, vertex=vertex)
 
@@ -181,8 +179,8 @@ def test_recompute_clears_award_when_holder_split_below_threshold(
     breaker = game.active_player
     _place_holder_road_through_midpoint(game, holder)
     _place_breaker_path_into_midpoint(game, breaker)
-    vertex = teyuna_shared.canonical_vertex(0, 0, 3)
-    game.use_vertex(breaker, vertex, teyuna_shared.SettlementType.TERRACE)
+    vertex = teyuna_core.canonical_vertex(0, 0, 3)
+    game.use_vertex(breaker, vertex, teyuna_core.SettlementType.TERRACE)
     game.longest_road = (holder, 6)
 
     actions.recompute_longest_road(game, breaker, vertex=vertex)
@@ -202,8 +200,8 @@ def test_recompute_awards_unique_leader_after_break(game: entities.Game) -> None
         [(2, -1, 0), (2, -1, 1), (2, -1, 2), (2, -1, 3), (2, -1, 4)],
         terrace=(2, -1, 0),
     )
-    vertex = teyuna_shared.canonical_vertex(0, 0, 3)
-    game.use_vertex(breaker, vertex, teyuna_shared.SettlementType.TERRACE)
+    vertex = teyuna_core.canonical_vertex(0, 0, 3)
+    game.use_vertex(breaker, vertex, teyuna_core.SettlementType.TERRACE)
     game.longest_road = (holder, 6)
 
     actions.recompute_longest_road(game, breaker, vertex=vertex)
@@ -223,8 +221,8 @@ def test_recompute_clears_on_tie_for_longest(game: entities.Game) -> None:
         [(2, -1, 0), (2, -1, 1), (2, -1, 2), (2, -1, 3), (2, -1, 4)],
         terrace=(2, -1, 0),
     )
-    vertex = teyuna_shared.canonical_vertex(0, 0, 3)
-    game.use_vertex(breaker, vertex, teyuna_shared.SettlementType.TERRACE)
+    vertex = teyuna_core.canonical_vertex(0, 0, 3)
+    game.use_vertex(breaker, vertex, teyuna_core.SettlementType.TERRACE)
     game.longest_road = (holder, 8)
 
     actions.recompute_longest_road(game, breaker, vertex=vertex)
@@ -242,8 +240,8 @@ def test_path_must_beat_unassigned_tie_length_to_claim(
     actions.update_longest_road(game, challenger, edge=edge)
     assert game.longest_road == (None, 5)
 
-    game.use_edge(challenger, teyuna_shared.canonical_edge(0, 0, 5))
-    edge = teyuna_shared.canonical_edge(0, 0, 5)
+    game.use_edge(challenger, teyuna_core.canonical_edge(0, 0, 5))
+    edge = teyuna_core.canonical_edge(0, 0, 5)
     actions.update_longest_road(game, challenger, edge=edge)
 
     assert game.longest_road == (challenger, 6)
@@ -256,8 +254,8 @@ def test_recompute_keeps_holder_when_still_uniquely_longest(
     breaker = game.active_player
     _place_holder_road_of_eight(game, holder)
     _place_breaker_path_into_midpoint(game, breaker)
-    vertex = teyuna_shared.canonical_vertex(0, 0, 3)
-    game.use_vertex(breaker, vertex, teyuna_shared.SettlementType.TERRACE)
+    vertex = teyuna_core.canonical_vertex(0, 0, 3)
+    game.use_vertex(breaker, vertex, teyuna_core.SettlementType.TERRACE)
     game.longest_road = (holder, 8)
 
     actions.recompute_longest_road(game, breaker, vertex=vertex)
@@ -268,10 +266,10 @@ def test_recompute_keeps_holder_when_still_uniquely_longest(
 def test_handle_build_path_awards_longest_road(game: entities.Game) -> None:
     player = game.active_player
     _place_paths(game, player, [(0, 0, d) for d in range(4)])
-    fifth = teyuna_shared.canonical_edge(0, 0, 4)
+    fifth = teyuna_core.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
-    action = teyuna_shared.BuildPathAction(by=player, coordinate=fifth)
+    action = teyuna_core.BuildPathAction(by=player, coordinate=fifth)
     result = actions.handle_build_path(
         game,
         action,
@@ -279,7 +277,7 @@ def test_handle_build_path_awards_longest_road(game: entities.Game) -> None:
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert result.coordinate == fifth
     assert game.longest_road == (player, 5)
     assert fifth in game.players[player].paths
@@ -290,12 +288,12 @@ def test_handle_build_path_can_end_game_via_longest_road(
 ) -> None:
     player = game.active_player
     # Seed terrace (1) + 7 Legacy + longest road (2) = 10.
-    game.players[player].played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS] = 7
+    game.players[player].played_cards[teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS] = 7
     _place_paths(game, player, [(0, 0, d) for d in range(4)])
-    fifth = teyuna_shared.canonical_edge(0, 0, 4)
+    fifth = teyuna_core.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
-    action = teyuna_shared.BuildPathAction(by=player, coordinate=fifth)
+    action = teyuna_core.BuildPathAction(by=player, coordinate=fifth)
     result = actions.handle_build_path(
         game,
         action,
@@ -303,7 +301,7 @@ def test_handle_build_path_can_end_game_via_longest_road(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.END_GAME
+    assert result.next_phase is teyuna_core.GamePhaseName.END_GAME
     assert result.coordinate == fifth
     assert game.longest_road == (player, 5)
     assert entities.victory_points(game, player) == 10
@@ -317,19 +315,19 @@ def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
     _place_holder_road_through_midpoint(game, holder)
     _place_breaker_path_into_midpoint(game, breaker)
     game.longest_road = (holder, 6)
-    vertex = teyuna_shared.canonical_vertex(0, 0, 3)
+    vertex = teyuna_core.canonical_vertex(0, 0, 3)
     game.players[breaker].resources.update(
         {
-            teyuna_shared.ResourceCard.STONE: 1,
-            teyuna_shared.ResourceCard.WOOD: 1,
-            teyuna_shared.ResourceCard.COTTON: 1,
-            teyuna_shared.ResourceCard.MAIZE: 1,
+            teyuna_core.ResourceCard.STONE: 1,
+            teyuna_core.ResourceCard.WOOD: 1,
+            teyuna_core.ResourceCard.COTTON: 1,
+            teyuna_core.ResourceCard.MAIZE: 1,
         }
     )
 
-    action = teyuna_shared.BuildSettlementAction(
+    action = teyuna_core.BuildSettlementAction(
         by=breaker,
-        item=teyuna_shared.SettlementType.TERRACE,
+        item=teyuna_core.SettlementType.TERRACE,
         coordinate=vertex,
     )
     result = actions.handle_build_terrace(
@@ -339,13 +337,12 @@ def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.TRADE_AND_BUILD
-    assert result.item is teyuna_shared.SettlementType.TERRACE
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    assert result.item is teyuna_core.SettlementType.TERRACE
     assert result.coordinate == vertex
     assert game.longest_road == (None, 0)
     assert (
-        game.players[breaker].settlements[vertex]
-        is teyuna_shared.SettlementType.TERRACE
+        game.players[breaker].settlements[vertex] is teyuna_core.SettlementType.TERRACE
     )
 
 
@@ -354,10 +351,10 @@ def test_pathfinder_awards_longest_road_on_fifth_path(
 ) -> None:
     player = game.active_player
     _place_paths(game, player, [(0, 0, d) for d in range(3)])
-    fourth = teyuna_shared.canonical_edge(0, 0, 3)
-    fifth = teyuna_shared.canonical_edge(0, 0, 4)
+    fourth = teyuna_core.canonical_edge(0, 0, 3)
+    fifth = teyuna_core.canonical_edge(0, 0, 4)
 
-    action = teyuna_shared.PlayPathfinderAction(by=player, paths=(fourth, fifth))
+    action = teyuna_core.PlayPathfinderAction(by=player, paths=(fourth, fifth))
     result = actions.handle_dice_play_pathfinder(
         game,
         action,
@@ -365,7 +362,7 @@ def test_pathfinder_awards_longest_road_on_fifth_path(
     assert result.action == action
 
     assert result.error is None
-    assert result.next_phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert result.next_phase is teyuna_core.GamePhaseName.DICE_ROLL
     assert result.paths == (fourth, fifth)
     assert game.longest_road == (player, 5)
     assert fourth in game.players[player].paths
@@ -375,8 +372,8 @@ def test_pathfinder_awards_longest_road_on_fifth_path(
 def _give_path_resources(game: entities.Game, nickname: str) -> None:
     game.players[nickname].resources.update(
         {
-            teyuna_shared.ResourceCard.STONE: 1,
-            teyuna_shared.ResourceCard.WOOD: 1,
+            teyuna_core.ResourceCard.STONE: 1,
+            teyuna_core.ResourceCard.WOOD: 1,
         }
     )
 
@@ -411,11 +408,11 @@ def _place_breaker_path_into_midpoint(game: entities.Game, breaker: str) -> None
     """Connect breaker to midpoint without restricting it (seed two edges away)."""
     game.use_vertex(
         breaker,
-        teyuna_shared.canonical_vertex(-2, 2, 1),
-        teyuna_shared.SettlementType.TERRACE,
+        teyuna_core.canonical_vertex(-2, 2, 1),
+        teyuna_core.SettlementType.TERRACE,
     )
-    game.use_edge(breaker, teyuna_shared.canonical_edge(-1, 1, 2))
-    game.use_edge(breaker, teyuna_shared.canonical_edge(-1, 1, 1))
+    game.use_edge(breaker, teyuna_core.canonical_edge(-1, 1, 2))
+    game.use_edge(breaker, teyuna_core.canonical_edge(-1, 1, 1))
 
 
 def _place_paths(
@@ -424,7 +421,7 @@ def _place_paths(
     edges: list[tuple[int, int, int]],
     *,
     terrace: tuple[int, int, int] | None = None,
-) -> teyuna_shared.Coordinate:
+) -> teyuna_core.Coordinate:
     """Place a seed terrace then paths so board sets stay consistent."""
     if terrace is None:
         q, r, d = edges[0]
@@ -432,13 +429,13 @@ def _place_paths(
     tq, tr, td = terrace
     game.use_vertex(
         nickname,
-        teyuna_shared.canonical_vertex(tq, tr, td),
-        teyuna_shared.SettlementType.TERRACE,
+        teyuna_core.canonical_vertex(tq, tr, td),
+        teyuna_core.SettlementType.TERRACE,
     )
 
-    last = teyuna_shared.canonical_edge(*edges[0])
+    last = teyuna_core.canonical_edge(*edges[0])
     game.use_edge(nickname, last)
     for q, r, d in edges[1:]:
-        last = teyuna_shared.canonical_edge(q, r, d)
+        last = teyuna_core.canonical_edge(q, r, d)
         game.use_edge(nickname, last)
     return last

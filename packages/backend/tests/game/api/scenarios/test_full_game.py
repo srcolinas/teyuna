@@ -8,7 +8,7 @@ from src.game import dependencies, repository as repository_module
 
 from .. import utils
 from . import config, players, rounds
-import teyuna_shared
+import teyuna_core
 
 
 @pytest.mark.slow
@@ -31,41 +31,41 @@ def test_greedy_builder_reaches_end_game(
     game.map = config.overwrite_map(
         source=game.map,
         overwrites={
-            teyuna_shared.HexLocation(q=0, r=0): (
-                teyuna_shared.HexType.MOUNTAINS,
+            teyuna_core.HexLocation(q=0, r=0): (
+                teyuna_core.HexType.MOUNTAINS,
                 good_number,
             ),
-            teyuna_shared.HexLocation(q=-1, r=0): (
-                teyuna_shared.HexType.QUARRIES,
+            teyuna_core.HexLocation(q=-1, r=0): (
+                teyuna_core.HexType.QUARRIES,
                 good_number,
             ),
-            teyuna_shared.HexLocation(q=1, r=0): (
-                teyuna_shared.HexType.HIGHLANDS,
+            teyuna_core.HexLocation(q=1, r=0): (
+                teyuna_core.HexType.HIGHLANDS,
                 good_number,
             ),
-            teyuna_shared.HexLocation(q=0, r=-1): (
-                teyuna_shared.HexType.VALLEYS,
+            teyuna_core.HexLocation(q=0, r=-1): (
+                teyuna_core.HexType.VALLEYS,
                 good_number,
             ),
-            teyuna_shared.HexLocation(q=1, r=-1): (
-                teyuna_shared.HexType.JUNGLE,
+            teyuna_core.HexLocation(q=1, r=-1): (
+                teyuna_core.HexType.JUNGLE,
                 good_number,
             ),
-            teyuna_shared.HexLocation(q=-1, r=1): (
-                teyuna_shared.HexType.MOUNTAINS,
+            teyuna_core.HexLocation(q=-1, r=1): (
+                teyuna_core.HexType.MOUNTAINS,
                 good_number,
             ),
-            teyuna_shared.HexLocation(q=0, r=1): (
-                teyuna_shared.HexType.QUARRIES,
+            teyuna_core.HexLocation(q=0, r=1): (
+                teyuna_core.HexType.QUARRIES,
                 good_number,
             ),
-            teyuna_shared.HexLocation(q=0, r=-2): (teyuna_shared.HexType.DESERT, 2),
-            teyuna_shared.HexLocation(q=-2, r=2): (teyuna_shared.HexType.DESERT, 2),
-            teyuna_shared.HexLocation(q=0, r=2): (teyuna_shared.HexType.DESERT, 2),
-            teyuna_shared.HexLocation(q=2, r=-2): (teyuna_shared.HexType.DESERT, 2),
+            teyuna_core.HexLocation(q=0, r=-2): (teyuna_core.HexType.DESERT, 2),
+            teyuna_core.HexLocation(q=-2, r=2): (teyuna_core.HexType.DESERT, 2),
+            teyuna_core.HexLocation(q=0, r=2): (teyuna_core.HexType.DESERT, 2),
+            teyuna_core.HexLocation(q=2, r=-2): (teyuna_core.HexType.DESERT, 2),
         },
     )
-    game.conquistator_location = teyuna_shared.HexLocation(q=2, r=-2)
+    game.conquistator_location = teyuna_core.HexLocation(q=2, r=-2)
     repository.update(game_id, game)
 
     first, second, third = client.get(f"/games/{game_id}").json()["turn_order"]
@@ -100,7 +100,7 @@ def test_greedy_builder_reaches_end_game(
         active_player = game.active_player
         while (
             active_player == game.active_player
-            and phase is not teyuna_shared.GamePhaseName.END_GAME
+            and phase is not teyuna_core.GamePhaseName.END_GAME
         ):
             print(f"Turn {turn} - Phase: {phase.value} - Player {active_player}")
             bots[active_player].take_action(phase, game)
@@ -114,7 +114,7 @@ def test_greedy_builder_reaches_end_game(
     pprint.pprint(game)
     print("--------------------------------")
     game = client.get(f"/games/{game_id}").json()
-    assert game["phase"] == teyuna_shared.GamePhaseName.END_GAME.value
+    assert game["phase"] == teyuna_core.GamePhaseName.END_GAME.value
 
 
 class FakeRandomGenerator:

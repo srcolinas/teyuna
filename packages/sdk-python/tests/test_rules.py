@@ -1,22 +1,22 @@
 import random
 import uuid
 
-import teyuna_shared
+import teyuna_core
 
 from teyuna_sdk import rules
 
 
-def _empty_game(*, map_tiles: tuple[teyuna_shared.Hex, ...]) -> teyuna_shared.Game:
-    return teyuna_shared.Game(
+def _empty_game(*, map_tiles: tuple[teyuna_core.Hex, ...]) -> teyuna_core.Game:
+    return teyuna_core.Game(
         id=uuid.uuid4(),
         map=map_tiles,
-        conquistator_location=teyuna_shared.HexCoordinate(q=0, r=0),
-        harbours=teyuna_shared.grouped_harbours(),
+        conquistator_location=teyuna_core.HexCoordinate(q=0, r=0),
+        harbours=teyuna_core.grouped_harbours(),
         players=[],
         settlements=[],
         paths=[],
         turn_order=(),
-        phase=teyuna_shared.GamePhaseName.FIRST_PLACEMENT,
+        phase=teyuna_core.GamePhaseName.FIRST_PLACEMENT,
         phase_deadline=None,
         available_slots=0,
     )
@@ -25,15 +25,15 @@ def _empty_game(*, map_tiles: tuple[teyuna_shared.Hex, ...]) -> teyuna_shared.Ga
 def test_vertex_touches_desert_when_adjacent_to_desert_hex() -> None:
     game = _empty_game(
         map_tiles=(
-            teyuna_shared.Hex(
-                coordinate=teyuna_shared.HexCoordinate(q=0, r=0),
-                type=teyuna_shared.HexType.DESERT,
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.DESERT,
                 number=7,
             ),
         )
     )
-    vertex = teyuna_shared.VertexCoordinate(
-        hex_coord=teyuna_shared.HexCoordinate(q=0, r=0),
+    vertex = teyuna_core.VertexCoordinate(
+        hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
         direction=0,
     )
 
@@ -43,15 +43,15 @@ def test_vertex_touches_desert_when_adjacent_to_desert_hex() -> None:
 def test_vertex_touches_desert_is_false_without_desert() -> None:
     game = _empty_game(
         map_tiles=(
-            teyuna_shared.Hex(
-                coordinate=teyuna_shared.HexCoordinate(q=0, r=0),
-                type=teyuna_shared.HexType.MOUNTAINS,
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.MOUNTAINS,
                 number=8,
             ),
         )
     )
-    vertex = teyuna_shared.VertexCoordinate(
-        hex_coord=teyuna_shared.HexCoordinate(q=0, r=0),
+    vertex = teyuna_core.VertexCoordinate(
+        hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
         direction=0,
     )
 
@@ -59,19 +59,19 @@ def test_vertex_touches_desert_is_false_without_desert() -> None:
 
 
 def test_vertices_available_for_free_placement_excludes_restricted() -> None:
-    terrace = teyuna_shared.PlayedSettlement(
+    terrace = teyuna_core.PlayedSettlement(
         owner="player-0",
-        location=teyuna_shared.VertexCoordinate(
-            hex_coord=teyuna_shared.HexCoordinate(q=0, r=0),
+        location=teyuna_core.VertexCoordinate(
+            hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
             direction=0,
         ),
-        type=teyuna_shared.SettlementType.TERRACE,
+        type=teyuna_core.SettlementType.TERRACE,
     )
     game = _empty_game(
         map_tiles=(
-            teyuna_shared.Hex(
-                coordinate=teyuna_shared.HexCoordinate(q=0, r=0),
-                type=teyuna_shared.HexType.MOUNTAINS,
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.MOUNTAINS,
                 number=8,
             ),
         )
@@ -82,7 +82,7 @@ def test_vertices_available_for_free_placement_excludes_restricted() -> None:
     occupied = terrace.location
     restricted = {
         rules.to_vertex(coord)
-        for coord in teyuna_shared.restricted_vertices_for(rules.from_vertex(occupied))
+        for coord in teyuna_core.restricted_vertices_for(rules.from_vertex(occupied))
     }
 
     assert occupied not in available
@@ -93,20 +93,20 @@ def test_vertices_available_for_free_placement_excludes_restricted() -> None:
 def test_edges_for_free_placement_returns_adjacent_free_edges() -> None:
     game = _empty_game(
         map_tiles=(
-            teyuna_shared.Hex(
-                coordinate=teyuna_shared.HexCoordinate(q=0, r=0),
-                type=teyuna_shared.HexType.MOUNTAINS,
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.MOUNTAINS,
                 number=8,
             ),
         )
     )
-    terrace = teyuna_shared.VertexCoordinate(
-        hex_coord=teyuna_shared.HexCoordinate(q=0, r=0),
+    terrace = teyuna_core.VertexCoordinate(
+        hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
         direction=0,
     )
     edges = rules.edges_for_free_placement(game, terrace)
     expected = {
-        rules.to_edge(edge) for edge in teyuna_shared.edges_adjacent_to_vertex(0, 0, 0)
+        rules.to_edge(edge) for edge in teyuna_core.edges_adjacent_to_vertex(0, 0, 0)
     }
 
     assert set(edges) == expected
@@ -115,11 +115,11 @@ def test_edges_for_free_placement_returns_adjacent_free_edges() -> None:
 
 def test_pick_discard_selects_exact_count() -> None:
     resources = {
-        teyuna_shared.ResourceCard.WOOD: 5,
-        teyuna_shared.ResourceCard.GOLD: 3,
+        teyuna_core.ResourceCard.WOOD: 5,
+        teyuna_core.ResourceCard.GOLD: 3,
     }
     count = rules.pick_discard(resources, required=4, rng=random.Random(0))
 
     assert sum(count.values()) == 4
-    assert count.get(teyuna_shared.ResourceCard.WOOD, 0) <= 5
-    assert count.get(teyuna_shared.ResourceCard.GOLD, 0) <= 3
+    assert count.get(teyuna_core.ResourceCard.WOOD, 0) <= 5
+    assert count.get(teyuna_core.ResourceCard.GOLD, 0) <= 3

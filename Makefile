@@ -9,7 +9,7 @@ all: check
 # Clean cache files and artifacts
 clean:
 	rm -rf .venv
-	cd packages/shared-core && make clean
+	cd packages/teyuna-core && make clean
 	cd packages/backend && make clean
 	cd packages/sdk-python && make clean
 	cd apps/frontend && make clean
@@ -22,28 +22,28 @@ setup:
 
 # Format all code
 format:
-	cd packages/shared-core && make format
+	cd packages/teyuna-core && make format
 	cd packages/backend && make format
 	cd packages/sdk-python && make format
 	cd apps/frontend && make format
 
 # Lint all code
 lint:
-	cd packages/shared-core && make lint
+	cd packages/teyuna-core && make lint
 	cd packages/backend && make lint
 	cd packages/sdk-python && make lint
 	cd apps/frontend && make lint
 
 # Run all tests
 test:
-	cd packages/shared-core && make test
+	cd packages/teyuna-core && make test
 	cd packages/backend && make test
 	cd packages/sdk-python && make test
 	cd apps/frontend && make test
 
 # Run all checks
 check:
-	cd packages/shared-core && make check
+	cd packages/teyuna-core && make check
 	cd packages/backend && make check
 	cd packages/sdk-python && make check
 	cd apps/frontend && make check

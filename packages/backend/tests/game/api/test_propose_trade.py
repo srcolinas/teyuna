@@ -10,7 +10,7 @@ from src.game import actions, repository as repository_module
 
 from . import utils
 import datetime
-import teyuna_shared
+import teyuna_core
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -39,7 +39,7 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
-    game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    game.phase = teyuna_core.GamePhaseName.FIRST_PLACEMENT
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -152,11 +152,11 @@ def test_proposes_trade(
         uuid.UUID(body["proposal_id"]) in repository.retrieve(game_id).trade_proposals
     )
     assert (
-        teyuna_shared.TradeProposal(
+        teyuna_core.TradeProposal(
             by=active_player,
             to={other},
-            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 1}),
-            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 1}),
+            request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         )
         in repository.retrieve(game_id).trade_proposals.values()
     )
@@ -178,8 +178,8 @@ def test_non_active_player_can_propose(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
-    game.players[other].resources.update({teyuna_shared.ResourceCard.GOLD: 1})
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    game.players[other].resources.update({teyuna_core.ResourceCard.GOLD: 1})
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -201,13 +201,13 @@ def test_non_active_player_can_propose(
     assert body["proposal_id"] is not None
     game = repository.retrieve(game_id)
     phase = game.phase
-    assert phase == teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    assert phase == teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert (
-        teyuna_shared.TradeProposal(
+        teyuna_core.TradeProposal(
             by=other,
             to={active_player},
-            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 1}),
-            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 1}),
+            request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         )
         in game.trade_proposals.values()
     )
@@ -226,8 +226,8 @@ def test_non_active_player_can_propose_during_dice_roll(
 ) -> None:
     repository, game_id, tokens, active_player, other = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
-    game.players[other].resources.update({teyuna_shared.ResourceCard.GOLD: 1})
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.players[other].resources.update({teyuna_core.ResourceCard.GOLD: 1})
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -246,13 +246,13 @@ def test_non_active_player_can_propose_during_dice_roll(
     assert response.status_code == 200, response.text
     assert response.json()["proposal_id"] is not None
     game = repository.retrieve(game_id)
-    assert game.phase is teyuna_shared.GamePhaseName.DICE_ROLL
+    assert game.phase is teyuna_core.GamePhaseName.DICE_ROLL
     assert (
-        teyuna_shared.TradeProposal(
+        teyuna_core.TradeProposal(
             by=other,
             to={active_player},
-            offer=collections.Counter({teyuna_shared.ResourceCard.GOLD: 1}),
-            request=collections.Counter({teyuna_shared.ResourceCard.STONE: 1}),
+            offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 1}),
+            request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         )
         in game.trade_proposals.values()
     )
@@ -265,8 +265,8 @@ def test_non_active_player_cannot_propose_to_non_active(
     repository, game_id, tokens, _, other = _setup_trade_and_build(app)
     game = repository.retrieve(game_id)
     third = game.turn_order[2]
-    game.players[other].resources.update({teyuna_shared.ResourceCard.GOLD: 1})
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    game.players[other].resources.update({teyuna_core.ResourceCard.GOLD: 1})
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     repository.update(game_id, game)
 
@@ -301,10 +301,8 @@ def _setup_trade_and_build(
     active_player = game.active_player
     other = game.turn_order[1]
     if grant_offer:
-        game.players[active_player].resources.update(
-            {teyuna_shared.ResourceCard.GOLD: 1}
-        )
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+        game.players[active_player].resources.update({teyuna_core.ResourceCard.GOLD: 1})
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -313,12 +311,12 @@ def _setup_trade_and_build(
 
 
 def _create_game() -> entities.Game:
-    mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=8
+    mountains = teyuna_core.MapHex(
+        q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=8
     )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_core.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

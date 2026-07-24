@@ -11,7 +11,7 @@ from src.game import actions, repository as repository_module
 
 from . import utils
 import datetime
-import teyuna_shared
+import teyuna_core
 
 
 def test_returns_404_when_game_does_not_exist(
@@ -22,7 +22,7 @@ def test_returns_404_when_game_does_not_exist(
     response = utils.post_action(
         client,
         uuid.uuid4(),
-        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        {"kind": "play_wisdom_card", "card": teyuna_core.WisdomCard.WARRIOR.value},
         token=token,
     )
 
@@ -35,7 +35,7 @@ def test_returns_400_when_action_not_allowed(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    game.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    game.phase = teyuna_core.GamePhaseName.FIRST_PLACEMENT
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -44,7 +44,7 @@ def test_returns_400_when_action_not_allowed(
     response = utils.post_action(
         client,
         game_id,
-        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        {"kind": "play_wisdom_card", "card": teyuna_core.WisdomCard.WARRIOR.value},
         token=token,
     )
 
@@ -57,8 +57,8 @@ def test_returns_501_when_phase_not_implemented(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    game.players[game.active_player].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.players[game.active_player].cards[teyuna_core.WisdomCard.WARRIOR] = 1
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -70,7 +70,7 @@ def test_returns_501_when_phase_not_implemented(
     response = utils.post_action(
         client,
         game_id,
-        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        {"kind": "play_wisdom_card", "card": teyuna_core.WisdomCard.WARRIOR.value},
         token=token,
     )
 
@@ -84,8 +84,8 @@ def test_returns_400_when_player_not_in_turn(
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
     other = game.turn_order[1]
-    game.players[other].cards[teyuna_shared.WisdomCard.WARRIOR] = 1
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.players[other].cards[teyuna_core.WisdomCard.WARRIOR] = 1
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -94,7 +94,7 @@ def test_returns_400_when_player_not_in_turn(
     response = utils.post_action(
         client,
         game_id,
-        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        {"kind": "play_wisdom_card", "card": teyuna_core.WisdomCard.WARRIOR.value},
         token=token,
     )
 
@@ -107,7 +107,7 @@ def test_returns_400_when_player_does_not_have_card(
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
-    game.phase = teyuna_shared.GamePhaseName.DICE_ROLL
+    game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -116,7 +116,7 @@ def test_returns_400_when_player_does_not_have_card(
     response = utils.post_action(
         client,
         game_id,
-        {"kind": "play_wisdom_card", "card": teyuna_shared.WisdomCard.WARRIOR.value},
+        {"kind": "play_wisdom_card", "card": teyuna_core.WisdomCard.WARRIOR.value},
         token=token,
     )
 
@@ -127,37 +127,37 @@ def test_returns_400_when_player_does_not_have_card(
     ("card", "expected_phase"),
     [
         (
-            teyuna_shared.WisdomCard.WARRIOR,
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+            teyuna_core.WisdomCard.WARRIOR,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
         ),
         (
-            teyuna_shared.WisdomCard.WINDOM_OF_MAMO,
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+            teyuna_core.WisdomCard.WINDOM_OF_MAMO,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
         ),
         (
-            teyuna_shared.WisdomCard.BLESSING_OF_ALUNA,
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
+            teyuna_core.WisdomCard.BLESSING_OF_ALUNA,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
         ),
         (
-            teyuna_shared.WisdomCard.PATHFINDER,
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
+            teyuna_core.WisdomCard.PATHFINDER,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
         ),
         (
-            teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS,
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
+            teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD,
         ),
     ],
 )
 def test_plays_card_during_trade_and_build(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
-    card: teyuna_shared.WisdomCard,
-    expected_phase: teyuna_shared.GamePhaseName,
+    card: teyuna_core.WisdomCard,
+    expected_phase: teyuna_core.GamePhaseName,
 ) -> None:
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
     game.players[game.active_player].cards[card] = 1
-    game.phase = teyuna_shared.GamePhaseName.TRADE_AND_BUILD
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     app.dependency_overrides[game_dependencies.get_repository] = lambda: repository
@@ -182,12 +182,12 @@ def test_plays_card_during_trade_and_build(
 
 
 def _create_game() -> entities.Game:
-    mountains = teyuna_shared.MapHex(
-        q=0, r=0, type=teyuna_shared.HexType.MOUNTAINS, number=1
+    mountains = teyuna_core.MapHex(
+        q=0, r=0, type=teyuna_core.HexType.MOUNTAINS, number=1
     )
     game = entities.Game(
         map=(mountains,),
-        conquistator_location=teyuna_shared.HexLocation(q=mountains.q, r=mountains.r),
+        conquistator_location=teyuna_core.HexLocation(q=mountains.q, r=mountains.r),
         players={
             nickname: entities.Player(
                 cards=collections.Counter(),

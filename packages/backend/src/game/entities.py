@@ -7,69 +7,67 @@ import uuid
 from collections.abc import ItemsView, KeysView, Set, ValuesView
 from types import MappingProxyType
 
-import teyuna_shared
+import teyuna_core
 
 
 @dataclasses.dataclass
 class SettlementsCollection:
-    _locations: dict[teyuna_shared.Coordinate, teyuna_shared.SettlementType] = (
+    _locations: dict[teyuna_core.Coordinate, teyuna_core.SettlementType] = (
         dataclasses.field(
             default_factory=dict,
         )
     )
-    _counts: collections.Counter[teyuna_shared.SettlementType] = dataclasses.field(
+    _counts: collections.Counter[teyuna_core.SettlementType] = dataclasses.field(
         default_factory=collections.Counter, init=False, repr=False
     )
 
     def __post_init__(self) -> None:
         self._counts = collections.Counter(self._locations.values())
 
-    def __contains__(self, coord: teyuna_shared.Coordinate) -> bool:
+    def __contains__(self, coord: teyuna_core.Coordinate) -> bool:
         return coord in self._locations
 
-    def __getitem__(
-        self, coord: teyuna_shared.Coordinate
-    ) -> teyuna_shared.SettlementType:
+    def __getitem__(self, coord: teyuna_core.Coordinate) -> teyuna_core.SettlementType:
         return self._locations[coord]
 
     def __setitem__(
-        self, coord: teyuna_shared.Coordinate, type: teyuna_shared.SettlementType
+        self, coord: teyuna_core.Coordinate, type: teyuna_core.SettlementType
     ) -> None:
         if coord in self._locations:
             self._counts[self._locations[coord]] -= 1
         self._locations[coord] = type
         self._counts[type] += 1
 
-    def locations(self) -> KeysView[teyuna_shared.Coordinate]:
+    def locations(self) -> KeysView[teyuna_core.Coordinate]:
         return self._locations.keys()
 
     def items(
         self,
-    ) -> ItemsView[teyuna_shared.Coordinate, teyuna_shared.SettlementType]:
+    ) -> ItemsView[teyuna_core.Coordinate, teyuna_core.SettlementType]:
         return self._locations.items()
 
-    def values(self) -> ValuesView[teyuna_shared.SettlementType]:
+    def values(self) -> ValuesView[teyuna_core.SettlementType]:
         return self._locations.values()
 
-    def count(self, type: teyuna_shared.SettlementType) -> int:
+    def count(self, type: teyuna_core.SettlementType) -> int:
         return self._counts[type]
 
     @property
-    def counts(self) -> collections.Counter[teyuna_shared.SettlementType]:
+    def counts(self) -> collections.Counter[teyuna_core.SettlementType]:
         return collections.Counter(self._counts)
 
 
-type CardCount = collections.Counter[teyuna_shared.WisdomCard]
+type CardCount = collections.Counter[teyuna_core.WisdomCard]
 
 
-def _default_resources() -> collections.Counter[teyuna_shared.ResourceCard]:
+def _default_resources() -> collections.Counter[teyuna_core.ResourceCard]:
     return collections.Counter(
         {
-            teyuna_shared.ResourceCard.GOLD: 0,
-            teyuna_shared.ResourceCard.STONE: 0,
-            teyuna_shared.ResourceCard.COTTON: 0,
-            teyuna_shared.ResourceCard.MAIZE: 0,
-            teyuna_shared.ResourceCard.WOOD: 0,
+            teyuna_core.ResourceCard.GOLD: 0,
+            teyuna_core.ResourceCard.STONE: 0,
+            teyuna_core.ResourceCard.COTTON: 0,
+            teyuna_core.ResourceCard.MAIZE: 0,
+            teyuna_core.ResourceCard.WOOD: 0,
         }
     )
 
@@ -81,28 +79,28 @@ class Player:
         default_factory=collections.Counter
     )
     played_cards: CardCount = dataclasses.field(default_factory=collections.Counter)
-    resources: collections.Counter[teyuna_shared.ResourceCard] = dataclasses.field(
+    resources: collections.Counter[teyuna_core.ResourceCard] = dataclasses.field(
         default_factory=_default_resources
     )
     settlements: SettlementsCollection = dataclasses.field(
         default_factory=SettlementsCollection
     )
-    paths: set[teyuna_shared.Coordinate] = dataclasses.field(default_factory=set)
+    paths: set[teyuna_core.Coordinate] = dataclasses.field(default_factory=set)
 
 
-def _default_resource_supply() -> collections.Counter[teyuna_shared.ResourceCard]:
+def _default_resource_supply() -> collections.Counter[teyuna_core.ResourceCard]:
     return collections.Counter(
         {
-            resource: teyuna_shared.RESOURCE_BANK_PER_TYPE
-            for resource in teyuna_shared.ResourceCard
+            resource: teyuna_core.RESOURCE_BANK_PER_TYPE
+            for resource in teyuna_core.ResourceCard
         }
     )
 
 
-def _default_wisdom_deck() -> list[teyuna_shared.WisdomCard]:
+def _default_wisdom_deck() -> list[teyuna_core.WisdomCard]:
     deck = [
         card
-        for card, count in teyuna_shared.WISDOM_DECK_COUNTS.items()
+        for card, count in teyuna_core.WISDOM_DECK_COUNTS.items()
         for _ in range(count)
     ]
     random.shuffle(deck)
@@ -119,23 +117,23 @@ class NicknameAlreadyTakenError(Exception):
 
 @dataclasses.dataclass(kw_only=True)
 class Game:
-    map: tuple[teyuna_shared.MapHex, ...]
+    map: tuple[teyuna_core.MapHex, ...]
     players: dict[str, Player]
-    conquistator_location: teyuna_shared.HexLocation
-    harbours: tuple[teyuna_shared.HarbourPair, ...] = dataclasses.field(
-        default_factory=teyuna_shared.default_harbour_pairs
+    conquistator_location: teyuna_core.HexLocation
+    harbours: tuple[teyuna_core.HarbourPair, ...] = dataclasses.field(
+        default_factory=teyuna_core.default_harbour_pairs
     )
     available_slots: int = 4
-    phase: teyuna_shared.GamePhaseName = teyuna_shared.GamePhaseName.LOBBY
+    phase: teyuna_core.GamePhaseName = teyuna_core.GamePhaseName.LOBBY
     phase_deadline: datetime.datetime | None = None
     to_discard_resources: dict[str, int] = dataclasses.field(default_factory=dict)
-    resource_supply: collections.Counter[teyuna_shared.ResourceCard] = (
-        dataclasses.field(default_factory=_default_resource_supply)
+    resource_supply: collections.Counter[teyuna_core.ResourceCard] = dataclasses.field(
+        default_factory=_default_resource_supply
     )
-    wisdom_deck: list[teyuna_shared.WisdomCard] = dataclasses.field(
+    wisdom_deck: list[teyuna_core.WisdomCard] = dataclasses.field(
         default_factory=_default_wisdom_deck
     )
-    trade_proposals: dict[uuid.UUID, teyuna_shared.TradeProposal] = dataclasses.field(
+    trade_proposals: dict[uuid.UUID, teyuna_core.TradeProposal] = dataclasses.field(
         default_factory=dict
     )
     longest_road: tuple[str | None, int] = dataclasses.field(
@@ -149,18 +147,18 @@ class Game:
     _turn_order: list[str] = dataclasses.field(
         default_factory=list, init=False, repr=False
     )
-    _free_verticies: set[teyuna_shared.Coordinate] = dataclasses.field(init=False)
-    _free_edges: set[teyuna_shared.Coordinate] = dataclasses.field(init=False)
-    _restricted_verticies: set[teyuna_shared.Coordinate] = dataclasses.field(init=False)
+    _free_verticies: set[teyuna_core.Coordinate] = dataclasses.field(init=False)
+    _free_edges: set[teyuna_core.Coordinate] = dataclasses.field(init=False)
+    _restricted_verticies: set[teyuna_core.Coordinate] = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
         self._turn_order = []
-        free_verticies: set[teyuna_shared.Coordinate] = set()
-        free_edges: set[teyuna_shared.Coordinate] = set()
+        free_verticies: set[teyuna_core.Coordinate] = set()
+        free_edges: set[teyuna_core.Coordinate] = set()
         for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
-            if (q, r) not in teyuna_shared.INVALID_HEX_COORDINATES:
-                free_verticies.add(teyuna_shared.canonical_vertex(q, r, d))
-                free_edges.add(teyuna_shared.canonical_edge(q, r, d))
+            if (q, r) not in teyuna_core.INVALID_HEX_COORDINATES:
+                free_verticies.add(teyuna_core.canonical_vertex(q, r, d))
+                free_edges.add(teyuna_core.canonical_edge(q, r, d))
         self._free_verticies = free_verticies
         self._free_edges = free_edges
         self._restricted_verticies = set()
@@ -168,10 +166,8 @@ class Game:
     @property
     def harbour_locations(
         self,
-    ) -> MappingProxyType[teyuna_shared.Coordinate, teyuna_shared.ResourceCard | None]:
-        return MappingProxyType(
-            teyuna_shared.harbour_locations_from_pairs(self.harbours)
-        )
+    ) -> MappingProxyType[teyuna_core.Coordinate, teyuna_core.ResourceCard | None]:
+        return MappingProxyType(teyuna_core.harbour_locations_from_pairs(self.harbours))
 
     @property
     def turn_order(self) -> tuple[str, ...]:
@@ -191,7 +187,7 @@ class Game:
         )
 
     @property
-    def free_verticies(self) -> Set[teyuna_shared.Coordinate]:
+    def free_verticies(self) -> Set[teyuna_core.Coordinate]:
         """
         Returns all vertices that don't have a settlement on them,
         even if they are adjacent to a settlement and can't be used
@@ -200,12 +196,12 @@ class Game:
         return frozenset(self._free_verticies)
 
     @property
-    def free_edges(self) -> Set[teyuna_shared.Coordinate]:
+    def free_edges(self) -> Set[teyuna_core.Coordinate]:
         """Returns all edges that don't have a path on them"""
         return frozenset(self._free_edges)
 
     @property
-    def restricted_verticies(self) -> Set[teyuna_shared.Coordinate]:
+    def restricted_verticies(self) -> Set[teyuna_core.Coordinate]:
         """
         Returns all free vertices that can't be used to place a settlement,
         but are adjacent to a settlement and therore can't be used to place
@@ -217,18 +213,18 @@ class Game:
     def use_vertex(
         self,
         by: str,
-        target: teyuna_shared.Coordinate,
-        settlement: teyuna_shared.SettlementType,
+        target: teyuna_core.Coordinate,
+        settlement: teyuna_core.SettlementType,
     ) -> None:
-        dq5, dr5 = teyuna_shared.delta_to_neighbor((target.d + 5) % 6)
-        blocked_vertices: set[teyuna_shared.Coordinate] = set()
+        dq5, dr5 = teyuna_core.delta_to_neighbor((target.d + 5) % 6)
+        blocked_vertices: set[teyuna_core.Coordinate] = set()
         for vq, vr, vd in (
             (target.q, target.r, (target.d + 1) % 6),
             (target.q, target.r, (target.d + 5) % 6),
             (target.q + dq5, target.r + dr5, (target.d + 1) % 6),
         ):
             try:
-                blocked_vertices.add(teyuna_shared.canonical_vertex(vq, vr, vd))
+                blocked_vertices.add(teyuna_core.canonical_vertex(vq, vr, vd))
             except ValueError:
                 # Adjacent corner lies only on off-board / invalid hexes.
                 continue
@@ -236,11 +232,11 @@ class Game:
         self._restricted_verticies.update(blocked_vertices)
         self.players[by].settlements[target] = settlement
 
-    def use_edge(self, by: str, target: teyuna_shared.Coordinate) -> None:
+    def use_edge(self, by: str, target: teyuna_core.Coordinate) -> None:
         self._free_edges.remove(target)
         self.players[by].paths.add(target)
 
-    def use_card(self, by: str, card: teyuna_shared.WisdomCard) -> None:
+    def use_card(self, by: str, card: teyuna_core.WisdomCard) -> None:
         """
         Removes a card from the player's hand and adds it to the player's
         played cards.
@@ -252,13 +248,13 @@ class Game:
         self,
         from_: str,
         to: str,
-        amount: teyuna_shared.ResourceCount,
+        amount: teyuna_core.ResourceCount,
     ) -> None:
         """Exchanges resources between two players."""
         self.players[from_].resources.subtract(amount)
         self.players[to].resources.update(amount)
 
-    def monopoly_of_resource(self, type: teyuna_shared.ResourceCard) -> None:
+    def monopoly_of_resource(self, type: teyuna_core.ResourceCard) -> None:
         """Takes all of a resource from a player and gives it the active player."""
         for nickname, player_ in self.players.items():
             if player_.resources[type] > 0:
@@ -268,17 +264,17 @@ class Game:
                     amount=collections.Counter({type: player_.resources[type]}),
                 )
 
-    def take_from_supply(self, to: str, amount: teyuna_shared.ResourceCount) -> None:
+    def take_from_supply(self, to: str, amount: teyuna_core.ResourceCount) -> None:
         """Takes resources from the supply and gives them to a specific player."""
         self.resource_supply.subtract(amount)
         self.players[to].resources.update(amount)
 
-    def discard_resources(self, by: str, amount: teyuna_shared.ResourceCount) -> None:
+    def discard_resources(self, by: str, amount: teyuna_core.ResourceCount) -> None:
         """Discards resources from a player's hand."""
         self.players[by].resources.subtract(amount)
         self.resource_supply.update(amount)
 
-    def take_wisdom_card(self, by: str) -> teyuna_shared.WisdomCard:
+    def take_wisdom_card(self, by: str) -> teyuna_core.WisdomCard:
         card = self.wisdom_deck.pop()
         self.players[by].cards_bought_this_turn[card] += 1
         return card
@@ -299,7 +295,7 @@ class Game:
         self._turn_order = list(self.players.keys())
         random.shuffle(self._turn_order)
         self.player_idx = 0
-        self.phase = teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+        self.phase = teyuna_core.GamePhaseName.FIRST_PLACEMENT
         self.phase_deadline = datetime.datetime.now(datetime.UTC) + timeout_in
 
 
@@ -307,11 +303,11 @@ def victory_points(game: Game, by: str, /) -> int:
     player_state = game.players[by]
     settlements = player_state.settlements
     points = settlements.count(
-        teyuna_shared.SettlementType.TERRACE
-    ) + 2 * settlements.count(teyuna_shared.SettlementType.GREAT_TERRACE)
+        teyuna_core.SettlementType.TERRACE
+    ) + 2 * settlements.count(teyuna_core.SettlementType.GREAT_TERRACE)
     if game.longest_road[0] == by:
         points += 2
     if game.biggest_army[0] == by:
         points += 2
-    points += player_state.played_cards[teyuna_shared.WisdomCard.LEGACY_OF_THE_ELDERS]
+    points += player_state.played_cards[teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS]
     return points

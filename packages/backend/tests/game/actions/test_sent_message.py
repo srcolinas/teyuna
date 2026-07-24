@@ -1,10 +1,10 @@
 from src.game import actions, entities
-import teyuna_shared
+import teyuna_core
 
 
 def test_sends_message(game: entities.Game) -> None:
     player = game.active_player
-    action = teyuna_shared.SentMessageAction(by=player, text="hello")
+    action = teyuna_core.SentMessageAction(by=player, text="hello")
     result = actions.handle_sent_message(game, action)
 
     assert result.action == action
@@ -15,7 +15,7 @@ def test_sends_message(game: entities.Game) -> None:
 
 def test_rejects_empty_text(game: entities.Game) -> None:
     player = game.active_player
-    action = teyuna_shared.SentMessageAction(by=player, text="   ")
+    action = teyuna_core.SentMessageAction(by=player, text="   ")
     result = actions.handle_sent_message(game, action)
 
     assert result.action == action
@@ -25,7 +25,7 @@ def test_rejects_empty_text(game: entities.Game) -> None:
 
 def test_rejects_too_long_text(game: entities.Game) -> None:
     player = game.active_player
-    action = teyuna_shared.SentMessageAction(by=player, text="x" * 501)
+    action = teyuna_core.SentMessageAction(by=player, text="x" * 501)
     result = actions.handle_sent_message(game, action)
 
     assert result.action == action

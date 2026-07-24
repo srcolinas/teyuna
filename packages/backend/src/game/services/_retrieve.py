@@ -1,7 +1,7 @@
 import uuid
 from typing import Protocol
 
-import teyuna_shared
+import teyuna_core
 
 from .. import entities
 
@@ -12,7 +12,7 @@ class RetrieveGameRepository(Protocol):
 
 def retrieve_game(
     id: uuid.UUID, /, *, repository: RetrieveGameRepository
-) -> teyuna_shared.Game:
+) -> teyuna_core.Game:
     game = repository.retrieve(id)
     victory_points = game.victory_points
     players, settlements, paths = [], [], []
@@ -22,11 +22,9 @@ def retrieve_game(
         )
         for location, type in entity_player.settlements.items():
             settlements.append(
-                teyuna_shared.PlayedSettlement(
-                    location=teyuna_shared.VertexCoordinate(
-                        hex_coord=teyuna_shared.HexCoordinate(
-                            q=location.q, r=location.r
-                        ),
+                teyuna_core.PlayedSettlement(
+                    location=teyuna_core.VertexCoordinate(
+                        hex_coord=teyuna_core.HexCoordinate(q=location.q, r=location.r),
                         direction=location.d,
                     ),
                     type=type,
@@ -35,29 +33,29 @@ def retrieve_game(
             )
         for path in entity_player.paths:
             paths.append(
-                teyuna_shared.PlayedStonePath(
+                teyuna_core.PlayedStonePath(
                     owner=nickname,
-                    location=teyuna_shared.EdgeCoordinate(
-                        hex_coord=teyuna_shared.HexCoordinate(q=path.q, r=path.r),
+                    location=teyuna_core.EdgeCoordinate(
+                        hex_coord=teyuna_core.HexCoordinate(q=path.q, r=path.r),
                         direction=path.d,
                     ),
                 )
             )
-    return teyuna_shared.Game(
+    return teyuna_core.Game(
         id=id,
         turns_played=game.turns_played,
         map=tuple(
-            teyuna_shared.Hex(
-                coordinate=teyuna_shared.HexCoordinate(q=hex.q, r=hex.r),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=hex.q, r=hex.r),
                 type=hex.type,
                 number=hex.number,
             )
             for hex in game.map
         ),
-        conquistator_location=teyuna_shared.HexCoordinate(
+        conquistator_location=teyuna_core.HexCoordinate(
             q=game.conquistator_location.q, r=game.conquistator_location.r
         ),
-        harbours=teyuna_shared.grouped_harbours(game.harbours),
+        harbours=teyuna_core.grouped_harbours(game.harbours),
         players=players,
         settlements=settlements,
         paths=paths,
@@ -68,7 +66,7 @@ def retrieve_game(
         phase_deadline=game.phase_deadline,
         available_slots=game.available_slots,
         trade_proposals=[
-            teyuna_shared.ActiveTradeProposal(
+            teyuna_core.ActiveTradeProposal(
                 id=proposal_id,
                 by=proposal.by,
                 offer=dict(proposal.offer),
@@ -84,7 +82,7 @@ def retrieve_game(
 def _turn_order_from_active(
     turn_order: tuple[str, ...],
     player_idx: int,
-    phase: teyuna_shared.GamePhaseName,
+    phase: teyuna_core.GamePhaseName,
 ) -> tuple[str, ...]:
     """Return seating order starting at the active player.
 
@@ -93,16 +91,16 @@ def _turn_order_from_active(
     """
     if not turn_order:
         return ()
-    if phase is teyuna_shared.GamePhaseName.SECOND_PLACEMENT:
+    if phase is teyuna_core.GamePhaseName.SECOND_PLACEMENT:
         return turn_order[player_idx::-1] + turn_order[:player_idx:-1]
     return turn_order[player_idx:] + turn_order[:player_idx]
 
 
 def _to_port_player(
     nickname: str, entity_player: entities.Player, victory_points: int
-) -> teyuna_shared.Player:
+) -> teyuna_core.Player:
     counts = entity_player.settlements.counts
-    return teyuna_shared.Player(
+    return teyuna_core.Player(
         victory_points=victory_points,
         nickname=nickname,
         played_wisdom_cards=[
@@ -113,11 +111,11 @@ def _to_port_player(
         num_hidden_wisdom_cards=sum(entity_player.cards.values())
         + sum(entity_player.cards_bought_this_turn.values()),
         num_resources=sum(entity_player.resources.values()),
-        available_terraces=teyuna_shared.MAX_TERRACES
-        - counts[teyuna_shared.SettlementType.TERRACE],
-        available_great_terraces=teyuna_shared.MAX_GREAT_TERRACES
-        - counts[teyuna_shared.SettlementType.GREAT_TERRACE],
-        available_paths=teyuna_shared.MAX_PATHS - len(entity_player.paths),
+        available_terraces=teyuna_core.MAX_TERRACES
+        - counts[teyuna_core.SettlementType.TERRACE],
+        available_great_terraces=teyuna_core.MAX_GREAT_TERRACES
+        - counts[teyuna_core.SettlementType.GREAT_TERRACE],
+        available_paths=teyuna_core.MAX_PATHS - len(entity_player.paths),
     )
 
 
@@ -127,7 +125,7 @@ def retrieve_hand(
     /,
     *,
     repository: RetrieveGameRepository,
-) -> teyuna_shared.PlayerHand:
+) -> teyuna_core.PlayerHand:
     game = repository.retrieve(id)
     entity_player = game.players[nickname]
     wisdom_cards = [
@@ -137,7 +135,7 @@ def retrieve_hand(
         for card, count in entity_player.cards_bought_this_turn.items()
         for _ in range(count)
     ]
-    return teyuna_shared.PlayerHand(
+    return teyuna_core.PlayerHand(
         resources=dict(entity_player.resources),
         wisdom_cards=wisdom_cards,
     )

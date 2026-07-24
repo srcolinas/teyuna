@@ -4,15 +4,15 @@ import uuid
 import pytest
 
 from src.game import broker
-import teyuna_shared
+import teyuna_core
 
 
 @pytest.mark.asyncio
 async def test_single_subscriber_receives_events_in_order() -> None:
     event_broker = broker.EventBroker()
     game_id = uuid.uuid4()
-    first = _result(phase=teyuna_shared.GamePhaseName.FIRST_PLACEMENT)
-    second = _result(phase=teyuna_shared.GamePhaseName.DICE_ROLL)
+    first = _result(phase=teyuna_core.GamePhaseName.FIRST_PLACEMENT)
+    second = _result(phase=teyuna_core.GamePhaseName.DICE_ROLL)
 
     async def collect() -> list[broker.Event]:
         events: list[broker.Event] = []
@@ -56,8 +56,8 @@ async def test_fan_out_delivers_to_all_subscribers() -> None:
 async def test_late_subscriber_does_not_see_prior_events() -> None:
     event_broker = broker.EventBroker()
     game_id = uuid.uuid4()
-    prior = _result(phase=teyuna_shared.GamePhaseName.FIRST_PLACEMENT)
-    later = _result(phase=teyuna_shared.GamePhaseName.SECOND_PLACEMENT)
+    prior = _result(phase=teyuna_core.GamePhaseName.FIRST_PLACEMENT)
+    later = _result(phase=teyuna_core.GamePhaseName.SECOND_PLACEMENT)
 
     await event_broker.publish(game_id, prior)
 
@@ -111,12 +111,12 @@ async def test_disconnect_unregisters_subscriber() -> None:
 
 def _result(
     *,
-    phase: teyuna_shared.GamePhaseName = teyuna_shared.GamePhaseName.DICE_ROLL,
+    phase: teyuna_core.GamePhaseName = teyuna_core.GamePhaseName.DICE_ROLL,
     error: str | None = None,
-) -> teyuna_shared.ActionExecutionResult:
-    return teyuna_shared.ActionExecutionResult(
+) -> teyuna_core.ActionExecutionResult:
+    return teyuna_core.ActionExecutionResult(
         previous_phase=phase,
         next_phase=phase,
-        action=teyuna_shared.PlayerAction.model_construct(by="player"),
+        action=teyuna_core.PlayerAction.model_construct(by="player"),
         error=error,
     )

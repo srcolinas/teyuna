@@ -1,24 +1,22 @@
 from collections.abc import Collection, Container, Mapping
 
-import teyuna_shared
+import teyuna_core
 
 
 def _sorted_coords(
-    coords: Collection[teyuna_shared.Coordinate],
-) -> list[teyuna_shared.Coordinate]:
+    coords: Collection[teyuna_core.Coordinate],
+) -> list[teyuna_core.Coordinate]:
     return sorted(coords)
 
 
 def format_invalid_settlement_location(
     *,
-    target: teyuna_shared.Coordinate,
+    target: teyuna_core.Coordinate,
     player: str,
-    free_vertices: Collection[teyuna_shared.Coordinate],
-    restricted_vertices: Collection[teyuna_shared.Coordinate],
-    existing_paths: Collection[teyuna_shared.Coordinate] = (),
-    existing_settlements: Mapping[
-        teyuna_shared.Coordinate, teyuna_shared.SettlementType
-    ]
+    free_vertices: Collection[teyuna_core.Coordinate],
+    restricted_vertices: Collection[teyuna_core.Coordinate],
+    existing_paths: Collection[teyuna_core.Coordinate] = (),
+    existing_settlements: Mapping[teyuna_core.Coordinate, teyuna_core.SettlementType]
     | None = None,
     reason: str | None = None,
 ) -> str:
@@ -42,11 +40,11 @@ def format_invalid_settlement_location(
 
 def format_invalid_path_location(
     *,
-    target: teyuna_shared.Coordinate,
+    target: teyuna_core.Coordinate,
     player: str,
-    existing_settlements: Collection[teyuna_shared.Coordinate],
-    existing_paths: Collection[teyuna_shared.Coordinate],
-    free_edges: Collection[teyuna_shared.Coordinate],
+    existing_settlements: Collection[teyuna_core.Coordinate],
+    existing_paths: Collection[teyuna_core.Coordinate],
+    free_edges: Collection[teyuna_core.Coordinate],
 ) -> str:
     return (
         f"Player {player} cannot place path at {target}; "
@@ -58,9 +56,9 @@ def format_invalid_path_location(
 
 def format_invalid_conquistator_location(
     *,
-    target: teyuna_shared.HexLocation,
+    target: teyuna_core.HexLocation,
     player: str,
-    current_location: teyuna_shared.HexLocation,
+    current_location: teyuna_core.HexLocation,
 ) -> str:
     return (
         f"Player {player} cannot move conquistator to {target}; "
@@ -70,12 +68,12 @@ def format_invalid_conquistator_location(
 
 def can_add_free_path_at(
     *,
-    target: teyuna_shared.Coordinate,
-    free_edges: Container[teyuna_shared.Coordinate],
-    existing_settlements: Container[teyuna_shared.Coordinate],
-    existing_paths: Container[teyuna_shared.Coordinate],
-    free_vertices: Container[teyuna_shared.Coordinate],
-    new_settlement: teyuna_shared.Coordinate | None = None,
+    target: teyuna_core.Coordinate,
+    free_edges: Container[teyuna_core.Coordinate],
+    existing_settlements: Container[teyuna_core.Coordinate],
+    existing_paths: Container[teyuna_core.Coordinate],
+    free_vertices: Container[teyuna_core.Coordinate],
+    new_settlement: teyuna_core.Coordinate | None = None,
 ) -> bool:
     """Coordinates are expected in canonical form.
 
@@ -84,11 +82,11 @@ def can_add_free_path_at(
     if target not in free_edges:
         return False
 
-    for v in teyuna_shared.vertices_of_edge(target):
+    for v in teyuna_core.vertices_of_edge(target):
         if v in existing_settlements or v == new_settlement:
             return True
         if v in free_vertices:
-            for e in teyuna_shared.edges_adjacent_to_vertex(v.q, v.r, v.d):
+            for e in teyuna_core.edges_adjacent_to_vertex(v.q, v.r, v.d):
                 if e != target and e in existing_paths:
                     return True
     return False
@@ -96,9 +94,9 @@ def can_add_free_path_at(
 
 def can_add_free_terrace_at(
     *,
-    free_verticies: Container[teyuna_shared.Coordinate],
-    restricted_verticies: Container[teyuna_shared.Coordinate],
-    target: teyuna_shared.Coordinate,
+    free_verticies: Container[teyuna_core.Coordinate],
+    restricted_verticies: Container[teyuna_core.Coordinate],
+    target: teyuna_core.Coordinate,
 ) -> bool:
     """Returns whether the terrace can be added.
 
@@ -109,10 +107,10 @@ def can_add_free_terrace_at(
 
 def can_build_terrace_at(
     *,
-    free_verticies: Container[teyuna_shared.Coordinate],
-    restricted_verticies: Container[teyuna_shared.Coordinate],
-    existing_paths: Container[teyuna_shared.Coordinate],
-    target: teyuna_shared.Coordinate,
+    free_verticies: Container[teyuna_core.Coordinate],
+    restricted_verticies: Container[teyuna_core.Coordinate],
+    existing_paths: Container[teyuna_core.Coordinate],
+    target: teyuna_core.Coordinate,
 ) -> bool:
     """Returns whether a paid terrace can be built at target.
 
@@ -123,5 +121,5 @@ def can_build_terrace_at(
         return False
     return any(
         edge in existing_paths
-        for edge in teyuna_shared.edges_adjacent_to_vertex(target.q, target.r, target.d)
+        for edge in teyuna_core.edges_adjacent_to_vertex(target.q, target.r, target.d)
     )

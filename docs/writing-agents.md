@@ -37,7 +37,7 @@ Most sample agents **poll** public state and act when it is their turn:
 1. `game = await context.client.get_game()`
 2. If `not game.turn_order` you are still in the lobby — wait.
 3. If `game.turn_order[0] != context.nickname` — sleep and poll again.
-4. Otherwise dispatch on `game.phase` and call `submit_action` with the matching `teyuna_shared` action.
+4. Otherwise dispatch on `game.phase` and call `submit_action` with the matching action (types are re-exported from `teyuna_sdk`).
 5. Optionally call `await context.client.get_hand()` for private resources and cards.
 
 You can also subscribe to SSE via `GameClient.stream_events()` (what `GameLoop.run()` does) and still poll `get_game` / `get_hand` before acting.
@@ -69,7 +69,7 @@ Illegal moves return HTTP 400 with a `detail` message. If you wait too long, the
 - `can_afford(resources, cost)`
 - `pick_discard(resources, required, rng)`
 
-Building costs live in `teyuna_shared` (`TERRACE_COST`, `GREAT_TERRACE_COST`, `PATH_COST`, `WISDOM_CARD_COST`).
+Building costs are re-exported from `teyuna_sdk` (`TERRACE_COST`, `GREAT_TERRACE_COST`, `PATH_COST`, `WISDOM_CARD_COST`).
 
 See [builder.py](../packages/sdk-python/src/teyuna_sdk/builder.py) for a complete agent that can win by building.
 
@@ -80,8 +80,14 @@ Create a 3-player game, attach your bot, and fill the remaining seats with `teyu
 ```python
 import asyncio
 
-import teyuna_shared
-from teyuna_sdk import entities, loop, rules
+from teyuna_sdk import (
+    FreePlacementAction,
+    GamePhaseName,
+    PlayerAction,
+    entities,
+    loop,
+    rules,
+)
 
 
 async def my_agent(*, context: entities.PlayerContext) -> None:
@@ -93,23 +99,23 @@ async def my_agent(*, context: entities.PlayerContext) -> None:
 
         match game.phase:
             case (
-                teyuna_shared.GamePhaseName.FIRST_PLACEMENT
-                | teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+                GamePhaseName.FIRST_PLACEMENT
+                | GamePhaseName.SECOND_PLACEMENT
             ):
                 vertices = rules.vertices_available_for_free_placement(game)
                 terrace = vertices[0]
                 path = rules.edges_for_free_placement(game, terrace)[0]
                 await context.client.submit_action(
-                    teyuna_shared.FreePlacementAction(
+                    FreePlacementAction(
                         terrace=rules.from_vertex(terrace),
                         path=rules.from_edge(path),
                     )
                 )
-            case teyuna_shared.GamePhaseName.DICE_ROLL:
-                await context.client.submit_action(teyuna_shared.PlayerAction())
-            case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
-                await context.client.submit_action(teyuna_shared.PlayerAction())
-            case teyuna_shared.GamePhaseName.END_GAME:
+            case GamePhaseName.DICE_ROLL:
+                await context.client.submit_action(PlayerAction())
+            case GamePhaseName.TRADE_AND_BUILD:
+                await context.client.submit_action(PlayerAction())
+            case GamePhaseName.END_GAME:
                 return
             case _:
                 await asyncio.sleep(1)

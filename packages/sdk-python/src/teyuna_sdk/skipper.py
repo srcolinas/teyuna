@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 import httpx2
-import teyuna_shared
+import teyuna_core
 
 from . import entities
 from .logging_config import agent_logger_name
@@ -25,8 +25,8 @@ async def build(
             if turn_order and turn_order[0] == context.nickname:
                 match game.phase:
                     case (
-                        teyuna_shared.GamePhaseName.FIRST_PLACEMENT
-                        | teyuna_shared.GamePhaseName.SECOND_PLACEMENT
+                        teyuna_core.GamePhaseName.FIRST_PLACEMENT
+                        | teyuna_core.GamePhaseName.SECOND_PLACEMENT
                     ):
                         logger.info(
                             "%s skipping placement in phase %s",
@@ -34,7 +34,7 @@ async def build(
                             game.phase,
                         )
                         await context.client.submit_action(
-                            teyuna_shared.FreePlacementAction()
+                            teyuna_core.FreePlacementAction()
                         )
                     case _:
                         logger.info(
@@ -42,7 +42,7 @@ async def build(
                             context.nickname,
                             game.phase,
                         )
-                        await context.client.submit_action(teyuna_shared.PlayerAction())
+                        await context.client.submit_action(teyuna_core.PlayerAction())
         except httpx2.HTTPError as exc:
             logger.error("%s failed to skip turn: %s", context.nickname, exc)
         await asyncio.sleep(sleep_time)

@@ -32,11 +32,11 @@ classifiers = [
 dependencies = [
     "httpx2>=2.5.0",
     "pydantic>=2.13.4",
-    "teyuna-shared-core",
+    "teyuna-core",
 ]
 
 [tool.uv.sources]
-teyuna-shared-core = { workspace = true }
+teyuna-core = { workspace = true }
 
 [project.scripts]
 teyuna-simulate = "teyuna_sdk.cli:main"

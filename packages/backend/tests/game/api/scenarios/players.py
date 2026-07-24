@@ -6,7 +6,7 @@ from src.game import entities
 
 from .. import utils
 from . import rounds
-import teyuna_shared
+import teyuna_core
 
 
 class BasePlayer:
@@ -21,7 +21,7 @@ class BasePlayer:
         self._token = token
 
     def take_action(
-        self, phase: teyuna_shared.GamePhaseName, state: entities.Game
+        self, phase: teyuna_core.GamePhaseName, state: entities.Game
     ) -> None:
         rounds.advance_phase(self._client, self._game_id, self._token)
 
@@ -36,12 +36,12 @@ class GreedyBuilder(BasePlayer):
         super().__init__(client, game_id, token)
 
     def take_action(
-        self, phase: teyuna_shared.GamePhaseName, state: entities.Game
+        self, phase: teyuna_core.GamePhaseName, state: entities.Game
     ) -> None:
         match phase:
-            case teyuna_shared.GamePhaseName.DICE_ROLL:
+            case teyuna_core.GamePhaseName.DICE_ROLL:
                 rounds.advance_phase(self._client, self._game_id, self._token)
-            case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
+            case teyuna_core.GamePhaseName.TRADE_AND_BUILD:
                 if self._try_build_great_terrace(state.players[state.active_player]):
                     return
                 if self._try_build_terrace(state):
@@ -55,12 +55,12 @@ class GreedyBuilder(BasePlayer):
             coordinates = next(
                 location
                 for location, settlement in state.settlements.items()
-                if settlement is teyuna_shared.SettlementType.TERRACE
+                if settlement is teyuna_core.SettlementType.TERRACE
             )
         except StopIteration:
             return False
         success, reason = self._post_settlement(
-            teyuna_shared.SettlementType.GREAT_TERRACE, coordinates
+            teyuna_core.SettlementType.GREAT_TERRACE, coordinates
         )
         if success:
             print(f"Built great terrace at {coordinates}")
@@ -72,12 +72,12 @@ class GreedyBuilder(BasePlayer):
         available = game.free_verticies - game.restricted_verticies
         paths = game.players[game.active_player].paths
         for location in available:
-            for edge in teyuna_shared.edges_adjacent_to_vertex(
+            for edge in teyuna_core.edges_adjacent_to_vertex(
                 location.q, location.r, location.d
             ):
                 if edge in paths:
                     success, reason = self._post_settlement(
-                        teyuna_shared.SettlementType.TERRACE, location
+                        teyuna_core.SettlementType.TERRACE, location
                     )
                     if success:
                         print(f"Built terrace at {location}")
@@ -90,9 +90,9 @@ class GreedyBuilder(BasePlayer):
         player_ = game.players[game.active_player]
         vertices = set(player_.settlements.locations())
         for path in player_.paths:
-            vertices.update(teyuna_shared.vertices_of_edge(path))
+            vertices.update(teyuna_core.vertices_of_edge(path))
         for vertex in vertices:
-            for edge in teyuna_shared.edges_adjacent_to_vertex(
+            for edge in teyuna_core.edges_adjacent_to_vertex(
                 vertex.q, vertex.r, vertex.d
             ):
                 if edge not in player_.paths and edge in game.free_edges:
@@ -105,8 +105,8 @@ class GreedyBuilder(BasePlayer):
 
     def _post_settlement(
         self,
-        item: teyuna_shared.SettlementType,
-        location: teyuna_shared.Coordinate,
+        item: teyuna_core.SettlementType,
+        location: teyuna_core.Coordinate,
     ) -> tuple[bool, str]:
         response = utils.post_action(
             self._client,
@@ -122,7 +122,7 @@ class GreedyBuilder(BasePlayer):
             return True, ""
         return False, response.text
 
-    def _post_path(self, location: teyuna_shared.Coordinate) -> tuple[bool, str]:
+    def _post_path(self, location: teyuna_core.Coordinate) -> tuple[bool, str]:
         response = utils.post_action(
             self._client,
             self._game_id,

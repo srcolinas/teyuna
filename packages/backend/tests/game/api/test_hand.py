@@ -2,7 +2,7 @@ import collections
 
 import fastapi
 import fastapi.testclient as testclient
-import teyuna_shared
+import teyuna_core
 
 from src.game import dependencies, repository as repository_module
 
@@ -43,18 +43,18 @@ def test_returns_private_hand_for_authenticated_player(
     game = repository.retrieve(game_id)
     game.players[nickname].resources = collections.Counter(
         {
-            teyuna_shared.ResourceCard.GOLD: 2,
-            teyuna_shared.ResourceCard.WOOD: 1,
-            teyuna_shared.ResourceCard.STONE: 0,
-            teyuna_shared.ResourceCard.COTTON: 0,
-            teyuna_shared.ResourceCard.MAIZE: 3,
+            teyuna_core.ResourceCard.GOLD: 2,
+            teyuna_core.ResourceCard.WOOD: 1,
+            teyuna_core.ResourceCard.STONE: 0,
+            teyuna_core.ResourceCard.COTTON: 0,
+            teyuna_core.ResourceCard.MAIZE: 3,
         }
     )
     game.players[nickname].cards = collections.Counter(
-        {teyuna_shared.WisdomCard.WARRIOR: 1}
+        {teyuna_core.WisdomCard.WARRIOR: 1}
     )
     game.players[nickname].cards_bought_this_turn = collections.Counter(
-        {teyuna_shared.WisdomCard.PATHFINDER: 1}
+        {teyuna_core.WisdomCard.PATHFINDER: 1}
     )
 
     response = client.get(
@@ -86,10 +86,10 @@ def test_public_player_view_does_not_expose_hand(
 
     game = repository.retrieve(game_id)
     game.players[nickname].resources = collections.Counter(
-        {teyuna_shared.ResourceCard.GOLD: 4}
+        {teyuna_core.ResourceCard.GOLD: 4}
     )
     game.players[nickname].cards = collections.Counter(
-        {teyuna_shared.WisdomCard.WARRIOR: 2}
+        {teyuna_core.WisdomCard.WARRIOR: 2}
     )
 
     response = client.get(f"/games/{game_id}/players/{nickname}")

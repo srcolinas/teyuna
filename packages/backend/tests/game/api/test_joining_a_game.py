@@ -6,7 +6,7 @@ import uuid
 import fastapi.testclient as testclient
 import pytest
 
-import teyuna_shared
+import teyuna_core
 
 from src.game import (
     actions,
@@ -55,13 +55,13 @@ def test_player_can_be_added_before_expiration(
     game_repository: repository.InMemoryGameRepository,
 ) -> None:
     board = services.generate_map()
-    desert = next(h for h in board if h.type is teyuna_shared.HexType.DESERT)
+    desert = next(h for h in board if h.type is teyuna_core.HexType.DESERT)
     game = entities.Game(
         map=board,
-        conquistator_location=teyuna_shared.HexLocation(q=desert.q, r=desert.r),
+        conquistator_location=teyuna_core.HexLocation(q=desert.q, r=desert.r),
         players={},
         available_slots=3,
-        phase=teyuna_shared.GamePhaseName.LOBBY,
+        phase=teyuna_core.GamePhaseName.LOBBY,
         phase_deadline=datetime.datetime.now(datetime.UTC)
         + datetime.timedelta(seconds=1),
     )
@@ -72,7 +72,7 @@ def test_player_can_be_added_before_expiration(
     nicknames = {p["nickname"] for p in game["players"]}
     assert "srcolinas" in nicknames
     assert game["available_slots"] == 2
-    assert game["phase"] == teyuna_shared.GamePhaseName.LOBBY
+    assert game["phase"] == teyuna_core.GamePhaseName.LOBBY
 
 
 def test_player_cannot_be_added_after_lobby_timeout(
@@ -80,21 +80,21 @@ def test_player_cannot_be_added_after_lobby_timeout(
     game_repository: repository.InMemoryGameRepository,
 ) -> None:
     board = services.generate_map()
-    desert = next(h for h in board if h.type is teyuna_shared.HexType.DESERT)
+    desert = next(h for h in board if h.type is teyuna_core.HexType.DESERT)
     game = entities.Game(
         map=board,
-        conquistator_location=teyuna_shared.HexLocation(q=desert.q, r=desert.r),
+        conquistator_location=teyuna_core.HexLocation(q=desert.q, r=desert.r),
         players={},
         available_slots=3,
-        phase=teyuna_shared.GamePhaseName.LOBBY,
+        phase=teyuna_core.GamePhaseName.LOBBY,
         phase_deadline=datetime.datetime.now(datetime.UTC)
         - datetime.timedelta(milliseconds=100),
     )
     game_id = game_repository.add(game)
     registry = actions.ActionsRegistry()
-    registry.register(teyuna_shared.GamePhaseName.LOBBY)(actions.handle_lobby_timeout)
+    registry.register(teyuna_core.GamePhaseName.LOBBY)(actions.handle_lobby_timeout)
     registry.set_timeout(
-        teyuna_shared.GamePhaseName.LOBBY,
+        teyuna_core.GamePhaseName.LOBBY,
         datetime.timedelta(seconds=0),
         actions.timeouts.timeout_lobby,
     )
@@ -109,9 +109,7 @@ def test_player_cannot_be_added_after_lobby_timeout(
             rng=random.Random(0),
         )
     )
-    assert (
-        game_repository.retrieve(game_id).phase is teyuna_shared.GamePhaseName.END_GAME
-    )
+    assert game_repository.retrieve(game_id).phase is teyuna_core.GamePhaseName.END_GAME
 
     response = client.post(f"/games/{game_id}/players", json={"nickname": "srcolinas"})
     assert response.status_code == 400, response.text
@@ -122,19 +120,19 @@ def test_full_game_starts(client: testclient.TestClient) -> None:
     players = [f"srcolinas-{i}" for i in range(num_players)]
     response = client.post("/games", json={"num_players": num_players})
     game_id = response.json()["id"]
-    assert response.json()["phase"] == teyuna_shared.GamePhaseName.LOBBY
+    assert response.json()["phase"] == teyuna_core.GamePhaseName.LOBBY
     assert response.json()["map"]
 
     for nickname in players[:-1]:
         response = client.post(f"/games/{game_id}/players", json={"nickname": nickname})
         assert response.status_code == 200, response.text
-        assert response.json()["game"]["phase"] == teyuna_shared.GamePhaseName.LOBBY
+        assert response.json()["game"]["phase"] == teyuna_core.GamePhaseName.LOBBY
 
     response = client.post(f"/games/{game_id}/players", json={"nickname": players[-1]})
     assert response.status_code == 200, response.text
     payload = response.json()["game"]
     assert payload["id"] == game_id
-    assert payload["phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    assert payload["phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT
 
     response = client.get(f"/games/{game_id}")
     assert response.status_code == 200, response.text
@@ -150,14 +148,12 @@ def test_early_joiner_can_retrieve_game_by_same_id(
     client.post(f"/games/{game_id}/players", json={"nickname": "mid"})
     response = client.post(f"/games/{game_id}/players", json={"nickname": "last"})
     assert response.status_code == 200, response.text
-    assert (
-        response.json()["game"]["phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT
-    )
+    assert response.json()["game"]["phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT
 
     response = client.get(f"/games/{game_id}")
     assert response.status_code == 200, response.text
     assert response.json()["id"] == game_id
-    assert response.json()["phase"] == teyuna_shared.GamePhaseName.FIRST_PLACEMENT
+    assert response.json()["phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT
 
 
 def test_map_available_while_in_lobby(client: testclient.TestClient) -> None:
@@ -204,7 +200,7 @@ def test_not_full_game_stays_in_lobby(client: testclient.TestClient) -> None:
             json={"nickname": f"srcolinas-{i}"},
         )
         assert response.status_code == 200, response.text
-        assert response.json()["game"]["phase"] == teyuna_shared.GamePhaseName.LOBBY
+        assert response.json()["game"]["phase"] == teyuna_core.GamePhaseName.LOBBY
         assert response.json()["game"]["turn_order"] == []
 
 

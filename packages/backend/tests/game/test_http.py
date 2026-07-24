@@ -2,14 +2,14 @@ import pytest
 from fastapi import status
 
 from src.game import http as http_module
-import teyuna_shared
+import teyuna_core
 
 
 def test_raise_if_failed_raises_400_with_error_detail() -> None:
-    action = teyuna_shared.PlayerAction.model_construct(by="player")
-    result = teyuna_shared.ActionExecutionResult(
-        previous_phase=teyuna_shared.GamePhaseName.LOBBY,
-        next_phase=teyuna_shared.GamePhaseName.LOBBY,
+    action = teyuna_core.PlayerAction.model_construct(by="player")
+    result = teyuna_core.ActionExecutionResult(
+        previous_phase=teyuna_core.GamePhaseName.LOBBY,
+        next_phase=teyuna_core.GamePhaseName.LOBBY,
         action=action,
         error="not your turn",
     )
@@ -21,10 +21,10 @@ def test_raise_if_failed_raises_400_with_error_detail() -> None:
 
 
 def test_raise_if_failed_does_nothing_when_no_error() -> None:
-    action = teyuna_shared.PlayerAction.model_construct(by="player")
-    result = teyuna_shared.ActionExecutionResult(
-        previous_phase=teyuna_shared.GamePhaseName.LOBBY,
-        next_phase=teyuna_shared.GamePhaseName.LOBBY,
+    action = teyuna_core.PlayerAction.model_construct(by="player")
+    result = teyuna_core.ActionExecutionResult(
+        previous_phase=teyuna_core.GamePhaseName.LOBBY,
+        next_phase=teyuna_core.GamePhaseName.LOBBY,
         action=action,
     )
 

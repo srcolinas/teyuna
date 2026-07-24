@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from teyuna_shared import board, constants
+from teyuna_core import board, constants
 
 
 def _valid_hexes() -> list[tuple[int, int]]:

@@ -8,7 +8,7 @@ from fastapi import status
 
 from .. import settings
 from . import player
-import teyuna_shared
+import teyuna_core
 
 from . import (
     repository as repository_module,
@@ -33,148 +33,146 @@ def get_game_locks() -> locks.GameLockManager:
 def get_actions_registry() -> actions.ActionsRegistry:
     settings_ = settings.get_settings()
     reg = actions.ActionsRegistry()
-    reg.register(teyuna_shared.GamePhaseName.LOBBY)(actions.handle_lobby_timeout)
-    reg.register(teyuna_shared.GamePhaseName.FIRST_PLACEMENT)(
+    reg.register(teyuna_core.GamePhaseName.LOBBY)(actions.handle_lobby_timeout)
+    reg.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(
         actions.handle_first_placement
     )
-    reg.register(teyuna_shared.GamePhaseName.SECOND_PLACEMENT)(
+    reg.register(teyuna_core.GamePhaseName.SECOND_PLACEMENT)(
         actions.handle_second_placement
     )
-    reg.register(teyuna_shared.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
-    reg.register(teyuna_shared.GamePhaseName.DICE_ROLL)(actions.handle_play_wisdom_card)
-    reg.register(teyuna_shared.GamePhaseName.DICE_ROLL)(actions.handle_propose_trade)
-    reg.register(teyuna_shared.GamePhaseName.DISCARD_RESOURCES)(
+    reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
+    reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_play_wisdom_card)
+    reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_propose_trade)
+    reg.register(teyuna_core.GamePhaseName.DISCARD_RESOURCES)(
         actions.handle_discard_resources
     )
-    reg.register(teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR)(
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR)(
         actions.handle_dice_play_warrior
     )
-    reg.register(teyuna_shared.GamePhaseName.DICE_PLAY_MAMO)(
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_MAMO)(
         actions.handle_dice_play_mamo
     )
-    reg.register(teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED)(
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_BLESSED)(
         actions.handle_dice_play_blessed
     )
-    reg.register(teyuna_shared.GamePhaseName.DICE_PLAY_PATHFINDER)(
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER)(
         actions.handle_dice_play_pathfinder
     )
-    reg.register(teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR)(
+    reg.register(teyuna_core.GamePhaseName.MOVE_CONQUISTATOR)(
         actions.handle_move_conquistator
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_build_terrace
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(actions.handle_build_path)
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(actions.handle_build_path)
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_buy_wisdom_card
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_propose_trade
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
-        actions.handle_accept_trade
-    )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(actions.handle_accept_trade)
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_trade_with_supply
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_end_trade_and_build
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_trade_and_build_play_wisdom_card
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)(
         actions.handle_move_conquistator
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)(
         actions.handle_trade_and_build_play_mamo
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED)(
         actions.handle_trade_and_build_play_blessed
     )
-    reg.register(teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
         actions.handle_trade_and_build_play_pathfinder
     )
-    reg.register(teyuna_shared.GamePhaseName.END_GAME)(actions.handle_end_game)
+    reg.register(teyuna_core.GamePhaseName.END_GAME)(actions.handle_end_game)
 
-    for phase in teyuna_shared.GamePhaseName:
-        if phase is teyuna_shared.GamePhaseName.LOBBY:
+    for phase in teyuna_core.GamePhaseName:
+        if phase is teyuna_core.GamePhaseName.LOBBY:
             continue
         reg.register(phase)(actions.handle_sent_message)
 
     timeouts = (
         (
-            teyuna_shared.GamePhaseName.LOBBY,
+            teyuna_core.GamePhaseName.LOBBY,
             settings_.lobby_timeout,
             actions.timeouts.timeout_lobby,
         ),
         (
-            teyuna_shared.GamePhaseName.FIRST_PLACEMENT,
+            teyuna_core.GamePhaseName.FIRST_PLACEMENT,
             settings_.first_placement_timeout,
             actions.timeouts.timeout_first_placement,
         ),
         (
-            teyuna_shared.GamePhaseName.SECOND_PLACEMENT,
+            teyuna_core.GamePhaseName.SECOND_PLACEMENT,
             settings_.second_placement_timeout,
             actions.timeouts.timeout_second_placement,
         ),
         (
-            teyuna_shared.GamePhaseName.DICE_ROLL,
+            teyuna_core.GamePhaseName.DICE_ROLL,
             settings_.dice_roll_timeout,
             actions.timeouts.timeout_dice_roll,
         ),
         (
-            teyuna_shared.GamePhaseName.DISCARD_RESOURCES,
+            teyuna_core.GamePhaseName.DISCARD_RESOURCES,
             settings_.discard_resources_timeout,
             actions.timeouts.timeout_discard_resources,
         ),
         (
-            teyuna_shared.GamePhaseName.MOVE_CONQUISTATOR,
+            teyuna_core.GamePhaseName.MOVE_CONQUISTATOR,
             settings_.move_conquistator_timeout,
             actions.timeouts.timeout_move_conquistator,
         ),
         (
-            teyuna_shared.GamePhaseName.DICE_PLAY_WARRIOR,
+            teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR,
             settings_.dice_play_warrior_timeout,
             actions.timeouts.timeout_move_conquistator,
         ),
         (
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
             settings_.trade_and_build_play_warrior_timeout,
             actions.timeouts.timeout_move_conquistator,
         ),
         (
-            teyuna_shared.GamePhaseName.DICE_PLAY_MAMO,
+            teyuna_core.GamePhaseName.DICE_PLAY_MAMO,
             settings_.dice_play_mamo_timeout,
             actions.timeouts.timeout_play_mamo,
         ),
         (
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
             settings_.trade_and_build_play_mamo_timeout,
             actions.timeouts.timeout_play_mamo,
         ),
         (
-            teyuna_shared.GamePhaseName.DICE_PLAY_BLESSED,
+            teyuna_core.GamePhaseName.DICE_PLAY_BLESSED,
             settings_.dice_play_blessed_timeout,
             actions.timeouts.timeout_play_blessed,
         ),
         (
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
             settings_.trade_and_build_play_blessed_timeout,
             actions.timeouts.timeout_play_blessed,
         ),
         (
-            teyuna_shared.GamePhaseName.DICE_PLAY_PATHFINDER,
+            teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER,
             settings_.dice_play_pathfinder_timeout,
             actions.timeouts.timeout_play_pathfinder,
         ),
         (
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
             settings_.trade_and_build_play_pathfinder_timeout,
             actions.timeouts.timeout_play_pathfinder,
         ),
         (
-            teyuna_shared.GamePhaseName.TRADE_AND_BUILD,
+            teyuna_core.GamePhaseName.TRADE_AND_BUILD,
             settings_.trade_and_build_timeout,
             actions.timeouts.timeout_trade_and_build,
         ),
@@ -190,7 +188,7 @@ def get_game(
         repository_module.InMemoryGameRepository,
         fastapi.Depends(get_repository),
     ],
-) -> teyuna_shared.Game:
+) -> teyuna_core.Game:
     try:
         return services.retrieve_game(game_id, repository=repository)
     except repository_module.GameDoesNotExistError:
@@ -210,7 +208,7 @@ def require_active_game(
         raise fastapi.HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="game not found"
         )
-    if game.phase is teyuna_shared.GamePhaseName.LOBBY:
+    if game.phase is teyuna_core.GamePhaseName.LOBBY:
         raise fastapi.HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="game is not active"
         )
