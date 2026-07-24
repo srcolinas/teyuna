@@ -1,8 +1,8 @@
 import { FormEvent, useState } from 'react'
 import { Player, PrivatePlayerInfo, ResourceCard } from '../types'
-import terraceImage from '../../images/terrace_black.png'
-import greatTerraceImage from '../../images/grand_terrace_black.png'
-import pathImage from '../../images/path.png'
+import terraceImage from '../../images/terrace_logo.png'
+import greatTerraceImage from '../../images/grand_terrace_logo.png'
+import pathImage from '../../images/path_logo.png'
 
 const RESOURCE_ICONS: Record<ResourceCard, string> = {
   gold: '🟡',
