@@ -37,7 +37,7 @@ Most sample agents **poll** public state and act when it is their turn:
 1. `game = await context.client.get_game()`
 2. If `not game.turn_order` you are still in the lobby — wait.
 3. If `game.turn_order[0] != context.nickname` — sleep and poll again.
-4. Otherwise dispatch on `game.phase` and call `submit_action` with the matching action (types are re-exported from `teyuna_sdk`).
+4. Otherwise dispatch on `game.phase` and call `submit_action` with the matching action (action and phase types come from `teyuna_core`).
 5. Optionally call `await context.client.get_hand()` for private resources and cards.
 
 You can also subscribe to SSE via `GameClient.stream_events()` (what `GameLoop.run()` does) and still poll `get_game` / `get_hand` before acting.
@@ -69,7 +69,7 @@ Illegal moves return HTTP 400 with a `detail` message. If you wait too long, the
 - `can_afford(resources, cost)`
 - `pick_discard(resources, required, rng)`
 
-Building costs are re-exported from `teyuna_sdk` (`TERRACE_COST`, `GREAT_TERRACE_COST`, `PATH_COST`, `WISDOM_CARD_COST`).
+Building costs come from `teyuna_core` (`TERRACE_COST`, `GREAT_TERRACE_COST`, `PATH_COST`, `WISDOM_CARD_COST`).
 
 See [builder.py](../packages/sdk-python/src/teyuna_sdk/builder.py) for a complete agent that can win by building.
 
@@ -80,14 +80,8 @@ Create a 3-player game, attach your bot, and fill the remaining seats with `teyu
 ```python
 import asyncio
 
-from teyuna_sdk import (
-    FreePlacementAction,
-    GamePhaseName,
-    PlayerAction,
-    entities,
-    loop,
-    rules,
-)
+from teyuna_core import FreePlacementAction, GamePhaseName, PlayerAction
+from teyuna_sdk import entities, loop, rules
 
 
 async def my_agent(*, context: entities.PlayerContext) -> None:

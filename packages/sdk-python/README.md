@@ -22,12 +22,13 @@ uv add teyuna-sdk
 ## Quick start
 
 Create a game, join as a player, and perform actions with the async HTTP client.
-Game types and actions are re-exported from `teyuna-core`:
+Import game types and actions from `teyuna-core`; use `teyuna-sdk` for the HTTP client and loop helpers:
 
 ```python
 import asyncio
 
-from teyuna_sdk import GameClient, PlayerAction
+from teyuna_core import PlayerAction
+from teyuna_sdk import GameClient
 
 
 async def main() -> None:
@@ -53,7 +54,8 @@ Agents are async callables that receive a `PlayerContext` (nickname, game id, an
 ```python
 import asyncio
 
-from teyuna_sdk import GamePhaseName, PlayerAction, entities, loop
+from teyuna_core import GamePhaseName, PlayerAction
+from teyuna_sdk import entities, loop
 
 
 async def my_agent(*, context: entities.PlayerContext) -> None:
