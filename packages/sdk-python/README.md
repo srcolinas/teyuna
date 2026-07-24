@@ -30,18 +30,18 @@ from teyuna_sdk.sdk import GameClient
 
 
 async def main() -> None:
-    client = GameClient("http://127.0.0.1:8000")
-    game = await client.create_game(num_players=3)
-    player = await client.join_game(game.id, nickname="explorer")
+    client = await GameClient.create_game("http://127.0.0.1:8000", num_players=3)
+    await client.authenticate("explorer")
 
-    print(f"Joined game {player.game_id} as explorer")
+    game = await client.get_game()
+    print(f"Joined game {client.game_id} as explorer")
     print(f"Phase: {game.phase}")
 
-    # Authenticated actions use the session returned by join_game.
+    # Authenticated actions use the token stored by authenticate.
     # Example: advance the turn when it is your turn.
-    # phase, nickname = await player.advance_turn()
+    # phase, nickname = await client.advance_turn()
     # Or submit a typed action directly:
-    # result = await player.submit_action(teyuna_shared.PlayerAction())
+    # result = await client.submit_action(teyuna_shared.PlayerAction())
 
 
 asyncio.run(main())
@@ -60,7 +60,7 @@ from teyuna_sdk import entities, loop
 
 async def my_agent(*, context: entities.PlayerContext) -> None:
     while True:
-        game = await context.client.get_game(context.client.game_id)
+        game = await context.client.get_game()
         if not game.turn_order or game.turn_order[0] != context.nickname:
             await asyncio.sleep(1)
             continue

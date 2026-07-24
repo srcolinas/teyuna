@@ -44,7 +44,7 @@ async def build(
     logger = logging.getLogger(logging_config.agent_logger_name(context.nickname))
     sleep_time = 2.0
     while True:
-        game = await context.client.get_game(context.client.game_id)
+        game = await context.client.get_game()
         required = game.to_discard_resources.get(context.nickname)
         if required is not None:
             await _discard(context, logger, required)

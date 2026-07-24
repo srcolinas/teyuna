@@ -20,7 +20,7 @@ async def build(
     sleep_time = 2
     while True:
         try:
-            game = await context.client.get_game(context.client.game_id)
+            game = await context.client.get_game()
             turn_order = game.turn_order
             if turn_order and turn_order[0] == context.nickname:
                 match game.phase:

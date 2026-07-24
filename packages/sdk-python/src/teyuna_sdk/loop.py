@@ -30,26 +30,22 @@ class GameLoop:
         num_players: int = 3,
     ) -> Self:
         """Create a new game on ``host`` and return a loop bound to it."""
-        client = sdk.GameClient(host)
-        game = await client.create_game(num_players)
-        logger.info("Created game %s for %s players", game.id, num_players)
-        return cls(game.id, client)
+        client = await sdk.GameClient.create_game(host, num_players)
+        logger.info("Created game %s for %s players", client.game_id, num_players)
+        return cls(client.game_id, client)
 
     @classmethod
     def join_existing(cls, game_id: uuid.UUID, host: str) -> Self:
         """Bind to an existing game without creating a new one."""
         logger.info("Joining existing game %s on %s", game_id, host)
-        return cls(game_id, sdk.GameClient(host))
+        return cls(game_id, sdk.GameClient(host, game_id))
 
     async def add_player(self, nickname: str) -> entities.PlayerContext:
         """Join the game as ``nickname`` and return an authenticated context."""
-        client = await self._client.join_game(self._game_id, nickname)
-        logger.info(
-            "Player %s (token: %s) joined game %s",
-            nickname,
-            client.token,
-            self._game_id,
-        )
+        client = await sdk.GameClient(
+            self._client._base_url, self._game_id
+        ).authenticate(nickname)
+        logger.info("Player %s joined game %s", nickname, self._game_id)
         return entities.PlayerContext(
             nickname=nickname,
             game_id=self._game_id,
@@ -59,7 +55,7 @@ class GameLoop:
     async def _wait_until_active(self) -> None:
         """Block until the lobby closes; ``/events`` rejects lobby-phase games."""
         while True:
-            state = await self._client.get_game(self._game_id)
+            state = await self._client.get_game()
             if state.phase is not teyuna_shared.GamePhaseName.LOBBY:
                 return
             logger.info("Waiting for game to start...")
@@ -68,5 +64,5 @@ class GameLoop:
     async def run(self) -> None:
         """Stream and log SSE events until the connection ends."""
         await self._wait_until_active()
-        async for event in self._client.stream_events(self._game_id):
+        async for event in self._client.stream_events():
             logger.info("GameLoop event: %s", event.model_dump_json())

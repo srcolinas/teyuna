@@ -19,7 +19,7 @@ async def build(
     logger = logging.getLogger(logging_config.agent_logger_name(context.nickname))
     sleep_time = 2
     while True:
-        game = await context.client.get_game(context.client.game_id)
+        game = await context.client.get_game()
         turn_order = game.turn_order
         if not turn_order or turn_order[0] != context.nickname:
             await asyncio.sleep(sleep_time)
@@ -79,7 +79,7 @@ async def _trade_and_build(
 ) -> None:
     while True:
         await asyncio.sleep(sleep_time)
-        game = await context.client.get_game(context.client.game_id)
+        game = await context.client.get_game()
         if game.phase is not teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
             return
         if not game.turn_order or game.turn_order[0] != context.nickname:

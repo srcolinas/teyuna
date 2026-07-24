@@ -11,7 +11,7 @@ class PlayerContext:
     """Authenticated seat context passed to an agent."""
 
     nickname: str
-    client: sdk.AuthenticatedPlayerClient
+    client: sdk.GameClient
     game_id: uuid.UUID
 
 

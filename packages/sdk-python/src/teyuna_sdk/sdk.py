@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import AsyncIterator
+from typing import Self
 
 import httpx2
 import pydantic
@@ -82,110 +83,105 @@ def _coordinate_to_edge(
 
 
 class GameClient:
-    """Async client for the Teyuna ``/games`` HTTP API."""
+    """Async client for the Teyuna ``/games`` HTTP API, bound to one game."""
 
-    def __init__(self, base_url: str) -> None:
+    def __init__(self, base_url: str, game_id: uuid.UUID) -> None:
         self._base_url = base_url.rstrip("/")
+        self._game_id = game_id
+        self._token: str | None = None
 
-    async def create_game(self, num_players: int) -> teyuna_shared.Game:
-        """Create a new lobby game with ``num_players`` seats (3–4)."""
+    @property
+    def game_id(self) -> uuid.UUID:
+        """UUID of the game this client is bound to."""
+        return self._game_id
+
+    @property
+    def _headers(self) -> dict[str, str]:
+        if self._token is None:
+            raise RuntimeError(
+                "GameClient is not authenticated; call authenticate() first"
+            )
+        return {"Authorization": f"Bearer {self._token}"}
+
+    @classmethod
+    async def create_game(cls, base_url: str, num_players: int) -> Self:
+        """Create a new lobby game and return an unauthenticated client for it."""
         payload = teyuna_shared.CreateGameRequest(num_players=num_players).model_dump(
             mode="json", exclude_none=True
         )
-        response = await _http_client.post(f"{self._base_url}/games", json=payload)
+        url = base_url.rstrip("/")
+        response = await _http_client.post(f"{url}/games", json=payload)
         _raise_for_status(response)
-        return teyuna_shared.Game.model_validate(response.json())
+        game = teyuna_shared.Game.model_validate(response.json())
+        return cls(url, game.id)
 
-    async def join_game(
-        self, game_id: uuid.UUID, nickname: str
-    ) -> AuthenticatedPlayerClient:
-        """Join a lobby game and return an authenticated player client."""
+    async def authenticate(self, nickname: str) -> Self:
+        """Join the lobby as ``nickname``, store the session token, and return self."""
         response = await _http_client.post(
-            f"{self._base_url}/games/{game_id}/players",
+            f"{self._base_url}/games/{self._game_id}/players",
             json={"nickname": nickname},
         )
         _raise_for_status(response)
         body = teyuna_shared.JoinGameResponse.model_validate(response.json())
-        return AuthenticatedPlayerClient(
-            self._base_url, token=body.token, game_id=game_id
-        )
+        self._token = body.token
+        return self
 
-    async def get_game(self, game_id: uuid.UUID) -> teyuna_shared.Game:
+    async def get_game(self) -> teyuna_shared.Game:
         """Fetch the full public game state."""
-        response = await _http_client.get(f"{self._base_url}/games/{game_id}")
+        response = await _http_client.get(f"{self._base_url}/games/{self._game_id}")
         _raise_for_status(response)
         return teyuna_shared.Game.model_validate(response.json())
 
-    async def get_map(self, game_id: uuid.UUID) -> tuple[teyuna_shared.Hex, ...]:
+    async def get_map(self) -> tuple[teyuna_shared.Hex, ...]:
         """Fetch the board hex tiles for a game."""
-        response = await _http_client.get(f"{self._base_url}/games/{game_id}/map")
+        response = await _http_client.get(f"{self._base_url}/games/{self._game_id}/map")
         _raise_for_status(response)
         return tuple(teyuna_shared.Hex.model_validate(item) for item in response.json())
 
-    async def get_turn_order(self, game_id: uuid.UUID) -> tuple[str, ...]:
+    async def get_turn_order(self) -> tuple[str, ...]:
         """Fetch nicknames in turn order, starting with the active player."""
         response = await _http_client.get(
-            f"{self._base_url}/games/{game_id}/turn-order"
+            f"{self._base_url}/games/{self._game_id}/turn-order"
         )
         _raise_for_status(response)
         return tuple(response.json())
 
-    async def get_conquistator(self, game_id: uuid.UUID) -> teyuna_shared.HexCoordinate:
+    async def get_conquistator(self) -> teyuna_shared.HexCoordinate:
         """Fetch the current Conquistador hex location."""
         response = await _http_client.get(
-            f"{self._base_url}/games/{game_id}/conquistator",
+            f"{self._base_url}/games/{self._game_id}/conquistator",
         )
         _raise_for_status(response)
         return teyuna_shared.HexCoordinate.model_validate(response.json())
 
-    async def list_players(self, game_id: uuid.UUID) -> list[teyuna_shared.Player]:
+    async def list_players(self) -> list[teyuna_shared.Player]:
         """List all players' public info for a game."""
-        response = await _http_client.get(f"{self._base_url}/games/{game_id}/players")
+        response = await _http_client.get(
+            f"{self._base_url}/games/{self._game_id}/players"
+        )
         _raise_for_status(response)
         return [teyuna_shared.Player.model_validate(item) for item in response.json()]
 
-    async def get_player(
-        self, game_id: uuid.UUID, nickname: str
-    ) -> teyuna_shared.Player:
+    async def get_player(self, nickname: str) -> teyuna_shared.Player:
         """Fetch one player's public info by nickname."""
         response = await _http_client.get(
-            f"{self._base_url}/games/{game_id}/players/{nickname}"
+            f"{self._base_url}/games/{self._game_id}/players/{nickname}"
         )
         _raise_for_status(response)
         return teyuna_shared.Player.model_validate(response.json())
 
     async def stream_events(
-        self, game_id: uuid.UUID
+        self,
     ) -> AsyncIterator[teyuna_shared.AnyActionExecutionResult]:
         """Yield SSE game-action events as typed action results."""
         async with _http_client.sse(
-            f"{self._base_url}/games/{game_id}/events",
+            f"{self._base_url}/games/{self._game_id}/events",
         ) as source:
             async for event in source:
                 if not event.data:
                     continue
                 payload = json.loads(event.data)
                 yield _action_result_adapter.validate_python(payload)
-
-
-class AuthenticatedPlayerClient(GameClient):
-    """Player client bound to a game with an Authorization Bearer token."""
-
-    def __init__(self, base_url: str, token: str, game_id: uuid.UUID) -> None:
-        super().__init__(base_url)
-        self._token = token
-        self._headers = {"Authorization": f"Bearer {token}"}
-        self._game_id = game_id
-
-    @property
-    def game_id(self) -> uuid.UUID:
-        """UUID of the game this client is authenticated for."""
-        return self._game_id
-
-    @property
-    def token(self) -> str:
-        """Bearer token issued when this player joined the game."""
-        return self._token
 
     async def get_hand(self) -> teyuna_shared.PlayerHand:
         """Fetch this player's private resources and wisdom cards."""
@@ -217,7 +213,7 @@ class AuthenticatedPlayerClient(GameClient):
         ):
             active = result.next_player
         else:
-            game = await self.get_game(self._game_id)
+            game = await self.get_game()
             active = game.turn_order[0] if game.turn_order else ""
         return result.next_phase, active
 

@@ -26,7 +26,7 @@ async def my_agent(*, context: entities.PlayerContext) -> None:
 | --- | --- | --- |
 | `nickname` | `str` | Your seat name in the game |
 | `game_id` | `uuid.UUID` | Game id |
-| `client` | `AuthenticatedPlayerClient` | Authenticated API client for actions |
+| `client` | `GameClient` | Authenticated API client for actions |
 
 This matches the `PlayerBuilder` protocol used by `teyuna-simulate` and `GameLoop`.
 
@@ -34,13 +34,13 @@ This matches the `PlayerBuilder` protocol used by `teyuna-simulate` and `GameLoo
 
 Most sample agents **poll** public state and act when it is their turn:
 
-1. `game = await context.client.get_game(context.client.game_id)`
+1. `game = await context.client.get_game()`
 2. If `not game.turn_order` you are still in the lobby — wait.
 3. If `game.turn_order[0] != context.nickname` — sleep and poll again.
 4. Otherwise dispatch on `game.phase` and call the matching client method.
 5. Optionally call `await context.client.get_hand()` for private resources and cards.
 
-You can also subscribe to SSE via `GameClient.stream_events(game_id)` (what `GameLoop.run()` does) and still poll `get_game` / `get_hand` before acting.
+You can also subscribe to SSE via `GameClient.stream_events()` (what `GameLoop.run()` does) and still poll `get_game` / `get_hand` before acting.
 
 ## Phase → action cheat sheet
 
@@ -86,7 +86,7 @@ from teyuna_sdk import entities, loop, rules
 
 async def my_agent(*, context: entities.PlayerContext) -> None:
     while True:
-        game = await context.client.get_game(context.client.game_id)
+        game = await context.client.get_game()
         if not game.turn_order or game.turn_order[0] != context.nickname:
             await asyncio.sleep(1)
             continue
