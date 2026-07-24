@@ -26,6 +26,7 @@ Create a game, join as a player, and perform actions with the async HTTP client:
 ```python
 import asyncio
 
+import teyuna_shared
 from teyuna_sdk.sdk import GameClient
 
 
@@ -39,8 +40,6 @@ async def main() -> None:
 
     # Authenticated actions use the token stored by authenticate.
     # Example: advance the turn when it is your turn.
-    # phase, nickname = await client.advance_turn()
-    # Or submit a typed action directly:
     # result = await client.submit_action(teyuna_shared.PlayerAction())
 
 
@@ -66,7 +65,7 @@ async def my_agent(*, context: entities.PlayerContext) -> None:
             continue
 
         if game.phase is teyuna_shared.GamePhaseName.DICE_ROLL:
-            await context.client.advance_turn()
+            await context.client.submit_action(teyuna_shared.PlayerAction())
         else:
             await asyncio.sleep(1)
 

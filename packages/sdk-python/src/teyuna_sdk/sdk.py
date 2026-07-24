@@ -19,6 +19,7 @@ _http_client = httpx2.AsyncClient(
     timeout=httpx2.Timeout(30.0, read=None),
 )
 
+
 _action_result_adapter: pydantic.TypeAdapter[teyuna_shared.AnyActionExecutionResult] = (
     pydantic.TypeAdapter(teyuna_shared.AnyActionExecutionResult)
 )
@@ -42,44 +43,6 @@ def _raise_for_status(response: httpx2.Response) -> None:
             request=exc.request,
             response=exc.response,
         ) from None
-
-
-def _vertex_to_coordinate(
-    location: teyuna_shared.VertexCoordinate,
-) -> teyuna_shared.Coordinate:
-    return teyuna_shared.Coordinate(
-        q=location.hex_coord.q,
-        r=location.hex_coord.r,
-        d=location.direction,
-    )
-
-
-def _edge_to_coordinate(
-    location: teyuna_shared.EdgeCoordinate,
-) -> teyuna_shared.Coordinate:
-    return teyuna_shared.Coordinate(
-        q=location.hex_coord.q,
-        r=location.hex_coord.r,
-        d=location.direction,
-    )
-
-
-def _coordinate_to_vertex(
-    coordinate: teyuna_shared.Coordinate,
-) -> teyuna_shared.VertexCoordinate:
-    return teyuna_shared.VertexCoordinate(
-        hex_coord=teyuna_shared.HexCoordinate(q=coordinate.q, r=coordinate.r),
-        direction=coordinate.d,
-    )
-
-
-def _coordinate_to_edge(
-    coordinate: teyuna_shared.Coordinate,
-) -> teyuna_shared.EdgeCoordinate:
-    return teyuna_shared.EdgeCoordinate(
-        hex_coord=teyuna_shared.HexCoordinate(q=coordinate.q, r=coordinate.r),
-        direction=coordinate.d,
-    )
 
 
 class GameClient:
@@ -204,124 +167,6 @@ class GameClient:
         _raise_for_status(response)
         return _action_result_adapter.validate_python(response.json())
 
-    async def advance_turn(self) -> tuple[teyuna_shared.GamePhaseName, str]:
-        """Roll dice (dice-roll phase) or end the turn (trade-and-build phase)."""
-        result = await self.submit_action(teyuna_shared.PlayerAction())
-        if (
-            isinstance(result, teyuna_shared.EndedTradeAndBuildResult)
-            and result.next_player
-        ):
-            active = result.next_player
-        else:
-            game = await self.get_game()
-            active = game.turn_order[0] if game.turn_order else ""
-        return result.next_phase, active
-
-    async def move_conquistator(
-        self,
-        location: teyuna_shared.HexCoordinate,
-        *,
-        take_from: str | None = None,
-    ) -> teyuna_shared.HexCoordinate:
-        """Move the Conquistador; optionally steal from ``take_from``."""
-        result = await self.submit_action(
-            teyuna_shared.MoveConquistatorAction(
-                q=location.q,
-                r=location.r,
-                from_player=take_from,
-            )
-        )
-        assert isinstance(result, teyuna_shared.MovedConquistatorResult)
-        return teyuna_shared.HexCoordinate(q=result.q, r=result.r)
-
-    async def discard_resources(
-        self, count: dict[teyuna_shared.ResourceCard, int]
-    ) -> teyuna_shared.GamePhaseName:
-        """Discard resources after a 7 is rolled (when required)."""
-        result = await self.submit_action(
-            teyuna_shared.DiscardResourcesAction(count=count)
-        )
-        return result.next_phase
-
-    async def play_wisdom_card(
-        self, card: teyuna_shared.WisdomCard
-    ) -> teyuna_shared.GamePhaseName:
-        """Play a wisdom card from hand; may enter a resolution sub-phase."""
-        result = await self.submit_action(teyuna_shared.PlayWisdomCardAction(card=card))
-        return result.next_phase
-
-    async def buy_wisdom_card(self) -> teyuna_shared.GamePhaseName:
-        """Buy a wisdom card from the deck during trade-and-build."""
-        result = await self.submit_action(teyuna_shared.BuyWisdomCardAction())
-        return result.next_phase
-
-    async def propose_trade(
-        self,
-        *,
-        offer: dict[teyuna_shared.ResourceCard, int],
-        request: dict[teyuna_shared.ResourceCard, int],
-        to: set[str],
-    ) -> None:
-        """Propose a player-to-player trade to the nicknames in ``to``."""
-        await self.submit_action(
-            teyuna_shared.ProposeTradeAction(offer=offer, request=request, to=to)
-        )
-
-    async def accept_trade(self, proposal_id: uuid.UUID) -> teyuna_shared.GamePhaseName:
-        """Accept an open trade proposal by id."""
-        result = await self.submit_action(
-            teyuna_shared.AcceptTradeAction(id=proposal_id)
-        )
-        return result.next_phase
-
-    async def trade_with_supply(
-        self,
-        *,
-        offers: teyuna_shared.ResourceCard,
-        requests: teyuna_shared.ResourceCard,
-    ) -> teyuna_shared.GamePhaseName:
-        """Trade with the bank/supply at the applicable harbour rate."""
-        result = await self.submit_action(
-            teyuna_shared.TradeWithSupplyAction(offers=offers, requests=requests)
-        )
-        return result.next_phase
-
-    async def play_mamo(
-        self, resource: teyuna_shared.ResourceCard
-    ) -> dict[teyuna_shared.ResourceCard, int]:
-        """Resolve Wisdom of the Mamo by naming a resource to monopolize."""
-        await self.submit_action(teyuna_shared.PlayMamoAction(resource=resource))
-        hand = await self.get_hand()
-        return dict(hand.resources)
-
-    async def play_blessing(
-        self,
-        resources: tuple[teyuna_shared.ResourceCard, teyuna_shared.ResourceCard],
-    ) -> dict[teyuna_shared.ResourceCard, int]:
-        """Resolve Blessing of Aluna by choosing two resources to take."""
-        await self.submit_action(teyuna_shared.PlayBlessedAction(resources=resources))
-        hand = await self.get_hand()
-        return dict(hand.resources)
-
-    async def play_pathfinder(
-        self, paths: list[teyuna_shared.EdgeCoordinate]
-    ) -> list[teyuna_shared.PlayedStonePath]:
-        """Resolve Pathfinder by placing one or two free stone paths."""
-        result = await self.submit_action(
-            teyuna_shared.PlayPathfinderAction(
-                paths=tuple(_edge_to_coordinate(path) for path in paths)
-            )
-        )
-        assert isinstance(result, teyuna_shared.PlayedPathfinderResult)
-        owner = result.action.by
-        return [
-            teyuna_shared.PlayedStonePath(
-                owner=owner,
-                location=_coordinate_to_edge(coord),
-            )
-            for coord in result.paths
-        ]
-
     async def send_message(self, text: str) -> None:
         """Send a chat message broadcast to all observers via SSE."""
         response = await _http_client.post(
@@ -330,66 +175,3 @@ class GameClient:
             json={"text": text},
         )
         _raise_for_status(response)
-
-    async def add_initial_placements(
-        self,
-        *,
-        terrace: teyuna_shared.VertexCoordinate | None = None,
-        path: teyuna_shared.EdgeCoordinate | None = None,
-    ) -> tuple[teyuna_shared.PlayedSettlement, teyuna_shared.PlayedStonePath]:
-        """Place a free terrace and path in setup; omit both to skip/timeout."""
-        result = await self.submit_action(
-            teyuna_shared.FreePlacementAction(
-                terrace=None if terrace is None else _vertex_to_coordinate(terrace),
-                path=None if path is None else _edge_to_coordinate(path),
-            )
-        )
-        assert isinstance(result, teyuna_shared.PlacedBuildingsResult)
-        assert result.settlement is not None and result.path is not None
-        owner = result.action.by
-        return (
-            teyuna_shared.PlayedSettlement(
-                owner=owner,
-                location=_coordinate_to_vertex(result.settlement),
-                type=teyuna_shared.SettlementType.TERRACE,
-            ),
-            teyuna_shared.PlayedStonePath(
-                owner=owner,
-                location=_coordinate_to_edge(result.path),
-            ),
-        )
-
-    async def build_settlement(
-        self,
-        *,
-        item: teyuna_shared.SettlementType,
-        location: teyuna_shared.VertexCoordinate,
-    ) -> teyuna_shared.PlayedSettlement:
-        """Build a terrace or upgrade to a great terrace at ``location``."""
-        result = await self.submit_action(
-            teyuna_shared.BuildSettlementAction(
-                item=item,
-                coordinate=_vertex_to_coordinate(location),
-            )
-        )
-        assert isinstance(result, teyuna_shared.BuiltSettlementResult)
-        assert result.coordinate is not None and result.item is not None
-        return teyuna_shared.PlayedSettlement(
-            owner=result.action.by,
-            location=_coordinate_to_vertex(result.coordinate),
-            type=result.item,
-        )
-
-    async def build_path(
-        self, location: teyuna_shared.EdgeCoordinate
-    ) -> teyuna_shared.PlayedStonePath:
-        """Build a stone path at ``location`` during trade-and-build."""
-        result = await self.submit_action(
-            teyuna_shared.BuildPathAction(coordinate=_edge_to_coordinate(location))
-        )
-        assert isinstance(result, teyuna_shared.BuiltPathResult)
-        assert result.coordinate is not None
-        return teyuna_shared.PlayedStonePath(
-            owner=result.action.by,
-            location=_coordinate_to_edge(result.coordinate),
-        )

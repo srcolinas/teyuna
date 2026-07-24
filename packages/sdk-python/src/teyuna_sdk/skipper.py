@@ -33,14 +33,16 @@ async def build(
                             context.nickname,
                             game.phase,
                         )
-                        await context.client.add_initial_placements()
+                        await context.client.submit_action(
+                            teyuna_shared.FreePlacementAction()
+                        )
                     case _:
                         logger.info(
                             "%s skipping turn in phase %s",
                             context.nickname,
                             game.phase,
                         )
-                        await context.client.advance_turn()
+                        await context.client.submit_action(teyuna_shared.PlayerAction())
         except httpx2.HTTPError as exc:
             logger.error("%s failed to skip turn: %s", context.nickname, exc)
         await asyncio.sleep(sleep_time)

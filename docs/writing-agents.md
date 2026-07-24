@@ -37,23 +37,23 @@ Most sample agents **poll** public state and act when it is their turn:
 1. `game = await context.client.get_game()`
 2. If `not game.turn_order` you are still in the lobby — wait.
 3. If `game.turn_order[0] != context.nickname` — sleep and poll again.
-4. Otherwise dispatch on `game.phase` and call the matching client method.
+4. Otherwise dispatch on `game.phase` and call `submit_action` with the matching `teyuna_shared` action.
 5. Optionally call `await context.client.get_hand()` for private resources and cards.
 
 You can also subscribe to SSE via `GameClient.stream_events()` (what `GameLoop.run()` does) and still poll `get_game` / `get_hand` before acting.
 
 ## Phase → action cheat sheet
 
-| Phase | Typical SDK call |
+| Phase | Typical `submit_action(...)` |
 | --- | --- |
-| `first placement` / `second placement` | `add_initial_placements(terrace=..., path=...)` (omit both to skip) |
-| `dice roll` | `advance_turn()` (roll) or `play_wisdom_card(...)` |
-| `discard resources` | `discard_resources(count)` using `game.to_discard_resources[nickname]` |
-| `move conquistator` / `* play warrior` | `move_conquistator(location, take_from=...)` |
-| `* play mamo` | `play_mamo(resource)` |
-| `* play blessed` | `play_blessing((r1, r2))` |
-| `* play pathfinder` | `play_pathfinder(paths)` |
-| `trade and build` | `build_settlement`, `build_path`, `buy_wisdom_card`, trades, then `advance_turn()` |
+| `first placement` / `second placement` | `FreePlacementAction(terrace=..., path=...)` (omit both to skip); convert with `rules.from_vertex` / `rules.from_edge` |
+| `dice roll` | `PlayerAction()` (roll) or `PlayWisdomCardAction(card=...)` |
+| `discard resources` | `DiscardResourcesAction(count=...)` using `game.to_discard_resources[nickname]` |
+| `move conquistator` / `* play warrior` | `MoveConquistatorAction(q=..., r=..., from_player=...)` |
+| `* play mamo` | `PlayMamoAction(resource=...)` |
+| `* play blessed` | `PlayBlessedAction(resources=(r1, r2))` |
+| `* play pathfinder` | `PlayPathfinderAction(paths=...)` |
+| `trade and build` | `BuildSettlementAction`, `BuildPathAction`, `BuyWisdomCardAction`, trade actions, then `PlayerAction()` |
 | `end game` | Stop; the game is over |
 
 Illegal moves return HTTP 400 with a `detail` message. If you wait too long, the server applies a timeout action for the current phase.
@@ -99,13 +99,16 @@ async def my_agent(*, context: entities.PlayerContext) -> None:
                 vertices = rules.vertices_available_for_free_placement(game)
                 terrace = vertices[0]
                 path = rules.edges_for_free_placement(game, terrace)[0]
-                await context.client.add_initial_placements(
-                    terrace=terrace, path=path
+                await context.client.submit_action(
+                    teyuna_shared.FreePlacementAction(
+                        terrace=rules.from_vertex(terrace),
+                        path=rules.from_edge(path),
+                    )
                 )
             case teyuna_shared.GamePhaseName.DICE_ROLL:
-                await context.client.advance_turn()
+                await context.client.submit_action(teyuna_shared.PlayerAction())
             case teyuna_shared.GamePhaseName.TRADE_AND_BUILD:
-                await context.client.advance_turn()
+                await context.client.submit_action(teyuna_shared.PlayerAction())
             case teyuna_shared.GamePhaseName.END_GAME:
                 return
             case _:
