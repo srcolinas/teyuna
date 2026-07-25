@@ -114,6 +114,24 @@ async def _create(host: str, num_players: int) -> None:
     print(game.game_id)
 
 
+async def _run_agent(
+    agent: str,
+    builder: entities.PlayerBuilder,
+    context: entities.PlayerContext,
+) -> None:
+    """Run one agent; on error the player goes down without stopping others."""
+    try:
+        await builder(context=context)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        logger.exception(
+            "Agent %s (%s) went down; continuing simulation",
+            context.nickname,
+            agent,
+        )
+
+
 async def _join(game_id: uuid.UUID, host: str, players: list[tuple[str, str]]) -> None:
     game = loop.GameLoop.join_existing(game_id, host)
 
@@ -124,21 +142,23 @@ async def _join(game_id: uuid.UUID, host: str, players: list[tuple[str, str]]) -
         context = await game.add_player(nickname)
         contexts.append((agent, context))
 
-    tasks: list[asyncio.Task[None]] = [
+    agent_tasks: list[asyncio.Task[None]] = [
         asyncio.create_task(
-            _BUILDERS[agent](context=context),
+            _run_agent(agent, _BUILDERS[agent], context),
             name=f"{agent}:{context.nickname}",
         )
         for agent, context in contexts
     ]
     game_task = asyncio.create_task(game.run(), name="game-loop")
-    logger.info("Running %s agents against %s", len(tasks), host)
+    logger.info("Running %s agents against %s", len(agent_tasks), host)
     try:
-        await asyncio.gather(game_task, *tasks)
+        # Wait for the game stream to end. Agent failures are isolated so one
+        # downed player does not cancel the rest of the simulation.
+        await game_task
     finally:
-        for task in tasks:
+        for task in agent_tasks:
             task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.gather(*agent_tasks, return_exceptions=True)
 
 
 _BUILDERS: dict[str, entities.PlayerBuilder] = {

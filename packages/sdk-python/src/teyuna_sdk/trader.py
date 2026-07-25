@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable, Mapping
 import httpx2
 import teyuna_core
 
-from . import entities, logging_config, rules
+from . import discard, entities, logging_config, rules
 
 _OFF_TURN_TRADE_PROBABILITY = 0.1
 _RNG = random.Random()
@@ -24,7 +24,8 @@ async def build(
       1-for-1 trade to the active player when it can afford the offer.
     * On its trade and build turn, randomly proposes a trade, accepts an
       affordable proposal, or skips the turn.
-    * Everywhere else, behaves like skipper (empty placement / advance actions).
+    * Everywhere else, submits PlayerAction() so the server picks a legal
+      random move (same as skipper).
     * If it needs to discard resources, it does so at random.
     """
     logger = logging.getLogger(logging_config.agent_logger_name(context.nickname))
@@ -37,9 +38,7 @@ async def build(
     sleep_time = 2.0
     while True:
         game = await context.client.get_game()
-        required = game.to_discard_resources.get(context.nickname)
-        if required is not None:
-            await _discard(context, logger, required)
+        if await discard.discard_if_required(context, logger, game, _RNG):
             await asyncio.sleep(sleep_time)
             continue
 
@@ -55,18 +54,13 @@ async def build(
             continue
 
         match game.phase:
-            case (
-                teyuna_core.GamePhaseName.FIRST_PLACEMENT
-                | teyuna_core.GamePhaseName.SECOND_PLACEMENT
-            ):
-                logger.info(
-                    "%s skipping placement in phase %s",
-                    context.nickname,
-                    game.phase,
-                )
-                await context.client.submit_action(teyuna_core.FreePlacementAction())
             case teyuna_core.GamePhaseName.TRADE_AND_BUILD:
                 await _trade_and_build(context, logger, game)
+            case teyuna_core.GamePhaseName.DISCARD_RESOURCES:
+                logger.info(
+                    "%s waiting while other players discard",
+                    context.nickname,
+                )
             case _:
                 logger.info(
                     "%s skipping turn in phase %s",
@@ -75,24 +69,6 @@ async def build(
                 )
                 await context.client.submit_action(teyuna_core.PlayerAction())
         await asyncio.sleep(sleep_time)
-
-
-async def _discard(
-    context: entities.PlayerContext,
-    logger: logging.Logger,
-    required: int,
-) -> None:
-    hand = await context.client.get_hand()
-    count = rules.pick_discard(hand.resources, required, _RNG)
-    result = await context.client.submit_action(
-        teyuna_core.DiscardResourcesAction(count=count)
-    )
-    logger.info(
-        "%s discarded %s (next phase %s)",
-        context.nickname,
-        count,
-        result.next_phase,
-    )
 
 
 async def _maybe_propose_off_turn_trade(

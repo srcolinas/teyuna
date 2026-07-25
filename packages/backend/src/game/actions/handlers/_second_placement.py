@@ -3,8 +3,7 @@ import collections
 import teyuna_core
 
 from ... import entities
-from .. import timeouts
-from . import _placement
+from . import _advance, _placement
 
 
 def handle_second_placement(
@@ -19,7 +18,7 @@ def handle_second_placement(
             error=f"Player {action.by} is not in turn",
         )
 
-    action = timeouts.resolve_free_placement(
+    action = _advance.resolve_free_placement(
         game,
         action.rng_,
         by=action.by,

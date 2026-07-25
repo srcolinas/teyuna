@@ -1,7 +1,6 @@
 import asyncio
 import logging
 
-import httpx2
 import teyuna_core
 
 from . import entities
@@ -25,30 +24,20 @@ async def build(
     )
     sleep_time = 2
     while True:
-        try:
-            game = await context.client.get_game()
-            turn_order = game.turn_order
-            if turn_order and turn_order[0] == context.nickname:
-                match game.phase:
-                    case (
-                        teyuna_core.GamePhaseName.FIRST_PLACEMENT
-                        | teyuna_core.GamePhaseName.SECOND_PLACEMENT
-                    ):
-                        logger.info(
-                            "%s skipping placement in phase %s",
-                            context.nickname,
-                            game.phase,
-                        )
-                        await context.client.submit_action(
-                            teyuna_core.FreePlacementAction()
-                        )
-                    case _:
-                        logger.info(
-                            "%s skipping turn in phase %s",
-                            context.nickname,
-                            game.phase,
-                        )
-                        await context.client.submit_action(teyuna_core.PlayerAction())
-        except httpx2.HTTPError as exc:
-            logger.error("%s failed to skip turn: %s", context.nickname, exc)
+        game = await context.client.get_game()
+        # Discard is not turn-ordered: act only when required.
+        if context.nickname in game.to_discard_resources:
+            logger.info("%s discarding resources", context.nickname)
+            await context.client.submit_action(teyuna_core.PlayerAction())
+        elif (
+            game.turn_order
+            and game.turn_order[0] == context.nickname
+            and game.phase is not teyuna_core.GamePhaseName.DISCARD_RESOURCES
+        ):
+            logger.info(
+                "%s skipping turn in phase %s",
+                context.nickname,
+                game.phase,
+            )
+            await context.client.submit_action(teyuna_core.PlayerAction())
         await asyncio.sleep(sleep_time)

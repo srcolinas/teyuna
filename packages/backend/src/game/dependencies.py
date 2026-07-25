@@ -37,30 +37,38 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(
         actions.handle_first_placement
     )
+    reg.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.SECOND_PLACEMENT)(
         actions.handle_second_placement
     )
+    reg.register(teyuna_core.GamePhaseName.SECOND_PLACEMENT)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
     reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_play_wisdom_card)
     reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_propose_trade)
     reg.register(teyuna_core.GamePhaseName.DISCARD_RESOURCES)(
         actions.handle_discard_resources
     )
+    reg.register(teyuna_core.GamePhaseName.DISCARD_RESOURCES)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR)(
         actions.handle_dice_play_warrior
     )
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.DICE_PLAY_MAMO)(
         actions.handle_dice_play_mamo
     )
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_MAMO)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.DICE_PLAY_BLESSED)(
         actions.handle_dice_play_blessed
     )
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_BLESSED)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER)(
         actions.handle_dice_play_pathfinder
     )
+    reg.register(teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.MOVE_CONQUISTATOR)(
         actions.handle_move_conquistator
     )
+    reg.register(teyuna_core.GamePhaseName.MOVE_CONQUISTATOR)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(
         actions.handle_build_terrace
     )
@@ -84,14 +92,26 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)(
         actions.handle_move_conquistator
     )
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR)(
+        actions.handle_advance
+    )
     reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)(
         actions.handle_trade_and_build_play_mamo
+    )
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO)(
+        actions.handle_advance
     )
     reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED)(
         actions.handle_trade_and_build_play_blessed
     )
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED)(
+        actions.handle_advance
+    )
     reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
         actions.handle_trade_and_build_play_pathfinder
+    )
+    reg.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER)(
+        actions.handle_advance
     )
     reg.register(teyuna_core.GamePhaseName.END_GAME)(actions.handle_end_game)
 

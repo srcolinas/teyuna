@@ -1,3 +1,4 @@
+from .handlers._advance import handle_advance
 from .handlers._first_placement import handle_first_placement
 from .handlers._play_blessed import (
     handle_dice_play_blessed,
@@ -50,6 +51,7 @@ from . import timeouts
 
 __all__ = [
     "handle_accept_trade",
+    "handle_advance",
     "handle_build_terrace",
     "handle_build_path",
     "handle_buy_wisdom_card",

@@ -57,13 +57,12 @@ def test_timeout_first_placement_returns_explicit_free_placement(
 ) -> None:
     action = timeouts.timeout_first_placement(game, random.Random(0))
 
-    assert action == teyuna_core.FreePlacementAction(
-        by=game.active_player,
-        due_to_timeout=True,
-        terrace=teyuna_core.Coordinate(q=-2, r=0, d=4),
-        path=teyuna_core.Coordinate(q=-2, r=0, d=4),
-        rng_=action.rng_,
-    )
+    assert type(action) is teyuna_core.FreePlacementAction
+    assert action.by == game.active_player
+    assert action.due_to_timeout is True
+    assert action.terrace is not None
+    assert action.path is not None
+    assert action.terrace in teyuna_core.vertices_of_edge(action.path)
 
 
 def test_timeout_second_placement_returns_explicit_free_placement(
@@ -71,13 +70,12 @@ def test_timeout_second_placement_returns_explicit_free_placement(
 ) -> None:
     action = timeouts.timeout_second_placement(game, random.Random(1))
 
-    assert action == teyuna_core.FreePlacementAction(
-        by=game.active_player,
-        due_to_timeout=True,
-        terrace=teyuna_core.Coordinate(q=0, r=-2, d=1),
-        path=teyuna_core.Coordinate(q=0, r=-2, d=1),
-        rng_=action.rng_,
-    )
+    assert type(action) is teyuna_core.FreePlacementAction
+    assert action.by == game.active_player
+    assert action.due_to_timeout is True
+    assert action.terrace is not None
+    assert action.path is not None
+    assert action.terrace in teyuna_core.vertices_of_edge(action.path)
 
 
 def test_resolve_free_placement_fills_missing_path(

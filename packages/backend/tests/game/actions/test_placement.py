@@ -115,6 +115,35 @@ def test_free_path_returns_true_when_adjacent_to_new_settlement() -> None:
     )
 
 
+def test_free_path_rejects_network_extension_when_new_settlement_set() -> None:
+    owned_path = teyuna_core.canonical_edge(0, 0, 0)
+    v0, v1 = teyuna_core.vertices_of_edge(owned_path)
+    network_path = teyuna_core.canonical_edge(0, 0, 1)
+    new_terrace = teyuna_core.canonical_vertex(2, -2, 0)
+
+    assert (
+        _placement.can_add_free_path_at(
+            target=network_path,
+            free_edges={network_path},
+            existing_settlements={v0},
+            existing_paths={owned_path},
+            free_vertices={v1},
+            new_settlement=new_terrace,
+        )
+        is False
+    )
+    assert (
+        _placement.can_add_free_path_at(
+            target=network_path,
+            free_edges={network_path},
+            existing_settlements={v0},
+            existing_paths={owned_path},
+            free_vertices={v1},
+        )
+        is True
+    )
+
+
 def test_free_path_accepts_settlements_collection_locations() -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
     path = next(

@@ -182,6 +182,28 @@ def test_returns_200_when_payload_is_empty(client: testclient.TestClient) -> Non
     assert response.json()[0]["owner"] == active_player
 
 
+def test_returns_200_when_advance_places_randomly(
+    client: testclient.TestClient,
+) -> None:
+    game_id, tokens = utils.create_active_game_with_tokens(client)
+    response = client.get(f"/games/{game_id}")
+    active_player = response.json()["turn_order"][0]
+
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=tokens[active_player],
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["kind"] == "placed_buildings"
+    assert body["action"]["kind"] == "free_placement"
+    assert body["settlement"] is not None
+    assert body["path"] is not None
+
+
 def test_returns_200_when_only_terrace_provided(client: testclient.TestClient) -> None:
     game_id, tokens = utils.create_active_game_with_tokens(client)
     response = client.get(f"/games/{game_id}")

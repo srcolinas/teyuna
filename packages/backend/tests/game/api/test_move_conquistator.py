@@ -225,6 +225,40 @@ def test_moves_conquistator_during_move_conquistator_phase(
     assert game.players[active_player].resources[teyuna_core.ResourceCard.WOOD] == 1
 
 
+def test_advance_moves_conquistator_during_move_conquistator_phase(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    repository, game_id, tokens, active_player, _other = _setup_move_conquistator_phase(
+        app
+    )
+    game = repository.retrieve(game_id)
+    # timeout builder picks among map hexes; expand the board
+    game.map = (
+        teyuna_core.MapHex(q=0, r=0, type=teyuna_core.HexType.DESERT, number=7),
+        teyuna_core.MapHex(q=1, r=0, type=teyuna_core.HexType.MOUNTAINS, number=6),
+        teyuna_core.MapHex(q=0, r=1, type=teyuna_core.HexType.JUNGLE, number=5),
+    )
+    game.phase = teyuna_core.GamePhaseName.MOVE_CONQUISTATOR
+    game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
+    repository.update(game_id, game)
+
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "advance"},
+        token=tokens[active_player],
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["kind"] == "moved_conquistator"
+    assert body["action"]["kind"] == "move_conquistator"
+    game = repository.retrieve(game_id)
+    assert game.phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    assert game.conquistator_location != teyuna_core.HexLocation(q=0, r=0)
+
+
 def test_moves_conquistator_during_trade_and_build_play_warrior(
     app: fastapi.FastAPI,
     client: testclient.TestClient,

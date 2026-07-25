@@ -1,4 +1,5 @@
 from ._builders import (
+    discard_resources_for,
     resolve_free_placement,
     timeout_dice_roll,
     timeout_discard_resources,
@@ -13,6 +14,7 @@ from ._builders import (
 )
 
 __all__ = [
+    "discard_resources_for",
     "resolve_free_placement",
     "timeout_dice_roll",
     "timeout_discard_resources",

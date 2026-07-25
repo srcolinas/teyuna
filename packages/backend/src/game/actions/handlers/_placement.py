@@ -77,13 +77,18 @@ def can_add_free_path_at(
 ) -> bool:
     """Coordinates are expected in canonical form.
 
-    ``new_settlement`` is treated as owned for adjacency (e.g. same-action terrace).
+    When ``new_settlement`` is set (first/second free placement), the path must
+    adjoin that terrace only. Otherwise the path may adjoin an owned settlement
+    or extend an owned path network (paid builds / pathfinder).
     """
     if target not in free_edges:
         return False
 
+    if new_settlement is not None:
+        return new_settlement in teyuna_core.vertices_of_edge(target)
+
     for v in teyuna_core.vertices_of_edge(target):
-        if v in existing_settlements or v == new_settlement:
+        if v in existing_settlements:
             return True
         if v in free_vertices:
             for e in teyuna_core.edges_adjacent_to_vertex(v.q, v.r, v.d):

@@ -126,6 +126,35 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
     assert result.path is None
 
 
+def test_rejects_path_adjacent_only_to_first_placement(game: entities.Game) -> None:
+    game.player_idx = len(game.players) - 1
+    player = game.active_player
+    first_terrace = teyuna_core.canonical_vertex(0, 0, 0)
+    first_path = teyuna_core.canonical_edge(0, 0, 0)
+    game.use_vertex(player, first_terrace, teyuna_core.SettlementType.TERRACE)
+    game.use_edge(player, first_path)
+
+    second_terrace = teyuna_core.canonical_vertex(0, -2, 2)
+    network_path = teyuna_core.canonical_edge(0, 0, 1)
+
+    action = teyuna_core.FreePlacementAction(
+        by=player, terrace=second_terrace, path=network_path
+    )
+    result = actions.handle_second_placement(game, action)
+
+    assert result.error == _placement.format_invalid_path_location(
+        target=network_path,
+        player=player,
+        existing_settlements=game.players[player].settlements.locations(),
+        existing_paths=game.players[player].paths,
+        free_edges=game.free_edges,
+    )
+    assert result.settlement is None
+    assert result.path is None
+    assert second_terrace not in game.players[player].settlements.locations()
+    assert network_path not in game.players[player].paths
+
+
 def test_decrements_player_idx_and_stays_in_second_placement(
     game: entities.Game,
 ) -> None:

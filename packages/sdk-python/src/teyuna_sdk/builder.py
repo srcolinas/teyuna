@@ -1,9 +1,12 @@
 import asyncio
 import logging
+import random
 
 import teyuna_core
 
-from . import entities, logging_config, rules
+from . import discard, entities, logging_config, rules
+
+_RNG = random.Random()
 
 
 async def build(
@@ -26,6 +29,10 @@ async def build(
     sleep_time = 2
     while True:
         game = await context.client.get_game()
+        if await discard.discard_if_required(context, logger, game, _RNG):
+            await asyncio.sleep(sleep_time)
+            continue
+
         turn_order = game.turn_order
         if not turn_order or turn_order[0] != context.nickname:
             await asyncio.sleep(sleep_time)
@@ -42,8 +49,19 @@ async def build(
                 await context.client.submit_action(teyuna_core.PlayerAction())
             case teyuna_core.GamePhaseName.TRADE_AND_BUILD:
                 await _trade_and_build(context, logger, game)
+            case teyuna_core.GamePhaseName.DISCARD_RESOURCES:
+                # Active roller may still be turn_order[0] while others discard.
+                logger.info(
+                    "%s waiting while other players discard",
+                    context.nickname,
+                )
             case _:
-                pass
+                logger.info(
+                    "%s advancing turn in phase %s",
+                    context.nickname,
+                    game.phase,
+                )
+                await context.client.submit_action(teyuna_core.PlayerAction())
         await asyncio.sleep(sleep_time)
 
 

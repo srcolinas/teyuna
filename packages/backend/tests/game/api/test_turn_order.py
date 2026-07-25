@@ -129,7 +129,7 @@ def test_returns_400_when_action_not_allowed(
     response = utils.post_action(
         client,
         game_id,
-        {"kind": "advance"},
+        {"kind": "buy_wisdom_card"},
         token=token,
     )
 
