@@ -130,12 +130,11 @@ async def submit_action(
        `advance` is **not** allowed during `discard resources`.
 
     Illegal or wrong-phase actions return HTTP 400 with a `detail` message.
-    The server sets `by` from the Bearer token.
+    The server sets `by` and `rng_` from the Bearer token / server RNG.
     """
-    updates: dict[str, object] = {"by": nickname, "due_to_timeout": False}
-    if payload.kind == "advance":
-        updates["rng_"] = rng
-    action = payload.model_copy(update=updates)
+    action = payload.model_copy(
+        update={"by": nickname, "due_to_timeout": False, "rng_": rng}
+    )
 
     result, _ = await services.apply_player_action(
         game_id,

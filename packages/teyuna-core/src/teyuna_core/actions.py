@@ -3,6 +3,7 @@ import uuid
 from typing import Annotated, Any, Literal
 
 import pydantic
+from pydantic import json_schema
 
 from . import entities, board
 
@@ -24,15 +25,9 @@ class PlayerAction(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     kind: Literal["advance"] = "advance"
-    by: Annotated[
-        str,
-        pydantic.Field(
-            default="",
-            description="Set by the server from the authenticated player; clients should omit.",
-        ),
-    ] = ""
-    due_to_timeout: bool = False
-    rng_: Any = pydantic.Field(
+    by: json_schema.SkipJsonSchema[str] = ""
+    due_to_timeout: json_schema.SkipJsonSchema[bool] = False
+    rng_: json_schema.SkipJsonSchema[Any] = pydantic.Field(
         default_factory=random.Random,
         exclude=True,
     )

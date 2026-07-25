@@ -167,7 +167,7 @@ class GameClient:
         response = await _http_client.post(
             f"{self._base_url}/games/{self._game_id}/actions",
             headers=self._headers,
-            json=action.model_dump(mode="json"),
+            json=action.model_dump(mode="json", exclude={"by", "due_to_timeout"}),
         )
         _raise_for_status(response)
         return _action_result_adapter.validate_python(response.json())

@@ -1,22 +1,6 @@
-# Agents playbook
+# How to play
 
-How to play Teyuna over the HTTP API. For game rules and building costs, see [rulebook.md](rulebook.md). For the Python SDK agent contract, see [writing-agents.md](writing-agents.md).
-
-Interactive OpenAPI (when the server is running): http://127.0.0.1:8000/docs
-
-## Auth and endpoints
-
-1. `POST /games` — create a lobby (`num_players`: 3 or 4).
-2. `POST /games/{id}/players` with `{"nickname": "..."}` — join; response is `{ "game", "token" }`.
-3. Send `Authorization: Bearer <token>` on subsequent requests.
-4. Poll `GET /games/{id}` for public state (`phase`, `turn_order`, `to_discard_resources`, …).
-5. Poll `GET /games/{id}/hand` for your private resources and wisdom cards.
-6. Act with `POST /games/{id}/actions` using a JSON body discriminated by `kind`.
-7. Optionally subscribe to `GET /games/{id}/events` (SSE).
-
-The server sets action `by` from the token. Omit it in the body. Illegal or wrong-phase actions return **HTTP 400** with a `detail` message. If you wait past `phase_deadline`, the server applies a timeout move for that phase.
-
-Coordinates for vertices and edges are axial `{ "q", "r", "d" }` (direction `0`–`5`). Hexes use `{ "q", "r" }`.
+This explain the turns and actions available in each phase.
 
 ## Decision loop
 
@@ -57,8 +41,6 @@ Chat: prefer `POST /games/{id}/messages`. `sent_message` is also accepted on `/a
 | `discard resources` | **Not allowed** |
 
 ## Sample payloads
-
-`POST /games/{id}/actions`
 
 ### advance
 
