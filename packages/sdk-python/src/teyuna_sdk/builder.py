@@ -79,7 +79,16 @@ async def _initial_placement(
         logger.error("%s found no free placement vertices", context.nickname)
         return
 
-    terrace = max(candidates, key=lambda v: len(rules.resources_at_vertex(game, v)))
+    owned = rules.resources_owned_by(game, by=context.nickname)
+
+    def _placement_score(
+        vertex: teyuna_core.VertexCoordinate,
+    ) -> tuple[int, int]:
+        at_vertex = rules.resources_at_vertex(game, vertex)
+        return (len(at_vertex - owned), len(at_vertex))
+
+    terrace = max(candidates, key=_placement_score)
+    at_terrace = rules.resources_at_vertex(game, terrace)
     edges = rules.edges_for_free_placement(game, terrace)
     if not edges:
         logger.error(
@@ -95,10 +104,13 @@ async def _initial_placement(
         )
     )
     logger.info(
-        "%s placed initial terrace at %s and path at %s",
+        "%s placed initial terrace at %s and path at %s (owned=%s, new=%s, local=%s)",
         context.nickname,
         terrace,
         path,
+        sorted(r.value for r in owned),
+        sorted(r.value for r in at_terrace - owned),
+        sorted(r.value for r in at_terrace),
     )
 
 

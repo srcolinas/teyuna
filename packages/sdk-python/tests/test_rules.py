@@ -148,6 +148,121 @@ def test_resources_at_vertex_duplicate_types_count_once() -> None:
     )
 
 
+def test_resources_owned_by_empty_when_no_settlements() -> None:
+    game = _empty_game(
+        map_tiles=(
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.MOUNTAINS,
+                number=8,
+            ),
+        )
+    )
+
+    assert rules.resources_owned_by(game, by="player-0") == frozenset()
+
+
+def test_resources_owned_by_one_terrace() -> None:
+    # Vertex (0, 0, 0) meets hexes (0, 0), (1, -1), and (0, -1).
+    game = _empty_game(
+        map_tiles=(
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.MOUNTAINS,
+                number=8,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=1, r=-1),
+                type=teyuna_core.HexType.JUNGLE,
+                number=6,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=-1),
+                type=teyuna_core.HexType.VALLEYS,
+                number=9,
+            ),
+        )
+    )
+    terrace = teyuna_core.PlayedSettlement(
+        owner="player-0",
+        location=teyuna_core.VertexCoordinate(
+            hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
+            direction=0,
+        ),
+        type=teyuna_core.SettlementType.TERRACE,
+    )
+    game = game.model_copy(update={"settlements": [terrace]})
+
+    assert rules.resources_owned_by(game, by="player-0") == frozenset(
+        {
+            teyuna_core.ResourceCard.GOLD,
+            teyuna_core.ResourceCard.WOOD,
+            teyuna_core.ResourceCard.MAIZE,
+        }
+    )
+    assert rules.resources_owned_by(game, by="other") == frozenset()
+
+
+def test_resources_owned_by_unions_multiple_terraces() -> None:
+    game = _empty_game(
+        map_tiles=(
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.MOUNTAINS,
+                number=8,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=1, r=-1),
+                type=teyuna_core.HexType.JUNGLE,
+                number=6,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=-1),
+                type=teyuna_core.HexType.VALLEYS,
+                number=9,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=1, r=0),
+                type=teyuna_core.HexType.QUARRIES,
+                number=5,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=2, r=-1),
+                type=teyuna_core.HexType.HIGHLANDS,
+                number=4,
+            ),
+        )
+    )
+    first = teyuna_core.PlayedSettlement(
+        owner="player-0",
+        location=teyuna_core.VertexCoordinate(
+            hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
+            direction=0,
+        ),
+        type=teyuna_core.SettlementType.TERRACE,
+    )
+    # Vertex (1, 0, 0) meets hexes (1, 0), (2, -1), and (1, -1).
+    second = teyuna_core.PlayedSettlement(
+        owner="player-0",
+        location=teyuna_core.VertexCoordinate(
+            hex_coord=teyuna_core.HexCoordinate(q=1, r=0),
+            direction=0,
+        ),
+        type=teyuna_core.SettlementType.TERRACE,
+    )
+    game = game.model_copy(update={"settlements": [first, second]})
+
+    assert rules.resources_owned_by(game, by="player-0") == frozenset(
+        {
+            teyuna_core.ResourceCard.GOLD,
+            teyuna_core.ResourceCard.WOOD,
+            teyuna_core.ResourceCard.MAIZE,
+            teyuna_core.ResourceCard.STONE,
+            teyuna_core.ResourceCard.COTTON,
+        }
+    )
+
+
 def test_vertices_available_for_free_placement_excludes_restricted() -> None:
     terrace = teyuna_core.PlayedSettlement(
         owner="player-0",

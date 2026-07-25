@@ -2,7 +2,7 @@
 
 A multiplayer strategy board game celebrating the ancient **Tayrona civilization** of Colombia's Sierra Nevada de Santa Marta.
 
-![Teyuna Banner](https://img.shields.io/badge/Teyuna-The%20Lost%20City-gold?style=for-the-badge)
+![Teyuna gameplay](docs/animation.gif)
 
 ## 🎮 About the Game
 

@@ -105,6 +105,16 @@ def resources_at_vertex(
     return frozenset(resources)
 
 
+def resources_owned_by(
+    game: teyuna_core.Game, *, by: str
+) -> frozenset[teyuna_core.ResourceCard]:
+    owned: set[teyuna_core.ResourceCard] = set()
+    for settlement in game.settlements:
+        if settlement.owner == by:
+            owned.update(resources_at_vertex(game, settlement.location))
+    return frozenset(owned)
+
+
 def from_vertex(location: teyuna_core.VertexCoordinate) -> teyuna_core.Coordinate:
     return teyuna_core.canonical_vertex(
         location.hex_coord.q, location.hex_coord.r, location.direction
