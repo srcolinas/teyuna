@@ -59,6 +59,11 @@ class GameClient:
         return self._game_id
 
     @property
+    def token(self) -> str | None:
+        """Session token for this client, or ``None`` if not authenticated."""
+        return self._token
+
+    @property
     def _headers(self) -> dict[str, str]:
         if self._token is None:
             raise RuntimeError(
