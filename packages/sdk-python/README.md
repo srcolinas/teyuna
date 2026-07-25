@@ -87,9 +87,10 @@ The package ships with simple agents you can use as templates or opponents:
 | Agent | Behavior |
 | --- | --- |
 | `builder` | Builds terraces, great terraces, and paths when it can |
+| `buyer` | Buys wisdom cards when it can and plays them at turn start |
 | `skipper` | Advances the turn as soon as possible |
 | `sleepy` | Waits and lets server timeouts drive the game |
-| `stochastic` | Chooses random actions across phases |
+| `trader` | Proposes and accepts trades; skips elsewhere |
 
 ## CLI: simulate a game
 

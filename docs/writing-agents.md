@@ -145,6 +145,6 @@ Alternatively, create the lobby with `teyuna-simulate create` (prints the game i
 | `builder` | Builds when it can afford settlements/paths |
 | `skipper` | Advances / skips as soon as possible |
 | `sleepy` | Sleeps and lets server timeouts drive play |
-| `stochastic` | Picks random legal-ish actions across phases |
+| `trader` | Proposes/accepts trades; skips elsewhere |
 
 Source: [`packages/sdk-python/src/teyuna_sdk/`](../packages/sdk-python/src/teyuna_sdk/).

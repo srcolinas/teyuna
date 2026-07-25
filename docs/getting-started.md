@@ -63,7 +63,7 @@ That installs `teyuna-sdk`, `teyuna-core`, and the backend package into the work
 ## 3. Run a simulation
 
 Easiest path — start Compose detached, wait for backend health, create a game,
-then join with three stochastic agents. `join` prints `host`, `game_id`, and each
+then join with three trader agents. `join` prints `host`, `game_id`, and each
 player's Bearer token (useful for the frontend observer):
 
 ```bash
@@ -81,7 +81,7 @@ teyuna-simulate join "$GAME_ID" --host http://127.0.0.1:8000 \
 Player specs are `agent` or `agent:nickname` (1–4). Create takes optional
 `--num-players` (`3` or `4`, default `3`).
 
-Available built-in agents: `builder`, `skipper`, `sleepy`, `stochastic`.
+Available built-in agents: `builder`, `skipper`, `sleepy`, `trader`.
 
 Open the frontend observer with the printed game id:
 `http://127.0.0.1:5173/?gameId=<uuid>`.

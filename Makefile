@@ -72,7 +72,7 @@ simulate:
 	@GAME_ID=$$(uv run teyuna-simulate create --host "http://127.0.0.1:$(BACKEND_PORT)"); \
 	echo "Watch: http://127.0.0.1:$(FRONTEND_PORT)/?gameId=$$GAME_ID"; \
 	uv run teyuna-simulate join "$$GAME_ID" --host "http://127.0.0.1:$(BACKEND_PORT)" \
-		stochastic:alice stochastic:bob stochastic:carol
+		trader:alice buyer:bob builder:carol
 
 # Stop Docker Compose services
 stop:

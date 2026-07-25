@@ -4,7 +4,7 @@ import logging
 import uuid
 from pathlib import Path
 
-from . import builder, entities, loop, skipper, sleepy, stochastic
+from . import builder, buyer, entities, loop, skipper, sleepy, trader
 from .logging_config import (
     configure_logging,
     ensure_agent_logger,
@@ -145,7 +145,8 @@ _BUILDERS: dict[str, entities.PlayerBuilder] = {
     "sleepy": sleepy.build,
     "skipper": skipper.build,
     "builder": builder.build,
-    "stochastic": stochastic.build,
+    "buyer": buyer.build,
+    "trader": trader.build,
 }
 
 
