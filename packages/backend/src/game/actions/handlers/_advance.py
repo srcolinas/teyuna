@@ -33,8 +33,6 @@ def random_action_for_phase(
         teyuna_core.GamePhaseName.SECOND_PLACEMENT,
     ):
         return resolve_free_placement(game, rng, by=by, due_to_timeout=due_to_timeout)
-    if phase is teyuna_core.GamePhaseName.DISCARD_RESOURCES:
-        return discard_resources_for(game, rng, by=by, due_to_timeout=due_to_timeout)
     if phase in (
         teyuna_core.GamePhaseName.MOVE_CONQUISTATOR,
         teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR,
@@ -324,7 +322,6 @@ def _pick_discard(
 def _typed_handler_for(phase: teyuna_core.GamePhaseName) -> TypedHandler:
     # Lazy imports avoid a cycle with placement handlers that call resolve_free_placement.
     from . import (
-        _discard_resources,
         _first_placement,
         _move_conquistator,
         _play_blessed,
@@ -339,9 +336,6 @@ def _typed_handler_for(phase: teyuna_core.GamePhaseName) -> TypedHandler:
         ),
         teyuna_core.GamePhaseName.SECOND_PLACEMENT: (
             _second_placement.handle_second_placement
-        ),
-        teyuna_core.GamePhaseName.DISCARD_RESOURCES: (
-            _discard_resources.handle_discard_resources
         ),
         teyuna_core.GamePhaseName.MOVE_CONQUISTATOR: (
             _move_conquistator.handle_move_conquistator

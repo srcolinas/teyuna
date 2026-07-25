@@ -1,10 +1,13 @@
 import asyncio
 import logging
+import random
 
 import teyuna_core
 
-from . import entities
+from . import discard, entities
 from .logging_config import agent_logger_name
+
+_RNG = random.Random()
 
 
 async def build(
@@ -25,11 +28,10 @@ async def build(
     sleep_time = 2
     while True:
         game = await context.client.get_game()
-        # Discard is not turn-ordered: act only when required.
-        if context.nickname in game.to_discard_resources:
-            logger.info("%s discarding resources", context.nickname)
-            await context.client.submit_action(teyuna_core.PlayerAction())
-        elif (
+        if await discard.discard_if_required(context, logger, game, _RNG):
+            await asyncio.sleep(sleep_time)
+            continue
+        if (
             game.turn_order
             and game.turn_order[0] == context.nickname
             and game.phase is not teyuna_core.GamePhaseName.DISCARD_RESOURCES

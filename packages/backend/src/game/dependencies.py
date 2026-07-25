@@ -48,7 +48,6 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(teyuna_core.GamePhaseName.DISCARD_RESOURCES)(
         actions.handle_discard_resources
     )
-    reg.register(teyuna_core.GamePhaseName.DISCARD_RESOURCES)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR)(
         actions.handle_dice_play_warrior
     )

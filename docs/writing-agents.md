@@ -36,7 +36,7 @@ Most sample agents **poll** public state and act when it is their turn:
 
 1. `game = await context.client.get_game()`
 2. If `not game.turn_order` you are still in the lobby — wait.
-3. If `context.nickname` is in `game.to_discard_resources`, discard (only then). Discard is **not** turn-ordered — do not submit a discard/`PlayerAction` unless you are listed.
+3. If `context.nickname` is in `game.to_discard_resources`, discard (only then). Discard is **not** turn-ordered — do not submit a discard unless you are listed, and never use bare `PlayerAction` during this phase.
 4. If `game.turn_order[0] != context.nickname` — sleep and poll again.
 5. Otherwise dispatch on `game.phase` and call `submit_action` with the matching action (action and phase types come from `teyuna_core`). Only take actions that are legal for you in that phase; otherwise wait.
 6. Optionally call `await context.client.get_hand()` for private resources and cards.
@@ -47,10 +47,10 @@ You can also subscribe to SSE via `GameClient.stream_events()` (what `GameLoop.r
 
 | Phase | Typical `submit_action(...)` |
 | --- | --- |
-| any constrained phase | `PlayerAction()` — server picks a legal random move (same as a timeout) |
+| any constrained phase | `PlayerAction()` — server picks a legal random move (same as a timeout); not allowed during `discard resources` |
 | `first placement` / `second placement` | `FreePlacementAction(terrace=..., path=...)` (or omit both / use `PlayerAction()` to skip); convert with `rules.from_vertex` / `rules.from_edge` |
 | `dice roll` | `PlayerAction()` (roll) or `PlayWisdomCardAction(card=...)` |
-| `discard resources` | `DiscardResourcesAction(count=...)` using `game.to_discard_resources[nickname]` (or `PlayerAction()` to discard at random) |
+| `discard resources` | Only if listed in `game.to_discard_resources`: `DiscardResourcesAction(count=...)`. Others wait; timeout forces a random discard |
 | `move conquistator` / `* play warrior` | `MoveConquistatorAction(q=..., r=..., from_player=...)` (or `PlayerAction()`) |
 | `* play mamo` | `PlayMamoAction(resource=...)` (or `PlayerAction()`) |
 | `* play blessed` | `PlayBlessedAction(resources=(r1, r2))` (or `PlayerAction()`) |

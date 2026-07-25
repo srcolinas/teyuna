@@ -165,6 +165,22 @@ def test_get_game_includes_to_discard_resources(
     }
 
 
+def test_returns_400_when_advance_during_discard(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    _, game_id, tokens, player_nick, other = _setup_discard_phase(app)
+
+    for nickname in (player_nick, other):
+        response = utils.post_action(
+            client,
+            game_id,
+            {"kind": "advance"},
+            token=tokens[nickname],
+        )
+        assert response.status_code == 400, response.text
+
+
 def _setup_discard_phase(
     app: fastapi.FastAPI,
 ) -> tuple[
