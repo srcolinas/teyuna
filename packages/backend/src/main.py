@@ -32,7 +32,17 @@ def create_app() -> fastapi.FastAPI:
             with contextlib.suppress(asyncio.CancelledError):
                 await poller
 
-    app = fastapi.FastAPI(lifespan=lifespan)
+    app = fastapi.FastAPI(
+        title="Teyuna",
+        description=(
+            "Multiplayer board game HTTP API. Join with POST /games/{id}/players "
+            "(Bearer token in the response), poll GET /games/{id} for `phase` and "
+            "`turn_order`, then POST /games/{id}/actions with a phase-legal `kind`. "
+            "Wrong-phase or illegal moves return HTTP 400. "
+            "Agent playbook: docs/agents.md; rules: docs/rulebook.md."
+        ),
+        lifespan=lifespan,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

@@ -274,7 +274,7 @@ _TRADE_AND_BUILD_CARD_PHASES: Final[
     dict[teyuna_core.WisdomCard, teyuna_core.GamePhaseName]
 ] = {
     teyuna_core.WisdomCard.WARRIOR: teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
-    teyuna_core.WisdomCard.WINDOM_OF_MAMO: teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
+    teyuna_core.WisdomCard.WISDOM_OF_MAMO: teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
     teyuna_core.WisdomCard.BLESSING_OF_ALUNA: (
         teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED
     ),

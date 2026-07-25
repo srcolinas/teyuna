@@ -812,7 +812,7 @@ def test_end_turn_raises_when_player_not_in_turn(
     "card",
     [
         teyuna_core.WisdomCard.WARRIOR,
-        teyuna_core.WisdomCard.WINDOM_OF_MAMO,
+        teyuna_core.WisdomCard.WISDOM_OF_MAMO,
         teyuna_core.WisdomCard.BLESSING_OF_ALUNA,
         teyuna_core.WisdomCard.PATHFINDER,
         teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS,
@@ -886,7 +886,7 @@ def test_play_wisdom_card_raises_when_card_cannot_be_played(
             teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
         ),
         (
-            teyuna_core.WisdomCard.WINDOM_OF_MAMO,
+            teyuna_core.WisdomCard.WISDOM_OF_MAMO,
             teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
         ),
         (

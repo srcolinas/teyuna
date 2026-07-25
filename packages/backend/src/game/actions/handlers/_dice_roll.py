@@ -62,7 +62,7 @@ def handle_play_wisdom_card(
 
 _DICE_CARD_PHASES: Final[dict[teyuna_core.WisdomCard, teyuna_core.GamePhaseName]] = {
     teyuna_core.WisdomCard.WARRIOR: teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR,
-    teyuna_core.WisdomCard.WINDOM_OF_MAMO: teyuna_core.GamePhaseName.DICE_PLAY_MAMO,
+    teyuna_core.WisdomCard.WISDOM_OF_MAMO: teyuna_core.GamePhaseName.DICE_PLAY_MAMO,
     teyuna_core.WisdomCard.BLESSING_OF_ALUNA: teyuna_core.GamePhaseName.DICE_PLAY_BLESSED,
     teyuna_core.WisdomCard.PATHFINDER: teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER,
     teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS: teyuna_core.GamePhaseName.DICE_ROLL,

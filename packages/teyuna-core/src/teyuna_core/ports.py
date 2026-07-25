@@ -142,11 +142,34 @@ class Game(pydantic.BaseModel):
             Empty while the game is still in the lobby.""",
         ),
     ]
-    phase: entities.GamePhaseName
-    phase_deadline: datetime.datetime | None
+    phase: Annotated[
+        entities.GamePhaseName,
+        pydantic.Field(
+            description=(
+                "Current game phase. Which action kinds are legal depends on this value; "
+                "see each action type description."
+            ),
+        ),
+    ]
+    phase_deadline: Annotated[
+        datetime.datetime | None,
+        pydantic.Field(
+            description=(
+                "UTC deadline for the current phase. When reached, the server applies "
+                "a timeout action for the phase."
+            ),
+        ),
+    ]
     available_slots: Annotated[int, pydantic.Field(ge=0, le=4)]
     trade_proposals: list[ActiveTradeProposal] = []
-    to_discard_resources: dict[str, int] = pydantic.Field(default_factory=dict)
+    to_discard_resources: dict[str, int] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Nickname → number of resource cards that player must discard. "
+            "Only those players may submit discard_resources during "
+            "'discard resources'; others wait."
+        ),
+    )
 
 
 class CreateGameRequest(pydantic.BaseModel):

@@ -23,7 +23,7 @@ WISDOM_DECK_COUNTS: Final[Mapping[entities.WisdomCard, int]] = {
     entities.WisdomCard.LEGACY_OF_THE_ELDERS: 5,
     entities.WisdomCard.PATHFINDER: 2,
     entities.WisdomCard.BLESSING_OF_ALUNA: 2,
-    entities.WisdomCard.WINDOM_OF_MAMO: 2,
+    entities.WisdomCard.WISDOM_OF_MAMO: 2,
 }
 
 TERRACE_COST: Final[Mapping[entities.ResourceCard, int]] = {

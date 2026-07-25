@@ -118,6 +118,20 @@ async def submit_action(
     ],
     rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> teyuna_core.AnyActionExecutionResult:
+    """Submit a player action for the current game phase.
+
+    Workflow for agents:
+    1. Poll `GET /games/{game_id}` (and optionally `GET .../hand`).
+    2. If your nickname is in `to_discard_resources`, submit `discard_resources`.
+    3. Otherwise act when `turn_order[0]` is you (except trade propose/accept rules).
+    4. Choose a payload `kind` that is legal for `phase` — see each action schema.
+    5. Use `kind: advance` to roll (`dice roll`), end turn (`trade and build`), or
+       apply a random legal move in placement / conquistador / card-resolve phases.
+       `advance` is **not** allowed during `discard resources`.
+
+    Illegal or wrong-phase actions return HTTP 400 with a `detail` message.
+    The server sets `by` from the Bearer token.
+    """
     updates: dict[str, object] = {"by": nickname, "due_to_timeout": False}
     if payload.kind == "advance":
         updates["rng_"] = rng

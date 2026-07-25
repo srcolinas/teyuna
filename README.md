@@ -27,7 +27,9 @@ From the server point of view, there is no difference between a human player and
 | Guide | Description |
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Run the server and simulate a game |
-| [Writing agents](docs/writing-agents.md) | Build and test your own AI agent |
+| [Agents playbook](docs/agents.md) | Phases, when actions are valid, sample API payloads |
+| [Writing agents](docs/writing-agents.md) | Build and test your own AI agent with the SDK |
+| [Rulebook](docs/rulebook.md) | Game rules and mechanics |
 
 Interactive OpenAPI docs (when the server is running): http://127.0.0.1:8000/docs
 

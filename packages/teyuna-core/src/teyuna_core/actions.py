@@ -8,10 +8,29 @@ from . import entities, board
 
 
 class PlayerAction(pydantic.BaseModel):
+    """Advance / skip action (`kind: advance`).
+
+    Valid phases and meaning:
+    - `dice roll`: roll the dice (active player).
+    - `trade and build`: end the turn (active player).
+    - `first placement` / `second placement`: place a random legal terrace+path.
+    - `move conquistator` and `* play warrior` / `mamo` / `blessed` / `pathfinder`:
+      apply a random legal typed move for that phase.
+
+    Not allowed during `discard resources` (submit `discard_resources` instead).
+    Not useful in `lobby` or `end game`.
+    """
+
     model_config = pydantic.ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     kind: Literal["advance"] = "advance"
-    by: str = ""
+    by: Annotated[
+        str,
+        pydantic.Field(
+            default="",
+            description="Set by the server from the authenticated player; clients should omit.",
+        ),
+    ] = ""
     due_to_timeout: bool = False
     rng_: Any = pydantic.Field(
         default_factory=random.Random,
@@ -20,6 +39,12 @@ class PlayerAction(pydantic.BaseModel):
 
 
 class FreePlacementAction(PlayerAction):
+    """Place one free terrace and one adjacent path during setup.
+
+    Valid phases: `first placement`, `second placement` (active player only).
+    Omit both coordinates (or use `advance`) to let the server pick a legal placement.
+    """
+
     kind: Literal["free_placement"] = "free_placement"  # type: ignore[assignment]
     terrace: board.Coordinate | None = None
     path: board.Coordinate | None = None
@@ -42,11 +67,23 @@ class FreePlacementAction(PlayerAction):
 
 
 class DiscardResourcesAction(PlayerAction):
+    """Discard resource cards after a 7 is rolled.
+
+    Valid phase: `discard resources` only, and only if your nickname appears in
+    `Game.to_discard_resources` with a matching total count. Not turn-ordered.
+    """
+
     kind: Literal["discard_resources"] = "discard_resources"  # type: ignore[assignment]
     count: dict[entities.ResourceCard, int]
 
 
 class MoveConquistatorAction(PlayerAction):
+    """Move the conquistator to a hex and optionally steal from an adjacent player.
+
+    Valid phases (active player): `move conquistator`, `dice play warrior`,
+    `trade and build play warrior`. Use `advance` for a random legal move.
+    """
+
     kind: Literal["move_conquistator"] = "move_conquistator"  # type: ignore[assignment]
     q: int
     r: int
@@ -54,21 +91,43 @@ class MoveConquistatorAction(PlayerAction):
 
 
 class PlayWisdomCardAction(PlayerAction):
+    """Play a wisdom card from your hand, entering the matching resolve phase.
+
+    Valid phases (active player): `dice roll`, `trade and build`.
+    Legacy of the Elders resolves immediately; other cards enter `* play *` phases.
+    """
+
     kind: Literal["play_wisdom_card"] = "play_wisdom_card"  # type: ignore[assignment]
     card: entities.WisdomCard
 
 
 class PlayMamoAction(PlayerAction):
+    """Resolve Wisdom of Mamo: monopolize one resource type from all opponents.
+
+    Valid phases (active player): `dice play mamo`, `trade and build play mamo`.
+    """
+
     kind: Literal["play_mamo"] = "play_mamo"  # type: ignore[assignment]
     resource: entities.ResourceCard
 
 
 class PlayBlessedAction(PlayerAction):
+    """Resolve Blessing of Aluna: take two resources from the bank.
+
+    Valid phases (active player): `dice play blessed`, `trade and build play blessed`.
+    """
+
     kind: Literal["play_blessed"] = "play_blessed"  # type: ignore[assignment]
     resources: tuple[entities.ResourceCard, entities.ResourceCard]
 
 
 class PlayPathfinderAction(PlayerAction):
+    """Resolve Pathfinder: place up to two free paths.
+
+    Valid phases (active player): `dice play pathfinder`,
+    `trade and build play pathfinder`.
+    """
+
     kind: Literal["play_pathfinder"] = "play_pathfinder"  # type: ignore[assignment]
     paths: tuple[board.Coordinate, ...]
 
@@ -83,6 +142,11 @@ class PlayPathfinderAction(PlayerAction):
 
 
 class BuildSettlementAction(PlayerAction):
+    """Build a terrace or upgrade to a great terrace (`item`).
+
+    Valid phase: `trade and build` (active player). Costs and adjacency rules apply.
+    """
+
     kind: Literal["build_settlement"] = "build_settlement"  # type: ignore[assignment]
     item: entities.SettlementType
     coordinate: board.Coordinate
@@ -100,6 +164,11 @@ class BuildSettlementAction(PlayerAction):
 
 
 class BuildPathAction(PlayerAction):
+    """Build a path on an edge.
+
+    Valid phase: `trade and build` (active player).
+    """
+
     kind: Literal["build_path"] = "build_path"  # type: ignore[assignment]
     coordinate: board.Coordinate
 
@@ -116,10 +185,22 @@ class BuildPathAction(PlayerAction):
 
 
 class BuyWisdomCardAction(PlayerAction):
+    """Buy a face-down wisdom card from the deck.
+
+    Valid phase: `trade and build` (active player).
+    """
+
     kind: Literal["buy_wisdom_card"] = "buy_wisdom_card"  # type: ignore[assignment]
 
 
 class ProposeTradeAction(PlayerAction):
+    """Propose a player-to-player trade.
+
+    Valid phases:
+    - `trade and build`: active player may propose to any other players.
+    - `dice roll`: any player may propose only to the active player.
+    """
+
     kind: Literal["propose_trade"] = "propose_trade"  # type: ignore[assignment]
     offer: dict[entities.ResourceCard, int]
     request: dict[entities.ResourceCard, int]
@@ -127,17 +208,32 @@ class ProposeTradeAction(PlayerAction):
 
 
 class AcceptTradeAction(PlayerAction):
+    """Accept an open trade proposal by id.
+
+    Valid phase: `trade and build` (targeted player).
+    """
+
     kind: Literal["accept_trade"] = "accept_trade"  # type: ignore[assignment]
     id: uuid.UUID
 
 
 class TradeWithSupplyAction(PlayerAction):
+    """Trade with the bank / harbour at the applicable rate.
+
+    Valid phase: `trade and build` (active player).
+    """
+
     kind: Literal["trade_with_supply"] = "trade_with_supply"  # type: ignore[assignment]
     offers: entities.ResourceCard
     requests: entities.ResourceCard
 
 
 class SentMessageAction(PlayerAction):
+    """Send a chat message to the game.
+
+    Valid in every phase except `lobby`.
+    """
+
     kind: Literal["sent_message"] = "sent_message"  # type: ignore[assignment]
     text: str
 

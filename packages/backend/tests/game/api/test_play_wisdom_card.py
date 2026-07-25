@@ -131,7 +131,7 @@ def test_returns_400_when_player_does_not_have_card(
             teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
         ),
         (
-            teyuna_core.WisdomCard.WINDOM_OF_MAMO,
+            teyuna_core.WisdomCard.WISDOM_OF_MAMO,
             teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
         ),
         (

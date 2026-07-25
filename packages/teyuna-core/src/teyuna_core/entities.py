@@ -4,7 +4,7 @@ from typing import Final, NamedTuple
 
 
 class HexType(str, Enum):
-    """Types of hex tiles on the board."""
+    """Types of hex tiles on the game board."""
 
     MOUNTAINS = "mountains"
     QUARRIES = "quarries"
@@ -43,7 +43,7 @@ class TradeProposal(NamedTuple):
 class WisdomCard(str, Enum):
     WARRIOR = "warrior"
     BLESSING_OF_ALUNA = "blessing of aluna"
-    WINDOM_OF_MAMO = "wisdom of mamo"
+    WISDOM_OF_MAMO = "wisdom of mamo"
     PATHFINDER = "pathfinder"
     LEGACY_OF_THE_ELDERS = "legacy of the elders"
 
@@ -63,6 +63,8 @@ class MapHex(NamedTuple):
 
 
 class GamePhaseName(str, Enum):
+    """Server phase names. Allowed player actions depend on the current phase."""
+
     LOBBY = "lobby"
     FIRST_PLACEMENT = "first placement"
     SECOND_PLACEMENT = "second placement"

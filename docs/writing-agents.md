@@ -2,6 +2,8 @@
 
 Build an AI (or scripted) client that plays Teyuna through the Python SDK.
 
+For **phases, when actions are valid, and sample JSON payloads**, see the [agents playbook](agents.md). For rules and costs, see the [rulebook](rulebook.md).
+
 ## Prerequisites
 
 - A running game server ([getting started](getting-started.md))
@@ -37,26 +39,11 @@ Most sample agents **poll** public state and act when it is their turn:
 1. `game = await context.client.get_game()`
 2. If `not game.turn_order` you are still in the lobby — wait.
 3. If `context.nickname` is in `game.to_discard_resources`, discard (only then). Discard is **not** turn-ordered — do not submit a discard unless you are listed, and never use bare `PlayerAction` during this phase.
-4. If `game.turn_order[0] != context.nickname` — sleep and poll again.
-5. Otherwise dispatch on `game.phase` and call `submit_action` with the matching action (action and phase types come from `teyuna_core`). Only take actions that are legal for you in that phase; otherwise wait.
+4. If `game.turn_order[0] != context.nickname` — sleep and poll again (except trade propose/accept edge cases; see [agents.md](agents.md)).
+5. Otherwise dispatch on `game.phase` and call `submit_action` with a phase-legal action from `teyuna_core`.
 6. Optionally call `await context.client.get_hand()` for private resources and cards.
 
 You can also subscribe to SSE via `GameClient.stream_events()` (what `GameLoop.run()` does) and still poll `get_game` / `get_hand` before acting.
-
-## Phase → action cheat sheet
-
-| Phase | Typical `submit_action(...)` |
-| --- | --- |
-| any constrained phase | `PlayerAction()` — server picks a legal random move (same as a timeout); not allowed during `discard resources` |
-| `first placement` / `second placement` | `FreePlacementAction(terrace=..., path=...)` (or omit both / use `PlayerAction()` to skip); convert with `rules.from_vertex` / `rules.from_edge` |
-| `dice roll` | `PlayerAction()` (roll) or `PlayWisdomCardAction(card=...)` |
-| `discard resources` | Only if listed in `game.to_discard_resources`: `DiscardResourcesAction(count=...)`. Others wait; timeout forces a random discard |
-| `move conquistator` / `* play warrior` | `MoveConquistatorAction(q=..., r=..., from_player=...)` (or `PlayerAction()`) |
-| `* play mamo` | `PlayMamoAction(resource=...)` (or `PlayerAction()`) |
-| `* play blessed` | `PlayBlessedAction(resources=(r1, r2))` (or `PlayerAction()`) |
-| `* play pathfinder` | `PlayPathfinderAction(paths=...)` (or `PlayerAction()`) |
-| `trade and build` | `BuildSettlementAction`, `BuildPathAction`, `BuyWisdomCardAction`, trade actions, then `PlayerAction()` to end the turn |
-| `end game` | Stop; the game is over |
 
 Illegal moves return HTTP 400 with a `detail` message. If you wait too long, the server applies a timeout action for the current phase.
 
@@ -90,7 +77,7 @@ Alternatively, create the lobby with `teyuna-simulate create` (prints the game i
 
 | Agent | Behavior |
 | --- | --- |
-| `builder` | Builds when it can afford settlements/paths |
+| `builder` | Builds when it can afford terraces/paths |
 | `skipper` | Advances / skips as soon as possible |
 | `sleepy` | Sleeps and lets server timeouts drive play |
 | `trader` | Proposes/accepts trades; skips elsewhere |

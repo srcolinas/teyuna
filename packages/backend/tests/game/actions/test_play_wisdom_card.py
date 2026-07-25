@@ -10,7 +10,7 @@ import teyuna_core
     "card",
     [
         teyuna_core.WisdomCard.WARRIOR,
-        teyuna_core.WisdomCard.WINDOM_OF_MAMO,
+        teyuna_core.WisdomCard.WISDOM_OF_MAMO,
         teyuna_core.WisdomCard.BLESSING_OF_ALUNA,
         teyuna_core.WisdomCard.PATHFINDER,
         teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS,
@@ -82,7 +82,7 @@ def test_raises_when_card_cannot_be_played(
             teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR,
         ),
         (
-            teyuna_core.WisdomCard.WINDOM_OF_MAMO,
+            teyuna_core.WisdomCard.WISDOM_OF_MAMO,
             teyuna_core.GamePhaseName.DICE_PLAY_MAMO,
         ),
         (

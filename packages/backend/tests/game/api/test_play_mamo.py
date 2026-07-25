@@ -193,7 +193,7 @@ def _setup_mamo_phase(
     game = _create_game()
     active_player = game.active_player
     other = game.turn_order[1]
-    game.players[active_player].cards[teyuna_core.WisdomCard.WINDOM_OF_MAMO] = 1
+    game.players[active_player].cards[teyuna_core.WisdomCard.WISDOM_OF_MAMO] = 1
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
     game.phase = phase
