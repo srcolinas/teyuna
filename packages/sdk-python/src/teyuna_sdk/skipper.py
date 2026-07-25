@@ -18,7 +18,7 @@ async def build(
     """
     logger = logging.getLogger(agent_logger_name(context.nickname))
     logger.info(
-        "Builder %s (token: %s) joined game %s",
+        "Skipper %s (token: %s) joined game %s",
         context.nickname,
         context.client.token,
         context.client.game_id,

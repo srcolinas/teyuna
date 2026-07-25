@@ -43,7 +43,7 @@ async def build(
     """
     logger = logging.getLogger(logging_config.agent_logger_name(context.nickname))
     logger.info(
-        "Builder %s (token: %s) joined game %s",
+        "Stochastic %s (token: %s) joined game %s",
         context.nickname,
         context.client.token,
         context.client.game_id,
