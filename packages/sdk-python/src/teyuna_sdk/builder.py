@@ -79,7 +79,7 @@ async def _initial_placement(
         logger.error("%s found no free placement vertices", context.nickname)
         return
 
-    terrace = candidates[0]
+    terrace = max(candidates, key=lambda v: len(rules.resources_at_vertex(game, v)))
     edges = rules.edges_for_free_placement(game, terrace)
     if not edges:
         logger.error(

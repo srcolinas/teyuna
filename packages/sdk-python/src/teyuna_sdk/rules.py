@@ -83,6 +83,28 @@ def vertex_touches_desert(
     )
 
 
+def resources_at_vertex(
+    game: teyuna_core.Game,
+    vertex: teyuna_core.VertexCoordinate,
+) -> frozenset[teyuna_core.ResourceCard]:
+    hex_by_location = {
+        teyuna_core.HexLocation(q=hex_tile.coordinate.q, r=hex_tile.coordinate.r): (
+            hex_tile.type
+        )
+        for hex_tile in game.map
+    }
+    coord = from_vertex(vertex)
+    resources: set[teyuna_core.ResourceCard] = set()
+    for location in teyuna_core.hex_locations_at_vertex(coord.q, coord.r, coord.d):
+        hex_type = hex_by_location.get(location)
+        if hex_type is None:
+            continue
+        resource = teyuna_core.HEX_TYPE_TO_RESOURCE.get(hex_type)
+        if resource is not None:
+            resources.add(resource)
+    return frozenset(resources)
+
+
 def from_vertex(location: teyuna_core.VertexCoordinate) -> teyuna_core.Coordinate:
     return teyuna_core.canonical_vertex(
         location.hex_coord.q, location.hex_coord.r, location.direction

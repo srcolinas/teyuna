@@ -58,6 +58,96 @@ def test_vertex_touches_desert_is_false_without_desert() -> None:
     assert rules.vertex_touches_desert(game, vertex) is False
 
 
+def test_resources_at_vertex_three_distinct_types() -> None:
+    # Vertex (0, 0, 0) meets hexes (0, 0), (1, -1), and (0, -1).
+    game = _empty_game(
+        map_tiles=(
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.MOUNTAINS,
+                number=8,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=1, r=-1),
+                type=teyuna_core.HexType.JUNGLE,
+                number=6,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=-1),
+                type=teyuna_core.HexType.VALLEYS,
+                number=9,
+            ),
+        )
+    )
+    vertex = teyuna_core.VertexCoordinate(
+        hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
+        direction=0,
+    )
+
+    assert rules.resources_at_vertex(game, vertex) == frozenset(
+        {
+            teyuna_core.ResourceCard.GOLD,
+            teyuna_core.ResourceCard.WOOD,
+            teyuna_core.ResourceCard.MAIZE,
+        }
+    )
+
+
+def test_resources_at_vertex_desert_and_one_producing_hex() -> None:
+    game = _empty_game(
+        map_tiles=(
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.DESERT,
+                number=7,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=1, r=-1),
+                type=teyuna_core.HexType.QUARRIES,
+                number=5,
+            ),
+        )
+    )
+    vertex = teyuna_core.VertexCoordinate(
+        hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
+        direction=0,
+    )
+
+    assert rules.resources_at_vertex(game, vertex) == frozenset(
+        {teyuna_core.ResourceCard.STONE}
+    )
+
+
+def test_resources_at_vertex_duplicate_types_count_once() -> None:
+    game = _empty_game(
+        map_tiles=(
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=0),
+                type=teyuna_core.HexType.JUNGLE,
+                number=6,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=1, r=-1),
+                type=teyuna_core.HexType.JUNGLE,
+                number=4,
+            ),
+            teyuna_core.Hex(
+                coordinate=teyuna_core.HexCoordinate(q=0, r=-1),
+                type=teyuna_core.HexType.JUNGLE,
+                number=10,
+            ),
+        )
+    )
+    vertex = teyuna_core.VertexCoordinate(
+        hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
+        direction=0,
+    )
+
+    assert rules.resources_at_vertex(game, vertex) == frozenset(
+        {teyuna_core.ResourceCard.WOOD}
+    )
+
+
 def test_vertices_available_for_free_placement_excludes_restricted() -> None:
     terrace = teyuna_core.PlayedSettlement(
         owner="player-0",
