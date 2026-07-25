@@ -4,7 +4,7 @@ Python SDK for talking to a [Teyuna](https://github.com/srcolinas/teyuna) game s
 
 ## Requirements
 
-- Python 3.14+
+- Python 3.12+
 - A running Teyuna game server (see the [main repository](https://github.com/srcolinas/teyuna))
 
 ## Install

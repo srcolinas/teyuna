@@ -1,7 +1,7 @@
 ARG UV_VERSION=0.11.26
-ARG PYTHON_VERSION=3.14.6
-# uv images tag Python as major.minor only (e.g. python3.14), not patch (python3.14.6)
-ARG PYTHON_MINOR=3.14
+ARG PYTHON_VERSION=3.12.13
+# uv images tag Python as major.minor only (e.g. python3.12), not patch (python3.12.13)
+ARG PYTHON_MINOR=3.12
 
 # ============================================
 # Stage: Builder — install Python deps with uv

@@ -5,8 +5,8 @@ services:
       dockerfile: docker/backend.Dockerfile
       args:
         UV_VERSION: ${UV_VERSION:-0.11.26}
-        PYTHON_VERSION: ${PYTHON_VERSION:-3.14.6}
-        PYTHON_MINOR: ${PYTHON_MINOR:-3.14}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.12.13}
+        PYTHON_MINOR: ${PYTHON_MINOR:-3.12}
     env_file:
       - path: .env
         required: false

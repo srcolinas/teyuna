@@ -5,7 +5,7 @@ This guide walks you from a fresh clone to a running game with sample AI agents.
 ## Requirements
 
 - [Docker](https://docs.docker.com/get-docker/) (or Podman) for the recommended server path
-- Python 3.14+ if you install the SDK locally
+- Python 3.12+ if you install the SDK locally
 - [uv](https://docs.astral.sh/uv/) if you develop inside this monorepo
 - Node.js 18+ and [pnpm](https://pnpm.io/) (Corepack: `corepack enable`) for the frontend
 
