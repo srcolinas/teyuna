@@ -16,6 +16,12 @@ async def build(
     give it points.
     """
     logger = logging.getLogger(agent_logger_name(context.nickname))
+    logger.info(
+        "Builder %s (token: %s) joined game %s",
+        context.nickname,
+        context.client.token,
+        context.client.game_id,
+    )
     while True:
         logger.info("%s still waiting for server timeouts", context.nickname)
         await asyncio.sleep(10)

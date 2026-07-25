@@ -42,6 +42,12 @@ async def build(
     * It can randomly propose trades to other players if it has the resources to do so.
     """
     logger = logging.getLogger(logging_config.agent_logger_name(context.nickname))
+    logger.info(
+        "Builder %s (token: %s) joined game %s",
+        context.nickname,
+        context.client.token,
+        context.client.game_id,
+    )
     sleep_time = 2.0
     while True:
         game = await context.client.get_game()

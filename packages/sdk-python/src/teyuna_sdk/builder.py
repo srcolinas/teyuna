@@ -17,6 +17,12 @@ async def build(
     desired goal of 10 points.
     """
     logger = logging.getLogger(logging_config.agent_logger_name(context.nickname))
+    logger.info(
+        "Builder %s (token: %s) joined game %s",
+        context.nickname,
+        context.client.token,
+        context.client.game_id,
+    )
     sleep_time = 2
     while True:
         game = await context.client.get_game()
