@@ -151,14 +151,26 @@ function App() {
   }
 
   const activePlayer = game.turn_order[0]
+  const nextPlayer = game.turn_order[1]
+  const leftPlayers = game.players.slice(0, 2)
+  const rightPlayers = game.players.slice(2)
   const winner =
     game.phase === 'end game'
       ? [...game.players].sort((left, right) => right.victory_points - left.victory_points)[0]
       : null
+  const panelProps = {
+    turnOrder: game.turn_order,
+    playerColors,
+    privateInfo: privatePlayerInfo,
+    privateErrors,
+    revealedPlayers: new Set(Object.keys(playerTokens)),
+    onTokenSubmit: submitPlayerToken,
+    onTokenClear: clearPlayerToken,
+  }
 
   return (
     <main className="min-h-screen bg-white p-4 pb-24">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[90rem]">
         <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-emerald-700">
@@ -192,20 +204,35 @@ function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-          <section className="rounded-xl bg-white p-4 shadow lg:col-span-3">
-            <div className="mb-3 flex items-center justify-between">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(220px,1fr)_minmax(0,2.5fr)_minmax(220px,1fr)]">
+          <aside className="order-1 min-h-0">
+            <PlayerPanel players={leftPlayers} {...panelProps} />
+          </aside>
+
+          <section className="order-2 rounded-xl bg-white p-4 shadow">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-xl font-bold">Game board</h2>
-              <div className="flex flex-wrap gap-3 text-xs">
-                {game.players.map((player) => (
-                  <span key={player.nickname} className="flex items-center gap-1">
-                    <i
-                      className="h-3 w-3 rounded-full"
-                      style={{ background: playerColors[player.nickname] }}
-                    />
-                    {player.nickname}
-                  </span>
-                ))}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+                    Up next
+                  </p>
+                  <p className="text-sm font-semibold text-blue-950">
+                    {nextPlayer ??
+                      (activePlayer ? 'Waiting for the next turn' : 'Waiting for players')}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs">
+                  {game.players.map((player) => (
+                    <span key={player.nickname} className="flex items-center gap-1">
+                      <i
+                        className="h-3 w-3 rounded-full"
+                        style={{ background: playerColors[player.nickname] }}
+                      />
+                      {player.nickname}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
             <GameBoard
@@ -222,17 +249,8 @@ function App() {
             </div>
           </section>
 
-          <aside>
-            <PlayerPanel
-              players={game.players}
-              turnOrder={game.turn_order}
-              playerColors={playerColors}
-              privateInfo={privatePlayerInfo}
-              privateErrors={privateErrors}
-              revealedPlayers={new Set(Object.keys(playerTokens))}
-              onTokenSubmit={submitPlayerToken}
-              onTokenClear={clearPlayerToken}
-            />
+          <aside className="order-3 min-h-0">
+            <PlayerPanel players={rightPlayers} {...panelProps} />
           </aside>
         </div>
 
