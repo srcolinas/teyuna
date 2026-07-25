@@ -8,12 +8,12 @@ import teyuna_core
 from ... import entities
 from . import _placement
 
-TypedHandler = Callable[[entities.Game, Any], teyuna_core.ActionExecutionResult]
+TypedHandler = Callable[[entities.Game, Any], teyuna_core.AnyActionExecutionResult]
 
 
 def handle_advance(
     game: entities.Game, action: teyuna_core.PlayerAction
-) -> teyuna_core.ActionExecutionResult:
+) -> teyuna_core.AnyActionExecutionResult:
     """Expand bare ``PlayerAction`` into a random legal typed move for this phase."""
     typed = random_action_for_phase(game, action)
     return _typed_handler_for(game.phase)(game, typed)
@@ -21,7 +21,7 @@ def handle_advance(
 
 def random_action_for_phase(
     game: entities.Game, action: teyuna_core.PlayerAction
-) -> teyuna_core.PlayerAction:
+) -> teyuna_core.PlayerActionBase:
     """Build a random legal typed action for ``game.phase``, bound to ``action``."""
     by = action.by
     rng = action.rng_

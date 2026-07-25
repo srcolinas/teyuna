@@ -9,7 +9,7 @@ import teyuna_core
 
 from .. import entities
 
-TimeoutFn = Callable[[entities.Game, random.Random], teyuna_core.PlayerAction]
+TimeoutFn = Callable[[entities.Game, random.Random], teyuna_core.PlayerActionBase]
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -34,24 +34,24 @@ class ActionsRegistry:
         self._registry: dict[
             teyuna_core.GamePhaseName,
             dict[
-                type[teyuna_core.PlayerAction],
-                Callable[[entities.Game, Any], teyuna_core.ActionExecutionResult],
+                type[teyuna_core.PlayerActionBase],
+                Callable[[entities.Game, Any], teyuna_core.AnyActionExecutionResult],
             ],
         ] = {}
         self._timeouts: dict[teyuna_core.GamePhaseName, PhaseTimeout] = {}
 
-    def register[ActionT: teyuna_core.PlayerAction](
+    def register[ActionT: teyuna_core.PlayerActionBase](
         self,
         phase: teyuna_core.GamePhaseName,
     ) -> Callable[
-        [Callable[[entities.Game, ActionT], teyuna_core.ActionExecutionResult]],
-        Callable[[entities.Game, ActionT], teyuna_core.ActionExecutionResult],
+        [Callable[[entities.Game, ActionT], teyuna_core.AnyActionExecutionResult]],
+        Callable[[entities.Game, ActionT], teyuna_core.AnyActionExecutionResult],
     ]:
         def decorator(
             handler: Callable[
-                [entities.Game, ActionT], teyuna_core.ActionExecutionResult
+                [entities.Game, ActionT], teyuna_core.AnyActionExecutionResult
             ],
-        ) -> Callable[[entities.Game, ActionT], teyuna_core.ActionExecutionResult]:
+        ) -> Callable[[entities.Game, ActionT], teyuna_core.AnyActionExecutionResult]:
             sig = inspect.signature(handler)
             params = list(sig.parameters.values())
 
@@ -66,11 +66,11 @@ class ActionsRegistry:
             action_type = annotations.get(action_param_name)
 
             if not isinstance(action_type, type) or not issubclass(
-                action_type, teyuna_core.PlayerAction
+                action_type, teyuna_core.PlayerActionBase
             ):
                 raise TypeError(
                     f"The second parameter '{action_param_name}' of handler '{handler.__name__}' "
-                    f"must be annotated with a subclass of PlayerAction (got {action_type})."
+                    f"must be annotated with a subclass of PlayerActionBase (got {action_type})."
                 )
 
             if phase not in self._registry:
@@ -99,8 +99,8 @@ class ActionsRegistry:
             ) from None
 
     def execute(
-        self, game: entities.Game, action: teyuna_core.PlayerAction
-    ) -> teyuna_core.ActionExecutionResult:
+        self, game: entities.Game, action: teyuna_core.PlayerActionBase
+    ) -> teyuna_core.AnyActionExecutionResult:
         phase_handlers = self._registry.get(game.phase)
         if not phase_handlers:
             raise GamePhaseHanlderNotImplementedError(

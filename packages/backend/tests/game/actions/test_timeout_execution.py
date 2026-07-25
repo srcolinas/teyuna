@@ -390,7 +390,7 @@ async def _apply_due(
     *,
     rng: random.Random | None = None,
     event_broker: broker.EventBroker | None = None,
-) -> teyuna_core.ActionExecutionResult | None:
+) -> teyuna_core.AnyActionExecutionResult | None:
     return await services.apply_timeout_if_due(
         game_id,
         repository=repository,

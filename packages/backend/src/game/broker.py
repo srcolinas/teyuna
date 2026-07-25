@@ -10,7 +10,7 @@ import teyuna_core
 @dataclasses.dataclass
 class Event:
     id: int
-    data: teyuna_core.ActionExecutionResult
+    data: teyuna_core.AnyActionExecutionResult
 
 
 class EventBroker:
@@ -21,7 +21,7 @@ class EventBroker:
         self._next_id: dict[uuid.UUID, int] = collections.defaultdict(int)
 
     async def publish(
-        self, game_id: uuid.UUID, data: teyuna_core.ActionExecutionResult
+        self, game_id: uuid.UUID, data: teyuna_core.AnyActionExecutionResult
     ) -> None:
         event = Event(id=self._next_id[game_id], data=data)
         self._next_id[game_id] += 1

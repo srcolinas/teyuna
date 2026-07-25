@@ -13,8 +13,8 @@ class ApplyActionRegistry(Protocol):
     def execute(
         self,
         game: entities.Game,
-        action: teyuna_core.PlayerAction,
-    ) -> teyuna_core.ActionExecutionResult: ...
+        action: teyuna_core.PlayerActionBase,
+    ) -> teyuna_core.AnyActionExecutionResult: ...
 
     def timeout_for(self, phase: teyuna_core.GamePhaseName) -> actions.PhaseTimeout: ...
 
@@ -25,20 +25,20 @@ class ApplyActionLocks(Protocol):
 
 class Broker(Protocol):
     async def publish(
-        self, game_id: uuid.UUID, data: teyuna_core.ActionExecutionResult
+        self, game_id: uuid.UUID, data: teyuna_core.AnyActionExecutionResult
     ) -> None: ...
 
 
 async def apply_player_action(
     game_id: uuid.UUID,
-    action: teyuna_core.PlayerAction,
+    action: teyuna_core.PlayerActionBase,
     *,
     repository: _add_player.UpdateGameRepository,
     registry: ApplyActionRegistry,
     game_locks: ApplyActionLocks,
     broker: Broker,
     now: datetime.datetime | None = None,
-) -> tuple[teyuna_core.ActionExecutionResult, entities.Game]:
+) -> tuple[teyuna_core.AnyActionExecutionResult, entities.Game]:
     if now is None:
         now = datetime.datetime.now(datetime.UTC)
 
@@ -65,7 +65,7 @@ async def apply_timeout_if_due(
     broker: Broker,
     rng: random.Random,
     now: datetime.datetime | None = None,
-) -> teyuna_core.ActionExecutionResult | None:
+) -> teyuna_core.AnyActionExecutionResult | None:
     if now is None:
         now = datetime.datetime.now(datetime.UTC)
 

@@ -34,7 +34,7 @@ class GameRoute(APIRoute):
         return handler
 
 
-def raise_if_failed(result: teyuna_core.ActionExecutionResult) -> None:
+def raise_if_failed(result: teyuna_core.ActionExecutionResultBase) -> None:
     if result.error is None:
         return
     raise fastapi.HTTPException(
