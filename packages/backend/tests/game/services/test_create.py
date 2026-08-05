@@ -52,7 +52,7 @@ def test_create_game_places_conquistator_on_desert_when_present() -> None:
         lobby_timeout=datetime.timedelta(minutes=10),
     )
 
-    assert game.conquistator_location == teyuna_core.HexCoordinate(q=0, r=0)
+    assert game.conquistator_location == teyuna_core.HexLocation(q=0, r=0)
 
 
 def test_create_game_places_conquistator_on_first_hex_when_no_desert() -> None:
@@ -68,7 +68,7 @@ def test_create_game_places_conquistator_on_first_hex_when_no_desert() -> None:
         lobby_timeout=datetime.timedelta(minutes=10),
     )
 
-    assert game.conquistator_location == teyuna_core.HexCoordinate(q=1, r=-1)
+    assert game.conquistator_location == teyuna_core.HexLocation(q=1, r=-1)
 
 
 def test_create_game_places_conquistator_at_origin_when_map_is_empty() -> None:
@@ -81,7 +81,7 @@ def test_create_game_places_conquistator_at_origin_when_map_is_empty() -> None:
     )
 
     assert game.map == ()
-    assert game.conquistator_location == teyuna_core.HexCoordinate(q=0, r=0)
+    assert game.conquistator_location == teyuna_core.HexLocation(q=0, r=0)
 
 
 def test_create_game_uses_explicit_conquistator_location() -> None:
@@ -95,13 +95,13 @@ def test_create_game_uses_explicit_conquistator_location() -> None:
         teyuna_core.CreateGameRequest(
             num_players=3,
             map=board,
-            conquistator_location=teyuna_core.HexCoordinate(q=1, r=0),
+            conquistator_location=teyuna_core.HexLocation(q=1, r=0),
         ),
         repository,
         lobby_timeout=datetime.timedelta(minutes=10),
     )
 
-    assert game.conquistator_location == teyuna_core.HexCoordinate(q=1, r=0)
+    assert game.conquistator_location == teyuna_core.HexLocation(q=1, r=0)
 
 
 def test_create_game_uses_explicit_harbours() -> None:
@@ -110,14 +110,8 @@ def test_create_game_uses_explicit_harbours() -> None:
     harbour = teyuna_core.Harbour(
         resource=teyuna_core.ResourceCard.GOLD,
         vertices=(
-            teyuna_core.VertexCoordinate(
-                hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
-                direction=0,
-            ),
-            teyuna_core.VertexCoordinate(
-                hex_coord=teyuna_core.HexCoordinate(q=0, r=0),
-                direction=1,
-            ),
+            teyuna_core.Coordinate(q=0, r=0, d=0),
+            teyuna_core.Coordinate(q=0, r=0, d=1),
         ),
     )
 
@@ -125,7 +119,7 @@ def test_create_game_uses_explicit_harbours() -> None:
         teyuna_core.CreateGameRequest(
             num_players=3,
             map=board,
-            conquistator_location=teyuna_core.HexCoordinate(q=0, r=0),
+            conquistator_location=teyuna_core.HexLocation(q=0, r=0),
             harbours=(harbour,),
         ),
         repository,
@@ -154,7 +148,7 @@ def _port_map(
 ) -> tuple[teyuna_core.Hex, ...]:
     return tuple(
         teyuna_core.Hex(
-            coordinate=teyuna_core.HexCoordinate(q=q, r=r),
+            coordinate=teyuna_core.HexLocation(q=q, r=r),
             type=hex_type,
             number=number,
         )

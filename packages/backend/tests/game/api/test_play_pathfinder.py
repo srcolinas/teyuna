@@ -17,8 +17,8 @@ def _path_coord(path: teyuna_core.Coordinate) -> dict[str, int]:
     return {"q": path.q, "r": path.r, "d": path.d}
 
 
-def _path_result(path: teyuna_core.Coordinate) -> list[int]:
-    return [path.q, path.r, path.d]
+def _path_result(path: teyuna_core.Coordinate) -> dict[str, int]:
+    return {"q": path.q, "r": path.r, "d": path.d}
 
 
 def test_returns_404_when_game_does_not_exist(

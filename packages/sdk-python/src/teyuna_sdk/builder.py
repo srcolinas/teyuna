@@ -82,7 +82,7 @@ async def _initial_placement(
     owned = rules.resources_owned_by(game, by=context.nickname)
 
     def _placement_score(
-        vertex: teyuna_core.VertexCoordinate,
+        vertex: teyuna_core.Coordinate,
     ) -> tuple[int, int]:
         at_vertex = rules.resources_at_vertex(game, vertex)
         return (len(at_vertex - owned), len(at_vertex))
@@ -99,8 +99,8 @@ async def _initial_placement(
     path = edges[0]
     await context.client.submit_action(
         teyuna_core.FreePlacementAction(
-            terrace=rules.from_vertex(terrace),
-            path=rules.from_edge(path),
+            terrace=terrace,
+            path=path,
         )
     )
     logger.info(
@@ -128,7 +128,7 @@ async def _trade_and_build(
             await context.client.submit_action(
                 teyuna_core.BuildSettlementAction(
                     item=teyuna_core.SettlementType.GREAT_TERRACE,
-                    coordinate=rules.from_vertex(terrace),
+                    coordinate=terrace,
                 )
             )
             logger.info("%s built great terrace at %s", context.nickname, terrace)
@@ -139,7 +139,7 @@ async def _trade_and_build(
             await context.client.submit_action(
                 teyuna_core.BuildSettlementAction(
                     item=teyuna_core.SettlementType.TERRACE,
-                    coordinate=rules.from_vertex(vertex),
+                    coordinate=vertex,
                 )
             )
             logger.info("%s built terrace at %s", context.nickname, vertex)
@@ -148,7 +148,7 @@ async def _trade_and_build(
         if rules.can_afford(resources, teyuna_core.PATH_COST):
             edge = edges[0]
             await context.client.submit_action(
-                teyuna_core.BuildPathAction(coordinate=rules.from_edge(edge))
+                teyuna_core.BuildPathAction(coordinate=edge)
             )
             logger.info("%s built path at %s", context.nickname, edge)
             return

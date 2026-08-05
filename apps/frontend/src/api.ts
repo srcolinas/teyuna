@@ -1,12 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
-import {
-  ActiveGame,
-  EdgeCoordinate,
-  HexCoordinate,
-  PrivatePlayerInfo,
-  SettlementType,
-  VertexCoordinate,
-} from './types'
+import { ActiveGame, Coordinate, HexLocation, PrivatePlayerInfo, SettlementType } from './types'
 
 const rawApiUrl = import.meta.env.VITE_API_URL
 if (typeof rawApiUrl !== 'string' || rawApiUrl.trim() === '') {
@@ -17,14 +10,6 @@ export const API_BASE_URL = rawApiUrl.replace(/\/$/, '')
 
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` }
-}
-
-function vertexToCoordinate(location: VertexCoordinate) {
-  return { q: location.hex_coord.q, r: location.hex_coord.r, d: location.direction }
-}
-
-function edgeToCoordinate(location: EdgeCoordinate) {
-  return { q: location.hex_coord.q, r: location.hex_coord.r, d: location.direction }
 }
 
 class ApiClient {
@@ -102,17 +87,17 @@ class ApiClient {
   async placeInitialBuildings(
     gameId: string,
     token: string,
-    terrace: VertexCoordinate,
-    path: EdgeCoordinate,
+    terrace: Coordinate,
+    path: Coordinate,
   ): Promise<void> {
     await this.submitAction(gameId, token, {
       kind: 'free_placement',
-      terrace: vertexToCoordinate(terrace),
-      path: edgeToCoordinate(path),
+      terrace,
+      path,
     })
   }
 
-  async moveConquistator(gameId: string, token: string, location: HexCoordinate): Promise<void> {
+  async moveConquistator(gameId: string, token: string, location: HexLocation): Promise<void> {
     await this.submitAction(gameId, token, {
       kind: 'move_conquistator',
       q: location.q,
@@ -129,20 +114,20 @@ class ApiClient {
     gameId: string,
     token: string,
     item: SettlementType,
-    location: VertexCoordinate,
+    location: Coordinate,
   ): Promise<string> {
     const result = await this.submitAction(gameId, token, {
       kind: 'build_settlement',
       item,
-      coordinate: vertexToCoordinate(location),
+      coordinate: location,
     })
     return result.next_phase
   }
 
-  async buildPath(gameId: string, token: string, location: EdgeCoordinate): Promise<string> {
+  async buildPath(gameId: string, token: string, location: Coordinate): Promise<string> {
     const result = await this.submitAction(gameId, token, {
       kind: 'build_path',
-      coordinate: edgeToCoordinate(location),
+      coordinate: location,
     })
     return result.next_phase
   }

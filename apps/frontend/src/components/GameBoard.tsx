@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Harbour,
   Hex,
-  HexCoordinate,
+  HexLocation,
   PlayedSettlement,
   PlayedStonePath,
   HEX_TYPE_COLORS,
@@ -78,7 +78,7 @@ function regularHexagon(radius: number): Point[] {
   })
 }
 
-function sameHex(a: HexCoordinate | null, b: HexCoordinate): boolean {
+function sameHex(a: HexLocation | null, b: HexLocation): boolean {
   return a !== null && a.q === b.q && a.r === b.r
 }
 
@@ -105,7 +105,7 @@ export default function GameBoard({
   onVertexClick,
   onEdgeClick,
 }: GameBoardProps) {
-  const [hoveredHex, setHoveredHex] = useState<HexCoordinate | null>(null)
+  const [hoveredHex, setHoveredHex] = useState<HexLocation | null>(null)
   const offset = BOARD_CENTER
   const terrainHull = convexHull(
     hexes.flatMap((hex) =>
@@ -115,13 +115,13 @@ export default function GameBoard({
 
   const settlementsByLocation = new Map<string, PlayedSettlement>()
   settlements.forEach((s) => {
-    const key = `${s.location.hex_coord.q},${s.location.hex_coord.r},${s.location.direction}`
+    const key = `${s.location.q},${s.location.r},${s.location.d}`
     settlementsByLocation.set(key, s)
   })
 
   const pathsByLocation = new Map<string, PlayedStonePath>()
   paths.forEach((p) => {
-    const key = `${p.location.hex_coord.q},${p.location.hex_coord.r},${p.location.direction}`
+    const key = `${p.location.q},${p.location.r},${p.location.d}`
     pathsByLocation.set(key, p)
   })
 
@@ -222,16 +222,8 @@ export default function GameBoard({
 
         {harbours.map((harbour) => {
           const [firstVertex, secondVertex] = harbour.vertices
-          const first = getHexVertexCoord(
-            firstVertex.hex_coord.q,
-            firstVertex.hex_coord.r,
-            firstVertex.direction,
-          )
-          const second = getHexVertexCoord(
-            secondVertex.hex_coord.q,
-            secondVertex.hex_coord.r,
-            secondVertex.direction,
-          )
+          const first = getHexVertexCoord(firstVertex.q, firstVertex.r, firstVertex.d)
+          const second = getHexVertexCoord(secondVertex.q, secondVertex.r, secondVertex.d)
           const middle = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }
           const distance = Math.hypot(middle.x, middle.y) || 1
           const label = harbour.resource ? `⛵ 2:1 ${harbour.resource}` : '⛵ 3:1 any'
@@ -239,12 +231,12 @@ export default function GameBoard({
           const labelX = middle.x + (middle.x / distance) * labelDistance + offset.offsetX
           const labelY = middle.y + (middle.y / distance) * labelDistance + offset.offsetY
           const harbourKey = [
-            firstVertex.hex_coord.q,
-            firstVertex.hex_coord.r,
-            firstVertex.direction,
-            secondVertex.hex_coord.q,
-            secondVertex.hex_coord.r,
-            secondVertex.direction,
+            firstVertex.q,
+            firstVertex.r,
+            firstVertex.d,
+            secondVertex.q,
+            secondVertex.r,
+            secondVertex.d,
           ].join('-')
           return (
             <g key={`harbour-${harbourKey}`}>

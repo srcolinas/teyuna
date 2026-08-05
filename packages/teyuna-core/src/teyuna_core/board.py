@@ -1,5 +1,7 @@
 import itertools
-from typing import Final, NamedTuple
+from typing import Annotated, Final, NamedTuple
+
+import pydantic
 
 from . import constants, entities
 
@@ -14,7 +16,7 @@ _NEIGHBOR: Final[list[tuple[int, int]]] = [
 ]
 
 
-class Coordinate(NamedTuple):
+class Coordinate(pydantic.BaseModel):
     """Coordinate for a vertex (corner) or edge of a hex.
 
     A vertex or edge is identified by its adjacent hex and a direction (0-5).
@@ -23,14 +25,42 @@ class Coordinate(NamedTuple):
 
     q: int
     r: int
-    d: int
+    d: Annotated[int, pydantic.Field(ge=0, le=5)]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Coordinate):
+            return NotImplemented
+        return (self.q, self.r, self.d) < (other.q, other.r, other.d)
 
 
-class HexLocation(NamedTuple):
-    """Coordinates of a hex, not including any vertex or edge."""
+class HexLocation(pydantic.BaseModel):
+    """Coordinates of a hex, not including any vertex or edge.
 
-    q: int
-    r: int
+    Uses the axial coordinate system (q, r).
+    See: https://www.redblobgames.com/grids/hexagons/.
+    """
+
+    q: Annotated[
+        int,
+        pydantic.Field(
+            description="0 along the top left to bottom right diagonal of the board, positives to the right",
+        ),
+    ]
+    r: Annotated[
+        int,
+        pydantic.Field(
+            description="0 along the horizontal axes of the board, positives to the bottom",
+        ),
+    ]
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, HexLocation):
+            return NotImplemented
+        return (self.q, self.r) < (other.q, other.r)
 
 
 def delta_to_neighbor(d: int) -> tuple[int, int]:
@@ -80,10 +110,9 @@ def canonical_edge(q: int, r: int, d: int) -> Coordinate:
 def vertices_of_edge(
     edge: Coordinate,
 ) -> tuple[Coordinate, Coordinate]:
-    q, r, d = edge
     return (
-        canonical_vertex(q, r, d),
-        canonical_vertex(q, r, (d + 1) % 6),
+        canonical_vertex(edge.q, edge.r, edge.d),
+        canonical_vertex(edge.q, edge.r, (edge.d + 1) % 6),
     )
 
 

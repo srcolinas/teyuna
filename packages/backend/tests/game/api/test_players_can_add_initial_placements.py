@@ -53,8 +53,8 @@ def test_returns_200_when_active_player_places(
     body = response.json()
     assert body["kind"] == "placed_buildings"
     assert body["action"]["kind"] == "free_placement"
-    assert body["settlement"] == [0, -1, 2]
-    assert body["path"] == [0, -1, 2]
+    assert body["settlement"] == {"q": 0, "r": -1, "d": 2}
+    assert body["path"] == {"q": 0, "r": -1, "d": 2}
 
 
 def test_persists_placement_after_success(client: testclient.TestClient) -> None:
@@ -74,7 +74,7 @@ def test_persists_placement_after_success(client: testclient.TestClient) -> None
     assert response.status_code == 200, response.text
     assert response.json() == [
         {
-            "location": {"hex_coord": {"q": 0, "r": -1}, "direction": 2},
+            "location": {"q": 0, "r": -1, "d": 2},
             "type": "terrace",
             "owner": active_player,
         }
@@ -84,7 +84,7 @@ def test_persists_placement_after_success(client: testclient.TestClient) -> None
     assert response.status_code == 200, response.text
     assert response.json() == [
         {
-            "location": {"hex_coord": {"q": 0, "r": -1}, "direction": 2},
+            "location": {"q": 0, "r": -1, "d": 2},
             "owner": active_player,
         }
     ]
@@ -219,9 +219,9 @@ def test_returns_200_when_only_terrace_provided(client: testclient.TestClient) -
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["kind"] == "placed_buildings"
-    assert body["settlement"] == [0, -1, 2]
+    assert body["settlement"] == {"q": 0, "r": -1, "d": 2}
     assert body["path"] is not None
-    assert len(body["path"]) == 3
+    assert set(body["path"]) == {"q", "r", "d"}
 
 
 def test_returns_400_when_action_not_allowed(

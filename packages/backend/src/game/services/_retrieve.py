@@ -23,10 +23,7 @@ def retrieve_game(
         for location, type in entity_player.settlements.items():
             settlements.append(
                 teyuna_core.PlayedSettlement(
-                    location=teyuna_core.VertexCoordinate(
-                        hex_coord=teyuna_core.HexCoordinate(q=location.q, r=location.r),
-                        direction=location.d,
-                    ),
+                    location=location,
                     type=type,
                     owner=nickname,
                 )
@@ -35,10 +32,7 @@ def retrieve_game(
             paths.append(
                 teyuna_core.PlayedStonePath(
                     owner=nickname,
-                    location=teyuna_core.EdgeCoordinate(
-                        hex_coord=teyuna_core.HexCoordinate(q=path.q, r=path.r),
-                        direction=path.d,
-                    ),
+                    location=path,
                 )
             )
     return teyuna_core.Game(
@@ -46,13 +40,13 @@ def retrieve_game(
         turns_played=game.turns_played,
         map=tuple(
             teyuna_core.Hex(
-                coordinate=teyuna_core.HexCoordinate(q=hex.q, r=hex.r),
+                coordinate=teyuna_core.HexLocation(q=hex.q, r=hex.r),
                 type=hex.type,
                 number=hex.number,
             )
             for hex in game.map
         ),
-        conquistator_location=teyuna_core.HexCoordinate(
+        conquistator_location=teyuna_core.HexLocation(
             q=game.conquistator_location.q, r=game.conquistator_location.r
         ),
         harbours=teyuna_core.grouped_harbours(game.harbours),

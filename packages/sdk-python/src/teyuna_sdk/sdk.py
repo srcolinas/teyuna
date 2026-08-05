@@ -117,13 +117,13 @@ class GameClient:
         _raise_for_status(response)
         return tuple(response.json())
 
-    async def get_conquistator(self) -> teyuna_core.HexCoordinate:
+    async def get_conquistator(self) -> teyuna_core.HexLocation:
         """Fetch the current Conquistador hex location."""
         response = await _http_client.get(
             f"{self._base_url}/games/{self._game_id}/conquistator",
         )
         _raise_for_status(response)
-        return teyuna_core.HexCoordinate.model_validate(response.json())
+        return teyuna_core.HexLocation.model_validate(response.json())
 
     async def list_players(self) -> list[teyuna_core.Player]:
         """List all players' public info for a game."""

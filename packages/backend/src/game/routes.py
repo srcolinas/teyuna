@@ -93,7 +93,7 @@ def get_turn_order(
 @router.get("/{game_id}/conquistator")
 def get_conquistator_location(
     game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
-) -> teyuna_core.HexCoordinate:
+) -> teyuna_core.HexLocation:
     return game.conquistator_location
 
 
@@ -196,11 +196,7 @@ def get_settlement(
     game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
 ) -> teyuna_core.PlayedSettlement | None:
     for s in game.settlements:
-        if (
-            s.location.hex_coord.q == q
-            and s.location.hex_coord.r == r
-            and s.location.direction == direction
-        ):
+        if s.location.q == q and s.location.r == r and s.location.d == direction:
             return s
     return None
 
@@ -222,11 +218,7 @@ def get_path(
     game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
 ) -> teyuna_core.PlayedStonePath | None:
     for p in game.paths:
-        if (
-            p.location.hex_coord.q == q
-            and p.location.hex_coord.r == r
-            and p.location.direction == direction
-        ):
+        if p.location.q == q and p.location.r == r and p.location.d == direction:
             return p
     return None
 

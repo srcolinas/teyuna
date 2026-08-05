@@ -1,22 +1,18 @@
-export interface HexCoordinate {
+export interface HexLocation {
   q: number
   r: number
 }
 
-export interface VertexCoordinate {
-  hex_coord: HexCoordinate
-  direction: number
-}
-
-export interface EdgeCoordinate {
-  hex_coord: HexCoordinate
-  direction: number
+export interface Coordinate {
+  q: number
+  r: number
+  d: number
 }
 
 export type HexType = 'mountains' | 'quarries' | 'highlands' | 'valleys' | 'jungle' | 'desert'
 
 export interface Hex {
-  coordinate: HexCoordinate
+  coordinate: HexLocation
   type: HexType
   number: number | null
 }
@@ -25,13 +21,13 @@ export type SettlementType = 'terrace' | 'great terrace'
 
 export interface PlayedSettlement {
   owner: string
-  location: VertexCoordinate
+  location: Coordinate
   type: SettlementType
 }
 
 export interface PlayedStonePath {
   owner: string
-  location: EdgeCoordinate
+  location: Coordinate
 }
 
 export type ResourceCard = 'gold' | 'stone' | 'cotton' | 'maize' | 'wood'
@@ -40,7 +36,7 @@ export type WisdomCard =
 
 export interface Harbour {
   resource: ResourceCard | null
-  vertices: [VertexCoordinate, VertexCoordinate]
+  vertices: [Coordinate, Coordinate]
 }
 
 export interface Player {
@@ -63,7 +59,7 @@ export interface ActiveGame {
   id: string
   turns_played: number
   map: Hex[]
-  conquistator_location: HexCoordinate
+  conquistator_location: HexLocation
   harbours: Harbour[]
   players: Player[]
   settlements: PlayedSettlement[]

@@ -28,10 +28,10 @@ def assert_settlements(
     ],
 ) -> None:
     expected_buildings = []
-    for owner, t, (q, r, d) in expected:
+    for owner, t, location in expected:
         building = {
             "owner": owner,
-            "location": {"hex_coord": {"q": q, "r": r}, "direction": d},
+            "location": {"q": location.q, "r": location.r, "d": location.d},
             "type": t,
         }
         expected_buildings.append(building)
@@ -39,9 +39,9 @@ def assert_settlements(
     def key(x: dict[str, Any]) -> tuple[str, int, int, int]:
         return (
             x["owner"],
-            x["location"]["hex_coord"]["q"],
-            x["location"]["hex_coord"]["r"],
-            x["location"]["direction"],
+            x["location"]["q"],
+            x["location"]["r"],
+            x["location"]["d"],
         )
 
     assert sorted(buildings, key=key) == sorted(expected_buildings, key=key)
@@ -52,18 +52,18 @@ def assert_paths(
     expected: list[tuple[player.Nickname, teyuna_core.Coordinate]],
 ) -> None:
     expected_buildings = []
-    for owner, (q, r, d) in expected:
+    for owner, location in expected:
         building = {
             "owner": owner,
-            "location": {"hex_coord": {"q": q, "r": r}, "direction": d},
+            "location": {"q": location.q, "r": location.r, "d": location.d},
         }
         expected_buildings.append(building)
 
     def key(x: dict[str, Any]) -> tuple[str, int, int]:
         return (
             x["owner"],
-            x["location"]["hex_coord"]["q"],
-            x["location"]["hex_coord"]["r"],
+            x["location"]["q"],
+            x["location"]["r"],
         )
 
     assert sorted(buildings, key=key) == sorted(expected_buildings, key=key)

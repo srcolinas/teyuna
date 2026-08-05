@@ -72,14 +72,8 @@ def test_create_with_custom_harbours(client: testclient.TestClient) -> None:
     custom_harbour = {
         "resource": "gold",
         "vertices": [
-            {
-                "hex_coord": {"q": 0, "r": 0},
-                "direction": 0,
-            },
-            {
-                "hex_coord": {"q": 0, "r": 0},
-                "direction": 1,
-            },
+            {"q": 0, "r": 0, "d": 0},
+            {"q": 0, "r": 0, "d": 1},
         ],
     }
     response = client.post(

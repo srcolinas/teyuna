@@ -86,7 +86,7 @@ def test_builds_path_and_returns_it(
     body = response.json()
     assert body["kind"] == "built_path"
     assert body["action"]["kind"] == "build_path"
-    assert body["coordinate"] == [path.q, path.r, path.d]
+    assert body["coordinate"] == {"q": path.q, "r": path.r, "d": path.d}
 
     game = repository.retrieve(game_id)
     phase = game.phase
@@ -178,8 +178,7 @@ def test_returns_path_by_coordinate(
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["owner"] == game.active_player
-    assert body["location"]["hex_coord"] == {"q": path.q, "r": path.r}
-    assert body["location"]["direction"] == path.d
+    assert body["location"] == {"q": path.q, "r": path.r, "d": path.d}
 
 
 def _setup_trade_and_build(

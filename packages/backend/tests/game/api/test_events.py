@@ -57,8 +57,8 @@ def test_single_client_receives_action_event(
     assert event["next_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["kind"] == "free_placement"
     assert "by" not in event["action"]
-    assert event["action"]["terrace"] == [0, -1, 2]
-    assert event["action"]["path"] == [0, -1, 2]
+    assert event["action"]["terrace"] == {"q": 0, "r": -1, "d": 2}
+    assert event["action"]["path"] == {"q": 0, "r": -1, "d": 2}
     game_after = client.get(f"/games/{game_id}").json()
     assert event["next_player"] == game_after["turn_order"][0]
 

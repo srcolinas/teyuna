@@ -8,63 +8,10 @@ import pydantic
 from . import board, constants, entities
 
 
-class HexCoordinate(pydantic.BaseModel):
-    """Axial coordinate for hex grid positioning.
-
-    Uses the axial coordinate system (q, r) which is standard for hex grids.
-    See: https://www.redblobgames.com/grids/hexagons/.
-    """
-
-    q: Annotated[
-        int,
-        pydantic.Field(
-            ge=-2,
-            le=2,
-            description="0 along the top left to bottom right diagonal of the board, positives to the right",
-        ),
-    ]
-    r: Annotated[
-        int,
-        pydantic.Field(
-            ge=-2,
-            le=2,
-            description="0 along the horizontal axes of the board, positives to the bottom",
-        ),
-    ]
-
-    model_config = pydantic.ConfigDict(frozen=True)
-
-
-class VertexCoordinate(pydantic.BaseModel):
-    """Coordinate for a vertex (corner) of a hex.
-
-    A vertex is identified by its adjacent hex and a direction (0-5).
-    Direction 0 is the top vertex, going clockwise.
-    """
-
-    hex_coord: HexCoordinate
-    direction: Annotated[int, pydantic.Field(ge=0, le=5)]
-
-    model_config = pydantic.ConfigDict(frozen=True)
-
-
-class EdgeCoordinate(pydantic.BaseModel):
-    """Coordinate for an edge (side) of a hex.
-
-    An edge is identified by its adjacent hex and a direction (0-5).
-    Direction 0 is the top-right edge, going clockwise.
-    """
-
-    hex_coord: HexCoordinate
-    direction: Annotated[int, pydantic.Field(ge=0, le=5)]
-
-    model_config = pydantic.ConfigDict(frozen=True)
-
-
 class Hex(pydantic.BaseModel):
     """A hex tile on the game board."""
 
-    coordinate: HexCoordinate
+    coordinate: board.HexLocation
     type: entities.HexType
     number: Annotated[int, pydantic.Field(default=None, ge=2, le=12)]
 
@@ -73,13 +20,13 @@ class Hex(pydantic.BaseModel):
 
 class PlayedSettlement(pydantic.BaseModel):
     owner: str
-    location: VertexCoordinate
+    location: board.Coordinate
     type: entities.SettlementType
 
 
 class PlayedStonePath(pydantic.BaseModel):
     owner: str
-    location: EdgeCoordinate
+    location: board.Coordinate
 
 
 class Player(pydantic.BaseModel):
@@ -118,7 +65,7 @@ class Harbour(pydantic.BaseModel):
     """A trading harbour spanning two docking vertices."""
 
     resource: entities.ResourceCard | None = None
-    vertices: tuple[VertexCoordinate, VertexCoordinate]
+    vertices: tuple[board.Coordinate, board.Coordinate]
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -127,7 +74,7 @@ class Game(pydantic.BaseModel):
     id: uuid.UUID
     turns_played: Annotated[int, pydantic.Field(ge=0)] = 0
     map: tuple[Hex, ...]
-    conquistator_location: HexCoordinate
+    conquistator_location: board.HexLocation
     harbours: tuple[Harbour, ...]
     players: list[Player]
     settlements: list[PlayedSettlement]
@@ -175,21 +122,8 @@ class Game(pydantic.BaseModel):
 class CreateGameRequest(pydantic.BaseModel):
     num_players: Annotated[int, pydantic.Field(ge=3, le=4, default=3)]
     map: tuple[Hex, ...] | None = None
-    conquistator_location: HexCoordinate | None = None
+    conquistator_location: board.HexLocation | None = None
     harbours: tuple[Harbour, ...] | None = None
-
-
-def _vertex_from_coordinate(coord: board.Coordinate) -> VertexCoordinate:
-    return VertexCoordinate(
-        hex_coord=HexCoordinate(q=coord.q, r=coord.r),
-        direction=coord.d,
-    )
-
-
-def _coordinate_from_vertex(vertex: VertexCoordinate) -> board.Coordinate:
-    return board.canonical_vertex(
-        vertex.hex_coord.q, vertex.hex_coord.r, vertex.direction
-    )
 
 
 def grouped_harbours(
@@ -199,14 +133,7 @@ def grouped_harbours(
     if pairs is None:
         pairs = board.default_harbour_pairs()
     return tuple(
-        Harbour(
-            resource=pair.resource,
-            vertices=(
-                _vertex_from_coordinate(pair.vertices[0]),
-                _vertex_from_coordinate(pair.vertices[1]),
-            ),
-        )
-        for pair in pairs
+        Harbour(resource=pair.resource, vertices=pair.vertices) for pair in pairs
     )
 
 
@@ -218,8 +145,16 @@ def harbour_pairs_from_ports(
         board.HarbourPair(
             resource=harbour.resource,
             vertices=(
-                _coordinate_from_vertex(harbour.vertices[0]),
-                _coordinate_from_vertex(harbour.vertices[1]),
+                board.canonical_vertex(
+                    harbour.vertices[0].q,
+                    harbour.vertices[0].r,
+                    harbour.vertices[0].d,
+                ),
+                board.canonical_vertex(
+                    harbour.vertices[1].q,
+                    harbour.vertices[1].r,
+                    harbour.vertices[1].d,
+                ),
             ),
         )
         for harbour in harbours

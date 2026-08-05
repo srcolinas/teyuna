@@ -83,7 +83,7 @@ def test_builds_terrace_and_returns_settlement(
     assert body["kind"] == "built_settlement"
     assert body["action"]["kind"] == "build_settlement"
     assert body["item"] == teyuna_core.SettlementType.TERRACE.value
-    assert body["coordinate"] == [terrace.q, terrace.r, terrace.d]
+    assert body["coordinate"] == {"q": terrace.q, "r": terrace.r, "d": terrace.d}
     game = repository.retrieve(game_id)
     phase = game.phase
     assert phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
