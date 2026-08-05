@@ -13,7 +13,8 @@ def test_handle_advance_first_placement(game: entities.Game) -> None:
 
     result = actions.handle_advance(
         game,
-        teyuna_core.PlayerAction(by=player, rng_=random.Random(0)),
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        teyuna_core.PlayerAction(),
     )
 
     assert result.error is None
@@ -31,7 +32,8 @@ def test_handle_advance_move_conquistator() -> None:
 
     result = actions.handle_advance(
         game,
-        teyuna_core.PlayerAction(by=player, rng_=random.Random(0)),
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        teyuna_core.PlayerAction(),
     )
 
     assert result.error is None
@@ -53,8 +55,12 @@ def test_resolve_free_placement_path_always_touches_new_terrace(
     for seed in range(20):
         action = _advance.resolve_free_placement(
             game,
-            random.Random(seed),
-            by=player,
+            actions.ExecutionContext(
+                by=player,
+                due_to_timeout=False,
+                rng=random.Random(seed),
+            ),
+            teyuna_core.FreePlacementAction(),
         )
         assert action.terrace is not None
         assert action.path is not None
@@ -72,11 +78,15 @@ def test_discard_resources_for_uses_submitting_player(game: entities.Game) -> No
     game.to_discard_resources = {"player-0": 2, "player-1": 3}
 
     action = _advance.discard_resources_for(
-        game, random.Random(0), by="player-1", due_to_timeout=False
+        game,
+        actions.ExecutionContext(
+            by="player-1",
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        teyuna_core.DiscardResourcesAction(count={}),
     )
 
-    assert action.by == "player-1"
-    assert action.due_to_timeout is False
     assert sum(action.count.values()) == 3
 
 

@@ -1,12 +1,15 @@
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 
 _MAX_MESSAGE_LENGTH = 500
 
 
 def handle_sent_message(
-    game: entities.Game, action: teyuna_core.SentMessageAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.SentMessageAction,
 ) -> teyuna_core.SentMessageResult:
     previous_phase = game.phase
     text = action.text.strip()

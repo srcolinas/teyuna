@@ -277,7 +277,9 @@ def _registry_with_wrong_action() -> actions.ActionsRegistry:
     registry = actions.ActionsRegistry()
 
     def handle_dummy(
-        game: entities.Game, action: _DummyAction
+        game: entities.Game,
+        context: actions.ExecutionContext,
+        action: _DummyAction,
     ) -> teyuna_core.ActionExecutionResult:
         return teyuna_core.ActionExecutionResult(
             previous_phase=game.phase,

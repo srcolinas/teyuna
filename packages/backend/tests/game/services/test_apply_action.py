@@ -1,5 +1,6 @@
 import datetime
 import random
+import uuid
 
 import pytest
 
@@ -13,8 +14,17 @@ from src.game import (
     repository as repository_module,
     services,
 )
+from src.game.actions import _registry
 
 NOW = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+
+
+class RecordingBroker:
+    def __init__(self) -> None:
+        self.events: list[teyuna_core.AnyGameEvent] = []
+
+    async def publish(self, game_id: uuid.UUID, data: teyuna_core.AnyGameEvent) -> None:
+        self.events.append(data)
 
 
 @pytest.mark.asyncio
@@ -30,20 +40,35 @@ async def test_apply_player_action_to_end_game_clears_phase_deadline() -> None:
     )
     game_id = repository.add(game)
     registry = _lobby_end_game_registry()
+    broker = RecordingBroker()
 
     result, updated = await services.apply_player_action(
         game_id,
-        teyuna_core.PlayerAction(by="only"),
+        actions.ExecutionContext(
+            by="only",
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        teyuna_core.PlayerAction(),
         repository=repository,
         registry=registry,
         game_locks=locks.GameLockManager(),
-        broker=broker_module.EventBroker(),
+        broker=broker,
         now=NOW,
     )
 
     assert result.error is None
     assert updated.phase is teyuna_core.GamePhaseName.END_GAME
     assert updated.phase_deadline is None
+    assert [event.type for event in broker.events] == [
+        "successful_action",
+        "phase_changed",
+        "end_game",
+    ]
+    end_game = broker.events[-1]
+    assert isinstance(end_game, teyuna_core.EndGameEvent)
+    assert end_game.winner == "only"
+    assert end_game.reason == "victory"
 
 
 @pytest.mark.asyncio
@@ -70,20 +95,31 @@ async def test_apply_player_action_keeps_deadline_when_staying_in_phase() -> Non
         datetime.timedelta(seconds=30),
         actions.timeouts.timeout_dice_roll,
     )
+    broker = RecordingBroker()
 
     result, updated = await services.apply_player_action(
         game_id,
-        teyuna_core.PlayerAction(by=game.active_player),
+        actions.ExecutionContext(
+            by=game.active_player,
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        teyuna_core.PlayerAction(),
         repository=repository,
         registry=registry,
         game_locks=locks.GameLockManager(),
-        broker=broker_module.EventBroker(),
+        broker=broker,
         now=NOW,
     )
 
     assert result.error is None
     assert updated.phase is teyuna_core.GamePhaseName.DICE_ROLL
     assert updated.phase_deadline == NOW + datetime.timedelta(seconds=30)
+    assert [event.type for event in broker.events] == [
+        "successful_action",
+        "phase_changed",
+        "turn_changed",
+    ]
 
 
 @pytest.mark.asyncio
@@ -101,13 +137,14 @@ async def test_apply_timeout_if_due_lobby_timeout_ends_game_and_clears_deadline(
     )
     game_id = repository.add(game)
     registry = _lobby_end_game_registry()
+    broker = RecordingBroker()
 
     result = await services.apply_timeout_if_due(
         game_id,
         repository=repository,
         registry=registry,
         game_locks=locks.GameLockManager(),
-        broker=broker_module.EventBroker(),
+        broker=broker,
         rng=random.Random(0),
         now=NOW,
     )
@@ -117,6 +154,15 @@ async def test_apply_timeout_if_due_lobby_timeout_ends_game_and_clears_deadline(
     stored = repository.retrieve(game_id)
     assert stored.phase is teyuna_core.GamePhaseName.END_GAME
     assert stored.phase_deadline is None
+    assert [event.type for event in broker.events] == [
+        "successful_action",
+        "phase_changed",
+        "end_game",
+    ]
+    end_game = broker.events[-1]
+    assert isinstance(end_game, teyuna_core.EndGameEvent)
+    assert end_game.winner is None
+    assert end_game.reason == "lobby_timeout"
 
 
 @pytest.mark.asyncio
@@ -145,6 +191,199 @@ async def test_apply_timeout_if_due_returns_none_when_not_due() -> None:
 
     assert result is None
     assert repository.retrieve(game_id).phase is teyuna_core.GamePhaseName.LOBBY
+
+
+@pytest.mark.asyncio
+async def test_failed_handler_result_publishes_only_failed_action() -> None:
+    repository = repository_module.InMemoryGameRepository()
+    game = entities.Game(
+        map=(),
+        players={"only": entities.Player()},
+        conquistator_location=teyuna_core.HexLocation(q=0, r=0),
+        phase=teyuna_core.GamePhaseName.FIRST_PLACEMENT,
+    )
+    game._turn_order = ["only"]
+    game_id = repository.add(game)
+    registry = actions.ActionsRegistry()
+    registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(
+        actions.handle_sent_message
+    )
+    broker = RecordingBroker()
+    action = teyuna_core.SentMessageAction(text=" ")
+
+    result, _ = await services.apply_player_action(
+        game_id,
+        actions.ExecutionContext(
+            by="only",
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        action,
+        repository=repository,
+        registry=registry,
+        game_locks=locks.GameLockManager(),
+        broker=broker,
+        now=NOW,
+    )
+
+    assert result.error == "message text must not be empty"
+    assert broker.events == [
+        teyuna_core.FailedActionEvent(
+            by="only",
+            due_to_timeout=False,
+            action=action,
+            error="message text must not be empty",
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_registry_exception_publishes_failure_and_is_reraised() -> None:
+    repository = repository_module.InMemoryGameRepository()
+    game = entities.Game(
+        map=(),
+        players={"only": entities.Player()},
+        conquistator_location=teyuna_core.HexLocation(q=0, r=0),
+        phase=teyuna_core.GamePhaseName.FIRST_PLACEMENT,
+    )
+    game._turn_order = ["only"]
+    game_id = repository.add(game)
+    broker = RecordingBroker()
+    action = teyuna_core.PlayerAction()
+
+    with pytest.raises(actions.GamePhaseHanlderNotImplementedError) as exc_info:
+        await services.apply_player_action(
+            game_id,
+            actions.ExecutionContext(
+                by="only",
+                due_to_timeout=False,
+                rng=random.Random(0),
+            ),
+            action,
+            repository=repository,
+            registry=actions.ActionsRegistry(),
+            game_locks=locks.GameLockManager(),
+            broker=broker,
+            now=NOW,
+        )
+
+    assert broker.events == [
+        teyuna_core.FailedActionEvent(
+            by="only",
+            due_to_timeout=False,
+            action=action,
+            error=str(exc_info.value),
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_timeout_registry_exception_publishes_timeout_failure() -> None:
+    repository = repository_module.InMemoryGameRepository()
+    game = entities.Game(
+        map=(),
+        players={"only": entities.Player()},
+        conquistator_location=teyuna_core.HexLocation(q=0, r=0),
+        phase=teyuna_core.GamePhaseName.FIRST_PLACEMENT,
+        phase_deadline=NOW,
+    )
+    game._turn_order = ["only"]
+    game_id = repository.add(game)
+    registry = actions.ActionsRegistry()
+
+    def timeout_action(
+        game: entities.Game, rng: random.Random
+    ) -> _registry.TimeoutAction:
+        return _registry.TimeoutAction(by="only", action=teyuna_core.PlayerAction())
+
+    registry.set_timeout(
+        teyuna_core.GamePhaseName.FIRST_PLACEMENT,
+        datetime.timedelta(seconds=0),
+        timeout_action,
+    )
+    broker = RecordingBroker()
+
+    with pytest.raises(actions.GamePhaseHanlderNotImplementedError):
+        await services.apply_timeout_if_due(
+            game_id,
+            repository=repository,
+            registry=registry,
+            game_locks=locks.GameLockManager(),
+            broker=broker,
+            rng=random.Random(0),
+            now=NOW,
+        )
+
+    assert len(broker.events) == 1
+    failure = broker.events[0]
+    assert isinstance(failure, teyuna_core.FailedActionEvent)
+    assert failure.by == "only"
+    assert failure.due_to_timeout is True
+    assert failure.action.kind == "advance"
+
+
+@pytest.mark.asyncio
+async def test_transition_events_have_deterministic_order() -> None:
+    repository = repository_module.InMemoryGameRepository()
+    game = entities.Game(
+        map=(),
+        players={
+            "player-0": entities.Player(),
+            "player-1": entities.Player(),
+        },
+        conquistator_location=teyuna_core.HexLocation(q=0, r=0),
+        phase=teyuna_core.GamePhaseName.TRADE_AND_BUILD,
+        phase_deadline=NOW,
+    )
+    game._turn_order = ["player-0", "player-1"]
+    game_id = repository.add(game)
+    registry = actions.ActionsRegistry()
+
+    def transition(
+        game: entities.Game,
+        context: actions.ExecutionContext,
+        action: teyuna_core.PlayerAction,
+    ) -> teyuna_core.ActionExecutionResult:
+        previous_phase = game.phase
+        game.player_idx = 1
+        game.biggest_army = ("player-0", 3)
+        game.longest_road = ("player-0", 5)
+        game.phase = teyuna_core.GamePhaseName.END_GAME
+        return teyuna_core.ActionExecutionResult(
+            previous_phase=previous_phase,
+            next_phase=game.phase,
+            action=action,
+        )
+
+    registry.register(teyuna_core.GamePhaseName.TRADE_AND_BUILD)(transition)
+    broker = RecordingBroker()
+
+    await services.apply_player_action(
+        game_id,
+        actions.ExecutionContext(
+            by="player-0",
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        teyuna_core.PlayerAction(),
+        repository=repository,
+        registry=registry,
+        game_locks=locks.GameLockManager(),
+        broker=broker,
+        now=NOW,
+    )
+
+    assert [event.type for event in broker.events] == [
+        "successful_action",
+        "phase_changed",
+        "turn_changed",
+        "biggest_army_changed",
+        "longest_road_changed",
+        "end_game",
+    ]
+    army = broker.events[3]
+    assert isinstance(army, teyuna_core.BiggestArmyChangedEvent)
+    assert (army.previous_size, army.current_size) == (0, 3)
 
 
 def _lobby_end_game_registry() -> actions.ActionsRegistry:

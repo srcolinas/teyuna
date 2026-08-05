@@ -11,7 +11,6 @@ import uvicorn
 from src.game import broker, dependencies
 
 from . import utils
-import teyuna_core
 
 
 def test_send_message_appears_on_events(
@@ -40,13 +39,15 @@ def test_send_message_appears_on_events(
                 )
                 assert response.status_code == 200, response.text
 
-                event = _read_first_data_event(lines)
+                sse_event = _read_first_sse_event(lines)
 
-    assert event["error"] is None
-    assert event["previous_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["next_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
-    assert event["action"]["by"] == sender
-    assert event["action"]["text"] == text
+    assert sse_event["event"] == "message"
+    assert sse_event["id"] == "0"
+    assert sse_event["data"] == {
+        "type": "message",
+        "by": sender,
+        "text": text,
+    }
 
 
 class _Server:
@@ -78,8 +79,15 @@ def _wait_until_connected(lines: Iterator[str]) -> None:
     raise AssertionError("expected an SSE connection comment")
 
 
-def _read_first_data_event(lines: Iterator[str]) -> dict:
+def _read_first_sse_event(lines: Iterator[str]) -> dict:
+    event: dict = {}
     for line in lines:
-        if line.startswith("data:"):
-            return json.loads(line.removeprefix("data:").strip())
+        if line.startswith("event:"):
+            event["event"] = line.removeprefix("event:").strip()
+        elif line.startswith("id:"):
+            event["id"] = line.removeprefix("id:").strip()
+        elif line.startswith("data:"):
+            event["data"] = json.loads(line.removeprefix("data:").strip())
+        elif not line and "data" in event:
+            return event
     raise AssertionError("expected an SSE data event")

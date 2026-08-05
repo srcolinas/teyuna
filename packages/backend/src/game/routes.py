@@ -130,15 +130,18 @@ async def submit_action(
        `advance` is **not** allowed during `discard resources`.
 
     Illegal or wrong-phase actions return HTTP 400 with a `detail` message.
-    The server sets `by` and `rng_` from the Bearer token / server RNG.
+    The server supplies the authenticated actor and execution RNG separately.
     """
-    action = payload.model_copy(
-        update={"by": nickname, "due_to_timeout": False, "rng_": rng}
+    context = actions.ExecutionContext(
+        by=nickname,
+        due_to_timeout=False,
+        rng=rng,
     )
 
     result, _ = await services.apply_player_action(
         game_id,
-        action,
+        context,
+        payload,
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -253,10 +256,12 @@ async def send_message(
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
+    rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> None:
     result, _ = await services.apply_player_action(
         game_id,
-        teyuna_core.SentMessageAction(by=nickname, text=payload.text),
+        actions.ExecutionContext(by=nickname, due_to_timeout=False, rng=rng),
+        teyuna_core.SentMessageAction(text=payload.text),
         repository=repository,
         registry=registry,
         game_locks=game_locks,
@@ -276,5 +281,5 @@ async def stream_items(
     yield sse.ServerSentEvent(comment="connected")
     async for event in broker.iterate(game_id):
         yield sse.ServerSentEvent(
-            data=event.data.model_dump(mode="json"), id=str(event.id)
+            data=event.data.model_dump(), event=event.type, id=event.id
         )

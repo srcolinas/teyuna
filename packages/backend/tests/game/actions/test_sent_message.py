@@ -1,11 +1,16 @@
+import random
 from src.game import actions, entities
 import teyuna_core
 
 
 def test_sends_message(game: entities.Game) -> None:
     player = game.active_player
-    action = teyuna_core.SentMessageAction(by=player, text="hello")
-    result = actions.handle_sent_message(game, action)
+    action = teyuna_core.SentMessageAction(text="hello")
+    result = actions.handle_sent_message(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
+    )
 
     assert result.action == action
     assert result.error is None
@@ -15,8 +20,12 @@ def test_sends_message(game: entities.Game) -> None:
 
 def test_rejects_empty_text(game: entities.Game) -> None:
     player = game.active_player
-    action = teyuna_core.SentMessageAction(by=player, text="   ")
-    result = actions.handle_sent_message(game, action)
+    action = teyuna_core.SentMessageAction(text="   ")
+    result = actions.handle_sent_message(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
+    )
 
     assert result.action == action
     assert result.error == "message text must not be empty"
@@ -25,8 +34,12 @@ def test_rejects_empty_text(game: entities.Game) -> None:
 
 def test_rejects_too_long_text(game: entities.Game) -> None:
     player = game.active_player
-    action = teyuna_core.SentMessageAction(by=player, text="x" * 501)
-    result = actions.handle_sent_message(game, action)
+    action = teyuna_core.SentMessageAction(text="x" * 501)
+    result = actions.handle_sent_message(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
+    )
 
     assert result.action == action
     assert result.error == "message text must be at most 500 characters"

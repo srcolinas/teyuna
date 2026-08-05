@@ -1,3 +1,4 @@
+import random
 import collections
 import uuid
 from enum import Enum
@@ -27,12 +28,12 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=other,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -61,12 +62,12 @@ def test_builds_terrace_spends_resources_and_stays_in_phase(
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -101,11 +102,11 @@ def test_builds_path_spends_resources_and_stays_in_phase(
     )
 
     action = teyuna_core.BuildPathAction(
-        by=player,
         coordinate=path,
     )
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -136,9 +137,10 @@ def test_builds_path_chained_from_owned_path(game: entities.Game) -> None:
         }
     )
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=adjacent)
+    action = teyuna_core.BuildPathAction(coordinate=adjacent)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -171,9 +173,10 @@ def test_raises_invalid_path_location_when_disconnected(
         free_edges=game.free_edges,
     )
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=disconnected)
+    action = teyuna_core.BuildPathAction(coordinate=disconnected)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -206,9 +209,10 @@ def test_raises_invalid_path_location_when_already_taken(
         free_edges=game.free_edges,
     )
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=path)
+    action = teyuna_core.BuildPathAction(coordinate=path)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -230,12 +234,12 @@ def test_builds_great_terrace_upgrades_and_stays_in_phase(
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.GREAT_TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -271,12 +275,12 @@ def test_building_terrace_to_ten_vp_ends_game(game: entities.Game) -> None:
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -302,12 +306,12 @@ def test_building_great_terrace_to_ten_vp_ends_game(
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.GREAT_TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -333,9 +337,10 @@ def test_building_path_at_ten_vp_ends_game(game: entities.Game) -> None:
         }
     )
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=path)
+    action = teyuna_core.BuildPathAction(coordinate=path)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -362,9 +367,10 @@ def test_building_path_below_ten_vp_stays_in_phase(
         }
     )
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=path)
+    action = teyuna_core.BuildPathAction(coordinate=path)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -385,12 +391,12 @@ def test_raises_insufficient_resources_for_terrace(
     game.players[player].paths.add(path)
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -407,12 +413,12 @@ def test_raises_insufficient_resources_for_great_terrace(
     game.players[player].settlements[terrace] = teyuna_core.SettlementType.TERRACE
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.GREAT_TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -444,12 +450,12 @@ def test_raises_invalid_settlement_location_without_path(
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -492,12 +498,12 @@ def test_raises_invalid_settlement_location_when_restricted(
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=restricted,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -534,12 +540,12 @@ def test_raises_invalid_settlement_location_when_occupied(
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -569,12 +575,12 @@ def test_raises_when_terrace_cap_reached(game: entities.Game) -> None:
         ] = teyuna_core.SettlementType.TERRACE
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -599,12 +605,12 @@ def test_raises_when_great_terrace_cap_reached(game: entities.Game) -> None:
         ] = teyuna_core.SettlementType.GREAT_TERRACE
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.GREAT_TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -634,12 +640,12 @@ def test_raises_when_upgrading_without_terrace(game: entities.Game) -> None:
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.GREAT_TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -670,12 +676,12 @@ def test_raises_when_already_great_terrace(game: entities.Game) -> None:
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=player,
         item=teyuna_core.SettlementType.GREAT_TERRACE,
         coordinate=terrace,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -700,9 +706,10 @@ def test_raises_when_path_cap_reached(game: entities.Game) -> None:
     for i in range(teyuna_core.MAX_PATHS):
         game.players[player].paths.add(teyuna_core.Coordinate(q=9, r=i // 6, d=i % 6))
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=path)
+    action = teyuna_core.BuildPathAction(coordinate=path)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -716,9 +723,10 @@ def test_end_turn_advances_player_and_returns_to_dice_roll(
     game.player_idx = 0
     player = game.active_player
 
-    action = teyuna_core.PlayerAction(by=player)
+    action = teyuna_core.PlayerAction()
     result = actions.handle_end_trade_and_build(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -738,9 +746,10 @@ def test_end_turn_promotes_cards_bought_this_turn(
     card = teyuna_core.WisdomCard.WARRIOR
     game.players[player].cards_bought_this_turn[card] = 1
 
-    action = teyuna_core.PlayerAction(by=player)
+    action = teyuna_core.PlayerAction()
     result = actions.handle_end_trade_and_build(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -756,9 +765,10 @@ def test_end_turn_wraps_to_first_player(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     player = game.active_player
 
-    action = teyuna_core.PlayerAction(by=player)
+    action = teyuna_core.PlayerAction()
     result = actions.handle_end_trade_and_build(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -781,9 +791,10 @@ def test_end_turn_clears_trade_proposals(game: entities.Game) -> None:
         )
     }
 
-    action = teyuna_core.PlayerAction(by=player)
+    action = teyuna_core.PlayerAction()
     result = actions.handle_end_trade_and_build(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -798,9 +809,10 @@ def test_end_turn_raises_when_player_not_in_turn(
     game: entities.Game,
 ) -> None:
     other = game.turn_order[1]
-    action = teyuna_core.PlayerAction(by=other)
+    action = teyuna_core.PlayerAction()
     result = actions.handle_end_trade_and_build(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -823,9 +835,10 @@ def test_play_wisdom_card_raises_when_player_does_not_have_card(
     card: teyuna_core.WisdomCard,
 ) -> None:
     player = game.active_player
-    action = teyuna_core.PlayWisdomCardAction(by=player, card=card)
+    action = teyuna_core.PlayWisdomCardAction(card=card)
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -840,11 +853,11 @@ def test_play_wisdom_card_raises_when_player_not_in_turn(
     other = game.turn_order[1]
 
     action = teyuna_core.PlayWisdomCardAction(
-        by=other,
         card=teyuna_core.WisdomCard.WARRIOR,
     )
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -863,11 +876,14 @@ def test_play_wisdom_card_raises_when_card_cannot_be_played(
     unknown_card = _UnplayableCard.UNKNOWN
     game.players[player].cards[unknown_card] = 1  # type: ignore[index]
 
-    action = teyuna_core.PlayWisdomCardAction.model_construct(
-        by=player, card=unknown_card
-    )
+    action = teyuna_core.PlayWisdomCardAction.model_construct(card=unknown_card)
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
+        actions.ExecutionContext(
+            by=player,
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
         action,
     )
     assert result.action == action
@@ -911,9 +927,10 @@ def test_play_wisdom_card_transitions_to_expected_phase(
     player = game.active_player
     game.players[player].cards[card] = 1
 
-    action = teyuna_core.PlayWisdomCardAction(by=player, card=card)
+    action = teyuna_core.PlayWisdomCardAction(card=card)
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -931,10 +948,11 @@ def test_playing_legacy_to_ten_vp_ends_game(game: entities.Game) -> None:
     game.players[player].played_cards[teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
 
     action = teyuna_core.PlayWisdomCardAction(
-        by=player, card=teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS
+        card=teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS
     )
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -955,11 +973,10 @@ def test_playing_third_warrior_claims_biggest_army(
     game.players[player].cards[teyuna_core.WisdomCard.WARRIOR] = 1
     game.players[player].played_cards[teyuna_core.WisdomCard.WARRIOR] = 2
 
-    action = teyuna_core.PlayWisdomCardAction(
-        by=player, card=teyuna_core.WisdomCard.WARRIOR
-    )
+    action = teyuna_core.PlayWisdomCardAction(card=teyuna_core.WisdomCard.WARRIOR)
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -988,9 +1005,10 @@ def test_buy_wisdom_card_spends_resources_and_draws_top(
         resource: game.resource_supply[resource] for resource in _WISDOM_CARD_COST
     }
 
-    action = teyuna_core.BuyWisdomCardAction(by=player)
+    action = teyuna_core.BuyWisdomCardAction()
     result = actions.handle_buy_wisdom_card(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -1019,9 +1037,10 @@ def test_buy_wisdom_card_raises_when_insufficient_resources(
         }
     )
 
-    action = teyuna_core.BuyWisdomCardAction(by=player)
+    action = teyuna_core.BuyWisdomCardAction()
     result = actions.handle_buy_wisdom_card(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -1036,9 +1055,10 @@ def test_buy_wisdom_card_raises_when_deck_is_empty(
     game.wisdom_deck = []
     game.players[player].resources.update(_WISDOM_CARD_COST)
 
-    action = teyuna_core.BuyWisdomCardAction(by=player)
+    action = teyuna_core.BuyWisdomCardAction()
     result = actions.handle_buy_wisdom_card(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -1053,9 +1073,10 @@ def test_buy_wisdom_card_raises_when_player_not_in_turn(
     game.wisdom_deck = [teyuna_core.WisdomCard.WARRIOR]
     game.players[other].resources.update(_WISDOM_CARD_COST)
 
-    action = teyuna_core.BuyWisdomCardAction(by=other)
+    action = teyuna_core.BuyWisdomCardAction()
     result = actions.handle_buy_wisdom_card(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action

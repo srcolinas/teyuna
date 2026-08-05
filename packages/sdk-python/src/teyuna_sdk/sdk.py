@@ -23,6 +23,9 @@ _http_client = httpx2.AsyncClient(
 _action_result_adapter: pydantic.TypeAdapter[teyuna_core.AnyActionExecutionResult] = (
     pydantic.TypeAdapter(teyuna_core.AnyActionExecutionResult)
 )
+_game_event_adapter: pydantic.TypeAdapter[teyuna_core.AnyGameEvent] = (
+    pydantic.TypeAdapter(teyuna_core.AnyGameEvent)
+)
 
 
 def _raise_for_status(response: httpx2.Response) -> None:
@@ -138,18 +141,15 @@ class GameClient:
         _raise_for_status(response)
         return teyuna_core.Player.model_validate(response.json())
 
-    async def stream_events(
-        self,
-    ) -> AsyncIterator[teyuna_core.AnyActionExecutionResult]:
-        """Yield SSE game-action events as typed action results."""
+    async def stream_events(self) -> AsyncIterator[teyuna_core.AnyGameEvent]:
+        """Yield SSE game events as typed ``AnyGameEvent`` values."""
         async with _http_client.sse(
             f"{self._base_url}/games/{self._game_id}/events",
         ) as source:
             async for event in source:
                 if not event.data:
                     continue
-                payload = json.loads(event.data)
-                yield _action_result_adapter.validate_python(payload)
+                yield _game_event_adapter.validate_json(event.data)
 
     async def get_hand(self) -> teyuna_core.PlayerHand:
         """Fetch this player's private resources and wisdom cards."""
@@ -163,11 +163,11 @@ class GameClient:
     async def submit_action(
         self, action: teyuna_core.AnyPlayerAction
     ) -> teyuna_core.AnyActionExecutionResult:
-        """Submit a player action; the server sets ``by`` from the session."""
+        """Submit a clean player action; the server binds the actor from the session."""
         response = await _http_client.post(
             f"{self._base_url}/games/{self._game_id}/actions",
             headers=self._headers,
-            json=action.model_dump(mode="json", exclude={"by", "due_to_timeout"}),
+            json=action.model_dump(mode="json"),
         )
         _raise_for_status(response)
         return _action_result_adapter.validate_python(response.json())

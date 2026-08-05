@@ -7,7 +7,6 @@ def test_free_placement_action_canonicalizes_coordinates() -> None:
     path_alias = teyuna_core.edge_alias(path.q, path.r, path.d)
 
     action = teyuna_core.FreePlacementAction(
-        by="player",
         terrace=terrace_alias,
         path=path_alias,
     )
@@ -17,7 +16,7 @@ def test_free_placement_action_canonicalizes_coordinates() -> None:
 
 
 def test_free_placement_action_allows_omitted_coordinates() -> None:
-    action = teyuna_core.FreePlacementAction(by="player")
+    action = teyuna_core.FreePlacementAction()
 
     assert action.terrace is None
     assert action.path is None

@@ -3,28 +3,28 @@ import collections
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 from . import _advance, _placement
 
 
 def handle_second_placement(
-    game: entities.Game, action: teyuna_core.FreePlacementAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.FreePlacementAction,
 ) -> teyuna_core.PlacedBuildingsResult:
     previous_phase = game.phase
-    if game.active_player != action.by:
+    if game.active_player != context.by:
         return teyuna_core.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not in turn",
+            error=f"Player {context.by} is not in turn",
         )
 
     action = _advance.resolve_free_placement(
         game,
-        action.rng_,
-        by=action.by,
-        terrace=action.terrace,
-        path=action.path,
-        due_to_timeout=action.due_to_timeout,
+        context,
+        action,
     )
     if action.terrace is None or action.path is None:
         return teyuna_core.PlacedBuildingsResult(
@@ -46,13 +46,13 @@ def handle_second_placement(
             action=action,
             error=_placement.format_invalid_settlement_location(
                 target=action.terrace,
-                player=action.by,
+                player=context.by,
                 free_vertices=game.free_verticies,
                 restricted_vertices=game.restricted_verticies,
             ),
         )
 
-    player_state = game.players[action.by]
+    player_state = game.players[context.by]
     can = _placement.can_add_free_path_at(
         target=action.path,
         free_edges=game.free_edges,
@@ -68,16 +68,16 @@ def handle_second_placement(
             action=action,
             error=_placement.format_invalid_path_location(
                 target=action.path,
-                player=action.by,
+                player=context.by,
                 existing_settlements=player_state.settlements.locations(),
                 existing_paths=player_state.paths,
                 free_edges=game.free_edges,
             ),
         )
 
-    game.use_vertex(action.by, action.terrace, teyuna_core.SettlementType.TERRACE)
-    game.use_edge(action.by, action.path)
-    _grant_resources_for_terrace(game, by=action.by, terrace=action.terrace)
+    game.use_vertex(context.by, action.terrace, teyuna_core.SettlementType.TERRACE)
+    game.use_edge(context.by, action.path)
+    _grant_resources_for_terrace(game, context, action)
 
     if game.player_idx == 0:
         game.phase = teyuna_core.GamePhaseName.DICE_ROLL
@@ -96,11 +96,15 @@ def handle_second_placement(
 
 def _grant_resources_for_terrace(
     game: entities.Game,
-    *,
-    by: str,
-    terrace: teyuna_core.Coordinate,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.FreePlacementAction,
 ) -> None:
-    locs = teyuna_core.hex_locations_at_vertex(terrace.q, terrace.r, terrace.d)
+    assert action.terrace is not None
+    locs = teyuna_core.hex_locations_at_vertex(
+        action.terrace.q,
+        action.terrace.r,
+        action.terrace.d,
+    )
     amount: collections.Counter[teyuna_core.ResourceCard] = collections.Counter()
     for hex_tile in game.map:
         if teyuna_core.HexLocation(q=hex_tile.q, r=hex_tile.r) not in locs:
@@ -117,4 +121,4 @@ def _grant_resources_for_terrace(
         }
     )
     if to_grant:
-        game.take_from_supply(to=by, amount=to_grant)
+        game.take_from_supply(to=context.by, amount=to_grant)

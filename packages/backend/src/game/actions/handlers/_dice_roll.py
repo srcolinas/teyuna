@@ -4,22 +4,25 @@ from typing import Final
 import teyuna_core
 
 from ... import entities, player
+from .. import _execution
 from . import _play_card
 
 
 def handle_dice_roll(
-    game: entities.Game, action: teyuna_core.PlayerAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayerAction,
 ) -> teyuna_core.DiceRollResult:
     previous_phase = game.phase
-    if game.active_player != action.by:
+    if game.active_player != context.by:
         return teyuna_core.DiceRollResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not in turn",
+            error=f"Player {context.by} is not in turn",
         )
 
-    dice_1, dice_2 = action.rng_.randint(1, 6), action.rng_.randint(1, 6)
+    dice_1, dice_2 = context.rng.randint(1, 6), context.rng.randint(1, 6)
     total = dice_1 + dice_2
     produced: dict[player.Nickname, dict[teyuna_core.ResourceCard, int]] = {}
 
@@ -50,10 +53,13 @@ def handle_dice_roll(
 
 
 def handle_play_wisdom_card(
-    game: entities.Game, action: teyuna_core.PlayWisdomCardAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayWisdomCardAction,
 ) -> teyuna_core.PlayedWisdomCardResult:
     return _play_card.play_wisdom_card(
         game,
+        context,
         action,
         card_phases=_DICE_CARD_PHASES,
         phase_label="dice roll",

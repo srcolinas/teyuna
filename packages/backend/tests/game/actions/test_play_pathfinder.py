@@ -1,3 +1,4 @@
+import random
 from src.game import actions, entities
 from src.game.actions.handlers import _placement
 import teyuna_core
@@ -13,9 +14,10 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     )
     other = game.turn_order[1]
 
-    action = teyuna_core.PlayPathfinderAction(by=other, paths=(path,))
+    action = teyuna_core.PlayPathfinderAction(paths=(path,))
     result = actions.handle_dice_play_pathfinder(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -33,9 +35,10 @@ def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> 
     )
     other = game.turn_order[1]
 
-    action = teyuna_core.PlayPathfinderAction(by=other, paths=(path,))
+    action = teyuna_core.PlayPathfinderAction(paths=(path,))
     result = actions.handle_trade_and_build_play_pathfinder(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -60,9 +63,10 @@ def test_places_two_paths_and_returns_to_dice_roll(
         if e != first
     )
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(first, second))
+    action = teyuna_core.PlayPathfinderAction(paths=(first, second))
     result = actions.handle_dice_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -91,9 +95,10 @@ def test_places_two_paths_and_returns_to_trade_and_build(
         if e != first
     )
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(first, second))
+    action = teyuna_core.PlayPathfinderAction(paths=(first, second))
     result = actions.handle_trade_and_build_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -126,9 +131,10 @@ def test_ignores_second_path_when_only_one_slot_remaining(
         for i in range(teyuna_core.MAX_PATHS - 1)
     }
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(first, second))
+    action = teyuna_core.PlayPathfinderAction(paths=(first, second))
     result = actions.handle_dice_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -153,9 +159,10 @@ def test_raises_when_path_is_invalid(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(disconnected,))
+    action = teyuna_core.PlayPathfinderAction(paths=(disconnected,))
     result = actions.handle_dice_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -180,9 +187,10 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(path,))
+    action = teyuna_core.PlayPathfinderAction(paths=(path,))
     result = actions.handle_dice_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -199,9 +207,10 @@ def test_placing_paths_at_ten_vp_ends_game(game: entities.Game) -> None:
         iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(path,))
+    action = teyuna_core.PlayPathfinderAction(paths=(path,))
     result = actions.handle_dice_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -222,9 +231,10 @@ def test_placing_paths_at_ten_vp_ends_game_from_trade_and_build(
         iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
     )
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(path,))
+    action = teyuna_core.PlayPathfinderAction(paths=(path,))
     result = actions.handle_trade_and_build_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action

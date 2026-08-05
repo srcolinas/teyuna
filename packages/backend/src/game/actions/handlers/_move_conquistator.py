@@ -1,17 +1,18 @@
 import collections
-import random
-
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 from . import _placement
 
 
 def handle_dice_play_warrior(
-    game: entities.Game, action: teyuna_core.MoveConquistatorAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.MoveConquistatorAction,
 ) -> teyuna_core.MovedConquistatorResult:
     previous_phase = game.phase
-    error, stolen = _apply_move_conquistator(game, action)
+    error, stolen = _apply_move_conquistator(game, context, action)
     if error is not None:
         return teyuna_core.MovedConquistatorResult(
             previous_phase=previous_phase,
@@ -32,10 +33,12 @@ def handle_dice_play_warrior(
 
 
 def handle_move_conquistator(
-    game: entities.Game, action: teyuna_core.MoveConquistatorAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.MoveConquistatorAction,
 ) -> teyuna_core.MovedConquistatorResult:
     previous_phase = game.phase
-    error, stolen = _apply_move_conquistator(game, action)
+    error, stolen = _apply_move_conquistator(game, context, action)
     if error is not None:
         return teyuna_core.MovedConquistatorResult(
             previous_phase=previous_phase,
@@ -56,17 +59,19 @@ def handle_move_conquistator(
 
 
 def _apply_move_conquistator(
-    game: entities.Game, action: teyuna_core.MoveConquistatorAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.MoveConquistatorAction,
 ) -> tuple[str | None, teyuna_core.ResourceCard | None]:
-    if game.active_player != action.by:
-        return f"Player {action.by} is not in turn", None
+    if game.active_player != context.by:
+        return f"Player {context.by} is not in turn", None
 
     location = teyuna_core.HexLocation(q=action.q, r=action.r)
     if location == game.conquistator_location:
         return (
             _placement.format_invalid_conquistator_location(
                 target=location,
-                player=action.by,
+                player=context.by,
                 current_location=game.conquistator_location,
             ),
             None,
@@ -79,10 +84,10 @@ def _apply_move_conquistator(
         victim_resources = game.players[action.from_player].resources
         available = [card for card, count in victim_resources.items() if count > 0]
         if available:
-            stolen = random.choice(available)
+            stolen = context.rng.choice(available)
             game.take_resources(
                 action.from_player,
-                action.by,
+                context.by,
                 collections.Counter({stolen: 1}),
             )
     return None, stolen

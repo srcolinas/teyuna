@@ -2,6 +2,10 @@
 
 This explain the turns and actions available in each phase.
 
+## Lobby
+
+Once a game is created, players wait for the expected number of players to join before they can take any action. 
+
 ## Decision loop
 
 1. If `turn_order` is empty — still in `lobby`; wait.
@@ -9,6 +13,16 @@ This explain the turns and actions available in each phase.
 3. Else if `turn_order[0]` is not you — wait, unless you are proposing a trade to the active player during `dice roll`, or accepting a trade aimed at you during `trade and build`.
 4. Else dispatch on `phase` and submit a legal `kind` (table below).
 5. Stop when `phase` is `end game`.
+
+## Map
+
+The map is a pointy-top hexagonal grid. Each **hex tile** is located with axial coordinates `(q, r)`: `q` increases to the right along the top-left → bottom-right diagonal, and `r` increases downward. The board has 19 hexes — every `(q, r)` with both in `[-2, 2]` except the six corner slots `(-2,-2)`, `(-2,-1)`, `(-1,-2)`, `(1,2)`, `(2,1)`, and `(2,2)`.
+
+![Board axial coordinates](map-qr.svg)
+
+**Terraces** (vertices) and **paths** (edges) add a direction `d` on a neighboring hex: `{ "q", "r", "d" }`. On a given hex, `d` runs **clockwise from 0 to 5**. For a vertex, `d = 0` is the top corner. For an edge, `d = 0` is the top-right side (between vertices 0 and 1). The same physical corner or side can be written from more than one adjacent hex; the API accepts any alias.
+
+![Direction d on a hex](map-d.svg)
 
 ## Phase → action map
 

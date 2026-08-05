@@ -43,13 +43,20 @@ def test_single_client_receives_action_event(
                 )
                 assert response.status_code == 200, response.text
 
-                event = _read_first_data_event(lines)
+                sse_event = _read_first_sse_event(lines)
 
+    assert sse_event["event"] == "successful_action"
+    assert sse_event["id"] == "0"
+    event = sse_event["data"]
+    assert event["type"] == "successful_action"
+    assert event["by"] == active_player
+    assert event["due_to_timeout"] is False
+    event = event["result"]
     assert event["error"] is None
     assert event["previous_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["next_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["kind"] == "free_placement"
-    assert event["action"]["by"] == active_player
+    assert "by" not in event["action"]
     assert event["action"]["terrace"] == [0, -1, 2]
     assert event["action"]["path"] == [0, -1, 2]
     game_after = client.get(f"/games/{game_id}").json()
@@ -87,13 +94,55 @@ def test_disconnect_does_not_break_remaining_clients(
                     )
                     assert response.status_code == 200, response.text
 
-                    event = _read_first_data_event(remaining_lines)
+                    sse_event = _read_first_sse_event(remaining_lines)
 
+    assert sse_event["event"] == "successful_action"
+    assert sse_event["id"] == "0"
+    event = sse_event["data"]
+    assert event["type"] == "successful_action"
+    event = event["result"]
     assert event["error"] is None
     assert event["previous_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["next_phase"] == teyuna_core.GamePhaseName.FIRST_PLACEMENT.value
     assert event["action"]["kind"] == "free_placement"
-    assert event["action"]["by"] == active_player
+    assert "by" not in event["action"]
+
+
+def test_invalid_action_publishes_failed_event_and_keeps_http_error(
+    app: fastapi.FastAPI,
+    client: testclient.TestClient,
+) -> None:
+    event_broker = broker.EventBroker()
+    app.dependency_overrides[dependencies.get_event_broker] = lambda: event_broker
+
+    game_id, tokens = utils.create_active_game_with_tokens(client)
+    active_player = client.get(f"/games/{game_id}").json()["turn_order"][0]
+    token = tokens[active_player]
+
+    with _Server(app, port=18768) as base_url:
+        with httpx2.Client(
+            base_url=base_url, timeout=5.0, headers={"Authorization": f"Bearer {token}"}
+        ) as http:
+            with http.stream("GET", f"/games/{game_id}/events") as stream:
+                lines = stream.iter_lines()
+                _wait_until_connected(lines)
+
+                response = http.post(
+                    f"/games/{game_id}/actions",
+                    json={"kind": "buy_wisdom_card"},
+                )
+                assert response.status_code == 400
+
+                sse_event = _read_first_sse_event(lines)
+
+    assert sse_event["event"] == "failed_action"
+    assert sse_event["id"] == "0"
+    event = sse_event["data"]
+    assert event["type"] == "failed_action"
+    assert event["by"] == active_player
+    assert event["due_to_timeout"] is False
+    assert event["action"] == {"kind": "buy_wisdom_card"}
+    assert event["error"] == response.json()["detail"]
 
 
 class _Server:
@@ -125,8 +174,15 @@ def _wait_until_connected(lines: Iterator[str]) -> None:
     raise AssertionError("expected an SSE connection comment")
 
 
-def _read_first_data_event(lines: Iterator[str]) -> dict:
+def _read_first_sse_event(lines: Iterator[str]) -> dict:
+    event: dict = {}
     for line in lines:
-        if line.startswith("data:"):
-            return json.loads(line.removeprefix("data:").strip())
+        if line.startswith("event:"):
+            event["event"] = line.removeprefix("event:").strip()
+        elif line.startswith("id:"):
+            event["id"] = line.removeprefix("id:").strip()
+        elif line.startswith("data:"):
+            event["data"] = json.loads(line.removeprefix("data:").strip())
+        elif not line and "data" in event:
+            return event
     raise AssertionError("expected an SSE data event")

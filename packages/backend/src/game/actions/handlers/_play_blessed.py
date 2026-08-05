@@ -3,13 +3,16 @@ import collections
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 
 
 def handle_dice_play_blessed(
-    game: entities.Game, action: teyuna_core.PlayBlessedAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayBlessedAction,
 ) -> teyuna_core.PlayedBlessedResult:
     previous_phase = game.phase
-    error = _apply_blessed(game, action)
+    error = _apply_blessed(game, context, action)
     if error is not None:
         return teyuna_core.PlayedBlessedResult(
             previous_phase=previous_phase,
@@ -27,10 +30,12 @@ def handle_dice_play_blessed(
 
 
 def handle_trade_and_build_play_blessed(
-    game: entities.Game, action: teyuna_core.PlayBlessedAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayBlessedAction,
 ) -> teyuna_core.PlayedBlessedResult:
     previous_phase = game.phase
-    error = _apply_blessed(game, action)
+    error = _apply_blessed(game, context, action)
     if error is not None:
         return teyuna_core.PlayedBlessedResult(
             previous_phase=previous_phase,
@@ -48,10 +53,12 @@ def handle_trade_and_build_play_blessed(
 
 
 def _apply_blessed(
-    game: entities.Game, action: teyuna_core.PlayBlessedAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayBlessedAction,
 ) -> str | None:
-    if game.active_player != action.by:
-        return f"Player {action.by} is not in turn"
+    if game.active_player != context.by:
+        return f"Player {context.by} is not in turn"
 
     amount: collections.Counter[teyuna_core.ResourceCard] = collections.Counter(
         action.resources
@@ -60,5 +67,5 @@ def _apply_blessed(
         if game.resource_supply[resource] < count:
             return f"Not enough {resource.value} in the supply"
 
-    game.take_from_supply(to=action.by, amount=amount)
+    game.take_from_supply(to=context.by, amount=amount)
     return None

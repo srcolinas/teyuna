@@ -28,7 +28,8 @@ async def test_single_subscriber_receives_events_in_order() -> None:
     await event_broker.publish(game_id, second)
     events = await collector
 
-    assert [event.id for event in events] == [0, 1]
+    assert [event.id for event in events] == ["0", "1"]
+    assert [event.type for event in events] == ["phase_changed", "phase_changed"]
     assert [event.data for event in events] == [first, second]
 
 
@@ -71,7 +72,8 @@ async def test_late_subscriber_does_not_see_prior_events() -> None:
     await event_broker.publish(game_id, later)
     event = await waiter
 
-    assert event.id == 1
+    assert event.id == "1"
+    assert event.type == "phase_changed"
     assert event.data is later
 
 
@@ -112,11 +114,8 @@ async def test_disconnect_unregisters_subscriber() -> None:
 def _result(
     *,
     phase: teyuna_core.GamePhaseName = teyuna_core.GamePhaseName.DICE_ROLL,
-    error: str | None = None,
-) -> teyuna_core.ActionExecutionResult:
-    return teyuna_core.ActionExecutionResult(
-        previous_phase=phase,
+) -> teyuna_core.PhaseChangedEvent:
+    return teyuna_core.PhaseChangedEvent(
+        previous_phase=teyuna_core.GamePhaseName.LOBBY,
         next_phase=phase,
-        action=teyuna_core.PlayerAction.model_construct(by="player"),
-        error=error,
     )

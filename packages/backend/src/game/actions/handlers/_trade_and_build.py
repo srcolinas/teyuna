@@ -3,25 +3,28 @@ from typing import Final
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 from . import _placement, _longest_road, _victory, _play_card
 
 
 def handle_build_terrace(
-    game: entities.Game, action: teyuna_core.BuildSettlementAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.BuildSettlementAction,
 ) -> teyuna_core.BuiltSettlementResult:
     previous_phase = game.phase
-    if game.active_player != action.by:
+    if game.active_player != context.by:
         return teyuna_core.BuiltSettlementResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not in turn",
+            error=f"Player {context.by} is not in turn",
         )
 
     if action.item is teyuna_core.SettlementType.TERRACE:
-        error = _build_terrace(game, action.by, action.coordinate)
+        error = _build_terrace(game, context, action)
     else:
-        error = _build_great_terrace(game, action.by, action.coordinate)
+        error = _build_great_terrace(game, context, action)
     if error is not None:
         return teyuna_core.BuiltSettlementResult(
             previous_phase=previous_phase,
@@ -31,7 +34,7 @@ def handle_build_terrace(
         )
 
     game.phase = _victory.phase_after_victory_check(
-        game, action.by, teyuna_core.GamePhaseName.TRADE_AND_BUILD
+        game, context.by, teyuna_core.GamePhaseName.TRADE_AND_BUILD
     )
     return teyuna_core.BuiltSettlementResult(
         previous_phase=previous_phase,
@@ -43,18 +46,20 @@ def handle_build_terrace(
 
 
 def handle_build_path(
-    game: entities.Game, action: teyuna_core.BuildPathAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.BuildPathAction,
 ) -> teyuna_core.BuiltPathResult:
     previous_phase = game.phase
-    if game.active_player != action.by:
+    if game.active_player != context.by:
         return teyuna_core.BuiltPathResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not in turn",
+            error=f"Player {context.by} is not in turn",
         )
 
-    error = _build_path(game, action.by, action.coordinate)
+    error = _build_path(game, context, action)
     if error is not None:
         return teyuna_core.BuiltPathResult(
             previous_phase=previous_phase,
@@ -63,7 +68,7 @@ def handle_build_path(
             error=error,
         )
     game.phase = _victory.phase_after_victory_check(
-        game, action.by, teyuna_core.GamePhaseName.TRADE_AND_BUILD
+        game, context.by, teyuna_core.GamePhaseName.TRADE_AND_BUILD
     )
     return teyuna_core.BuiltPathResult(
         previous_phase=previous_phase,
@@ -74,18 +79,20 @@ def handle_build_path(
 
 
 def handle_end_trade_and_build(
-    game: entities.Game, action: teyuna_core.PlayerAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayerAction,
 ) -> teyuna_core.EndedTradeAndBuildResult:
     previous_phase = game.phase
-    if game.active_player != action.by:
+    if game.active_player != context.by:
         return teyuna_core.EndedTradeAndBuildResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not in turn",
+            error=f"Player {context.by} is not in turn",
         )
 
-    game.preserve_cards(action.by)
+    game.preserve_cards(context.by)
     game.trade_proposals.clear()
 
     if game.player_idx < len(game.players) - 1:
@@ -104,15 +111,17 @@ def handle_end_trade_and_build(
 
 
 def handle_buy_wisdom_card(
-    game: entities.Game, action: teyuna_core.BuyWisdomCardAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.BuyWisdomCardAction,
 ) -> teyuna_core.BoughtWisdomCardResult:
     previous_phase = game.phase
-    if game.active_player != action.by:
+    if game.active_player != context.by:
         return teyuna_core.BoughtWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not in turn",
+            error=f"Player {context.by} is not in turn",
         )
 
     if not game.wisdom_deck:
@@ -124,7 +133,7 @@ def handle_buy_wisdom_card(
         )
 
     error = _ensure_resources(
-        game.players[action.by].resources, teyuna_core.WISDOM_CARD_COST
+        game.players[context.by].resources, teyuna_core.WISDOM_CARD_COST
     )
     if error is not None:
         return teyuna_core.BoughtWisdomCardResult(
@@ -133,8 +142,8 @@ def handle_buy_wisdom_card(
             action=action,
             error=error,
         )
-    game.discard_resources(action.by, teyuna_core.WISDOM_CARD_COST)
-    card = game.take_wisdom_card(action.by)
+    game.discard_resources(context.by, teyuna_core.WISDOM_CARD_COST)
+    card = game.take_wisdom_card(context.by)
     game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     return teyuna_core.BoughtWisdomCardResult(
         previous_phase=previous_phase,
@@ -145,10 +154,13 @@ def handle_buy_wisdom_card(
 
 
 def handle_trade_and_build_play_wisdom_card(
-    game: entities.Game, action: teyuna_core.PlayWisdomCardAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayWisdomCardAction,
 ) -> teyuna_core.PlayedWisdomCardResult:
     return _play_card.play_wisdom_card(
         game,
+        context,
         action,
         card_phases=_TRADE_AND_BUILD_CARD_PHASES,
         phase_label="trade and build",
@@ -156,9 +168,11 @@ def handle_trade_and_build_play_wisdom_card(
 
 
 def _build_terrace(
-    game: entities.Game, by: str, coordinate: teyuna_core.Coordinate
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.BuildSettlementAction,
 ) -> str | None:
-    player_state = game.players[by]
+    player_state = game.players[context.by]
     error = _ensure_resources(player_state.resources, teyuna_core.TERRACE_COST)
     if error is not None:
         return error
@@ -172,27 +186,33 @@ def _build_terrace(
         free_verticies=game.free_verticies,
         restricted_verticies=game.restricted_verticies,
         existing_paths=player_state.paths,
-        target=coordinate,
+        target=action.coordinate,
     )
     if not can:
         return _placement.format_invalid_settlement_location(
-            target=coordinate,
-            player=by,
+            target=action.coordinate,
+            player=context.by,
             free_vertices=game.free_verticies,
             restricted_vertices=game.restricted_verticies,
             existing_paths=player_state.paths,
         )
 
-    game.use_vertex(by, coordinate, teyuna_core.SettlementType.TERRACE)
-    game.discard_resources(by, teyuna_core.TERRACE_COST)
-    _longest_road.recompute_longest_road(game, by, vertex=coordinate)
+    game.use_vertex(
+        context.by,
+        action.coordinate,
+        teyuna_core.SettlementType.TERRACE,
+    )
+    game.discard_resources(context.by, teyuna_core.TERRACE_COST)
+    _longest_road.recompute_longest_road(game, context.by, vertex=action.coordinate)
     return None
 
 
 def _build_great_terrace(
-    game: entities.Game, by: str, coordinate: teyuna_core.Coordinate
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.BuildSettlementAction,
 ) -> str | None:
-    player_state = game.players[by]
+    player_state = game.players[context.by]
     error = _ensure_resources(player_state.resources, teyuna_core.GREAT_TERRACE_COST)
     if error is not None:
         return error
@@ -203,20 +223,20 @@ def _build_great_terrace(
         return "No great terraces remaining"
 
     settlements = player_state.settlements
-    if coordinate not in settlements:
+    if action.coordinate not in settlements:
         return _placement.format_invalid_settlement_location(
-            target=coordinate,
-            player=by,
+            target=action.coordinate,
+            player=context.by,
             free_vertices=game.free_verticies,
             restricted_vertices=game.restricted_verticies,
             existing_paths=player_state.paths,
             existing_settlements=dict(settlements.items()),
             reason="You must first build a terrace at specified location.",
         )
-    if settlements[coordinate] is teyuna_core.SettlementType.GREAT_TERRACE:
+    if settlements[action.coordinate] is teyuna_core.SettlementType.GREAT_TERRACE:
         return _placement.format_invalid_settlement_location(
-            target=coordinate,
-            player=by,
+            target=action.coordinate,
+            player=context.by,
             free_vertices=game.free_verticies,
             restricted_vertices=game.restricted_verticies,
             existing_paths=player_state.paths,
@@ -224,15 +244,17 @@ def _build_great_terrace(
             reason="You have already built a great terrace at specified location.",
         )
 
-    settlements[coordinate] = teyuna_core.SettlementType.GREAT_TERRACE
-    game.discard_resources(by, teyuna_core.GREAT_TERRACE_COST)
+    settlements[action.coordinate] = teyuna_core.SettlementType.GREAT_TERRACE
+    game.discard_resources(context.by, teyuna_core.GREAT_TERRACE_COST)
     return None
 
 
 def _build_path(
-    game: entities.Game, by: str, coordinate: teyuna_core.Coordinate
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.BuildPathAction,
 ) -> str | None:
-    player_state = game.players[by]
+    player_state = game.players[context.by]
     if len(player_state.paths) >= teyuna_core.MAX_PATHS:
         return "No paths remaining"
     error = _ensure_resources(player_state.resources, teyuna_core.PATH_COST)
@@ -240,7 +262,7 @@ def _build_path(
         return error
 
     can = _placement.can_add_free_path_at(
-        target=coordinate,
+        target=action.coordinate,
         free_edges=game.free_edges,
         existing_settlements=player_state.settlements.locations(),
         existing_paths=player_state.paths,
@@ -248,16 +270,16 @@ def _build_path(
     )
     if not can:
         return _placement.format_invalid_path_location(
-            target=coordinate,
-            player=by,
+            target=action.coordinate,
+            player=context.by,
             existing_settlements=player_state.settlements.locations(),
             existing_paths=player_state.paths,
             free_edges=game.free_edges,
         )
 
-    game.use_edge(by, coordinate)
-    game.discard_resources(by, teyuna_core.PATH_COST)
-    _longest_road.update_longest_road(game, by, edge=coordinate)
+    game.use_edge(context.by, action.coordinate)
+    game.discard_resources(context.by, teyuna_core.PATH_COST)
+    _longest_road.update_longest_road(game, context.by, edge=action.coordinate)
     return None
 
 

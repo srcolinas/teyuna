@@ -8,8 +8,20 @@ from typing import Any
 import teyuna_core
 
 from .. import entities
+from . import _execution
 
-TimeoutFn = Callable[[entities.Game, random.Random], teyuna_core.PlayerActionBase]
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class TimeoutAction:
+    by: str
+    action: teyuna_core.AnyPlayerAction
+
+
+TimeoutFn = Callable[[entities.Game, random.Random], TimeoutAction]
+ActionHandler = Callable[
+    [entities.Game, _execution.ExecutionContext, Any],
+    teyuna_core.AnyActionExecutionResult,
+]
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -35,7 +47,7 @@ class ActionsRegistry:
             teyuna_core.GamePhaseName,
             dict[
                 type[teyuna_core.PlayerActionBase],
-                Callable[[entities.Game, Any], teyuna_core.AnyActionExecutionResult],
+                ActionHandler,
             ],
         ] = {}
         self._timeouts: dict[teyuna_core.GamePhaseName, PhaseTimeout] = {}
@@ -44,23 +56,36 @@ class ActionsRegistry:
         self,
         phase: teyuna_core.GamePhaseName,
     ) -> Callable[
-        [Callable[[entities.Game, ActionT], teyuna_core.AnyActionExecutionResult]],
-        Callable[[entities.Game, ActionT], teyuna_core.AnyActionExecutionResult],
+        [
+            Callable[
+                [entities.Game, _execution.ExecutionContext, ActionT],
+                teyuna_core.AnyActionExecutionResult,
+            ]
+        ],
+        Callable[
+            [entities.Game, _execution.ExecutionContext, ActionT],
+            teyuna_core.AnyActionExecutionResult,
+        ],
     ]:
         def decorator(
             handler: Callable[
-                [entities.Game, ActionT], teyuna_core.AnyActionExecutionResult
+                [entities.Game, _execution.ExecutionContext, ActionT],
+                teyuna_core.AnyActionExecutionResult,
             ],
-        ) -> Callable[[entities.Game, ActionT], teyuna_core.AnyActionExecutionResult]:
+        ) -> Callable[
+            [entities.Game, _execution.ExecutionContext, ActionT],
+            teyuna_core.AnyActionExecutionResult,
+        ]:
             sig = inspect.signature(handler)
             params = list(sig.parameters.values())
 
-            if len(params) < 2:
+            if len(params) < 3:
                 raise ValueError(
-                    f"Handler '{handler.__name__}' must accept at least two parameters: (game, action)."
+                    f"Handler '{handler.__name__}' must accept at least three "
+                    "parameters: (game, context, action)."
                 )
 
-            action_param_name = params[1].name
+            action_param_name = params[2].name
 
             annotations = inspect.get_annotations(handler)
             action_type = annotations.get(action_param_name)
@@ -69,7 +94,7 @@ class ActionsRegistry:
                 action_type, teyuna_core.PlayerActionBase
             ):
                 raise TypeError(
-                    f"The second parameter '{action_param_name}' of handler '{handler.__name__}' "
+                    f"The third parameter '{action_param_name}' of handler '{handler.__name__}' "
                     f"must be annotated with a subclass of PlayerActionBase (got {action_type})."
                 )
 
@@ -99,7 +124,10 @@ class ActionsRegistry:
             ) from None
 
     def execute(
-        self, game: entities.Game, action: teyuna_core.PlayerActionBase
+        self,
+        game: entities.Game,
+        context: _execution.ExecutionContext,
+        action: teyuna_core.PlayerActionBase,
     ) -> teyuna_core.AnyActionExecutionResult:
         phase_handlers = self._registry.get(game.phase)
         if not phase_handlers:
@@ -112,9 +140,9 @@ class ActionsRegistry:
 
         if not handler:
             raise ActionNotAllowedError(
-                f"Action '{action_type.__name__}' by '{action.by}' is not allowed "
+                f"Action '{action_type.__name__}' by '{context.by}' is not allowed "
                 f"during the '{game.phase.value}' phase."
             )
 
-        result = handler(game, action)
+        result = handler(game, context, action)
         return result

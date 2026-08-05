@@ -6,76 +6,90 @@ from typing import Any
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 from . import _placement
 
-TypedHandler = Callable[[entities.Game, Any], teyuna_core.AnyActionExecutionResult]
+TypedHandler = Callable[
+    [entities.Game, _execution.ExecutionContext, Any],
+    teyuna_core.AnyActionExecutionResult,
+]
 
 
 def handle_advance(
-    game: entities.Game, action: teyuna_core.PlayerAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayerAction,
 ) -> teyuna_core.AnyActionExecutionResult:
     """Expand bare ``PlayerAction`` into a random legal typed move for this phase."""
-    typed = random_action_for_phase(game, action)
-    return _typed_handler_for(game.phase)(game, typed)
+    typed = random_action_for_phase(game, context, action)
+    return _typed_handler_for(game.phase)(game, context, typed)
 
 
 def random_action_for_phase(
-    game: entities.Game, action: teyuna_core.PlayerAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayerAction,
 ) -> teyuna_core.PlayerActionBase:
     """Build a random legal typed action for ``game.phase``, bound to ``action``."""
-    by = action.by
-    rng = action.rng_
-    due_to_timeout = action.due_to_timeout
     phase = game.phase
 
     if phase in (
         teyuna_core.GamePhaseName.FIRST_PLACEMENT,
         teyuna_core.GamePhaseName.SECOND_PLACEMENT,
     ):
-        return resolve_free_placement(game, rng, by=by, due_to_timeout=due_to_timeout)
+        return resolve_free_placement(game, context, teyuna_core.FreePlacementAction())
     if phase in (
         teyuna_core.GamePhaseName.MOVE_CONQUISTATOR,
         teyuna_core.GamePhaseName.DICE_PLAY_WARRIOR,
         teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_WARRIOR,
     ):
-        return random_move_conquistator(game, rng, by=by, due_to_timeout=due_to_timeout)
+        return random_move_conquistator(
+            game, context, teyuna_core.MoveConquistatorAction(q=0, r=0)
+        )
     if phase in (
         teyuna_core.GamePhaseName.DICE_PLAY_MAMO,
         teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_MAMO,
     ):
-        return random_play_mamo(game, rng, by=by, due_to_timeout=due_to_timeout)
+        return random_play_mamo(
+            game,
+            context,
+            teyuna_core.PlayMamoAction(resource=teyuna_core.ResourceCard.GOLD),
+        )
     if phase in (
         teyuna_core.GamePhaseName.DICE_PLAY_BLESSED,
         teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_BLESSED,
     ):
-        return random_play_blessed(game, rng, by=by, due_to_timeout=due_to_timeout)
+        return random_play_blessed(
+            game,
+            context,
+            teyuna_core.PlayBlessedAction(
+                resources=(
+                    teyuna_core.ResourceCard.GOLD,
+                    teyuna_core.ResourceCard.STONE,
+                )
+            ),
+        )
     if phase in (
         teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER,
         teyuna_core.GamePhaseName.TRADE_AND_BUILD_PLAY_PATHFINDER,
     ):
-        return random_play_pathfinder(game, rng, by=by, due_to_timeout=due_to_timeout)
+        return random_play_pathfinder(
+            game, context, teyuna_core.PlayPathfinderAction(paths=())
+        )
     raise KeyError(f"No random advance defined for phase: {phase.value}")
 
 
 def resolve_free_placement(
     game: entities.Game,
-    rng: random.Random,
-    *,
-    by: str,
-    terrace: teyuna_core.Coordinate | None = None,
-    path: teyuna_core.Coordinate | None = None,
-    due_to_timeout: bool = False,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.FreePlacementAction,
 ) -> teyuna_core.FreePlacementAction:
+    terrace = action.terrace
+    path = action.path
     if terrace is not None and path is not None:
-        return teyuna_core.FreePlacementAction.model_construct(
-            by=by,
-            due_to_timeout=due_to_timeout,
-            terrace=terrace,
-            path=path,
-            rng_=rng,
-        )
+        return action
 
-    player_state = game.players[by]
+    player_state = game.players[context.by]
     existing_settlements = set(player_state.settlements.locations())
     existing_paths = player_state.paths
 
@@ -90,14 +104,8 @@ def resolve_free_placement(
             )
         ]
         if legal_terraces:
-            terrace = rng.choice(legal_terraces)
-        return teyuna_core.FreePlacementAction.model_construct(
-            by=by,
-            due_to_timeout=due_to_timeout,
-            terrace=terrace,
-            path=path,
-            rng_=rng,
-        )
+            terrace = context.rng.choice(legal_terraces)
+        return teyuna_core.FreePlacementAction(terrace=terrace, path=path)
 
     if terrace is not None and path is None:
         legal_paths = _legal_paths_for_terrace(
@@ -107,14 +115,8 @@ def resolve_free_placement(
             existing_paths=existing_paths,
         )
         if legal_paths:
-            path = rng.choice(legal_paths)
-        return teyuna_core.FreePlacementAction.model_construct(
-            by=by,
-            due_to_timeout=due_to_timeout,
-            terrace=terrace,
-            path=path,
-            rng_=rng,
-        )
+            path = context.rng.choice(legal_paths)
+        return teyuna_core.FreePlacementAction(terrace=terrace, path=path)
 
     legal_terraces = [
         vertex
@@ -125,7 +127,7 @@ def resolve_free_placement(
             target=vertex,
         )
     ]
-    rng.shuffle(legal_terraces)
+    context.rng.shuffle(legal_terraces)
     for candidate in legal_terraces:
         legal_paths = _legal_paths_for_terrace(
             game,
@@ -135,43 +137,31 @@ def resolve_free_placement(
         )
         if not legal_paths:
             continue
-        return teyuna_core.FreePlacementAction.model_construct(
-            by=by,
-            due_to_timeout=due_to_timeout,
+        return teyuna_core.FreePlacementAction(
             terrace=candidate,
-            path=rng.choice(legal_paths),
-            rng_=rng,
+            path=context.rng.choice(legal_paths),
         )
     raise RuntimeError("No legal free placement available for timeout")
 
 
 def discard_resources_for(
     game: entities.Game,
-    rng: random.Random,
-    *,
-    by: str,
-    due_to_timeout: bool = False,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.DiscardResourcesAction,
 ) -> teyuna_core.DiscardResourcesAction:
-    required = game.to_discard_resources.get(by, 0)
+    required = game.to_discard_resources.get(context.by, 0)
     count = (
-        _pick_discard(game.players[by].resources, required, rng)
-        if required and by in game.players
+        _pick_discard(game.players[context.by].resources, required, context.rng)
+        if required and context.by in game.players
         else {}
     )
-    return teyuna_core.DiscardResourcesAction.model_construct(
-        by=by,
-        due_to_timeout=due_to_timeout,
-        count=count,
-        rng_=rng,
-    )
+    return action.model_copy(update={"count": count})
 
 
 def random_move_conquistator(
     game: entities.Game,
-    rng: random.Random,
-    *,
-    by: str,
-    due_to_timeout: bool = False,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.MoveConquistatorAction,
 ) -> teyuna_core.MoveConquistatorAction:
     candidates = [
         teyuna_core.HexLocation(q=hex_tile.q, r=hex_tile.r)
@@ -181,45 +171,33 @@ def random_move_conquistator(
     ]
     if not candidates:
         raise RuntimeError("No legal conquistator destinations available")
-    location = rng.choice(candidates)
+    location = context.rng.choice(candidates)
     victims = [
         nick
         for nick, player_state in game.players.items()
-        if nick != by and sum(player_state.resources.values()) > 0
+        if nick != context.by and sum(player_state.resources.values()) > 0
     ]
-    from_player = rng.choice(victims) if victims else None
-    return teyuna_core.MoveConquistatorAction.model_construct(
-        by=by,
-        due_to_timeout=due_to_timeout,
+    from_player = context.rng.choice(victims) if victims else None
+    return teyuna_core.MoveConquistatorAction(
         q=location.q,
         r=location.r,
         from_player=from_player,
-        rng_=rng,
     )
 
 
 def random_play_mamo(
     game: entities.Game,
-    rng: random.Random,
-    *,
-    by: str,
-    due_to_timeout: bool = False,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayMamoAction,
 ) -> teyuna_core.PlayMamoAction:
-    resource = rng.choice(list(teyuna_core.ResourceCard))
-    return teyuna_core.PlayMamoAction.model_construct(
-        by=by,
-        due_to_timeout=due_to_timeout,
-        resource=resource,
-        rng_=rng,
-    )
+    resource = context.rng.choice(list(teyuna_core.ResourceCard))
+    return action.model_copy(update={"resource": resource})
 
 
 def random_play_blessed(
     game: entities.Game,
-    rng: random.Random,
-    *,
-    by: str,
-    due_to_timeout: bool = False,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayBlessedAction,
 ) -> teyuna_core.PlayBlessedAction:
     pool: list[teyuna_core.ResourceCard] = [
         resource
@@ -227,26 +205,19 @@ def random_play_blessed(
         for _ in range(game.resource_supply[resource])
     ]
     if len(pool) >= 2:
-        first, second = rng.sample(pool, 2)
+        first, second = context.rng.sample(pool, 2)
     else:
         resources = list(teyuna_core.ResourceCard)
         first, second = resources[0], resources[1]
-    return teyuna_core.PlayBlessedAction.model_construct(
-        by=by,
-        due_to_timeout=due_to_timeout,
-        resources=(first, second),
-        rng_=rng,
-    )
+    return action.model_copy(update={"resources": (first, second)})
 
 
 def random_play_pathfinder(
     game: entities.Game,
-    rng: random.Random,
-    *,
-    by: str,
-    due_to_timeout: bool = False,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayPathfinderAction,
 ) -> teyuna_core.PlayPathfinderAction:
-    player_state = game.players[by]
+    player_state = game.players[context.by]
     remaining = teyuna_core.MAX_PATHS - len(player_state.paths)
     legal: list[teyuna_core.Coordinate] = [
         edge
@@ -259,7 +230,7 @@ def random_play_pathfinder(
             free_vertices=game.free_verticies,
         )
     ]
-    rng.shuffle(legal)
+    context.rng.shuffle(legal)
     chosen: list[teyuna_core.Coordinate] = []
     owned_paths = set(player_state.paths)
     for edge in legal:
@@ -274,12 +245,7 @@ def random_play_pathfinder(
             free_vertices=game.free_verticies,
         ):
             chosen.append(edge)
-    return teyuna_core.PlayPathfinderAction.model_construct(
-        by=by,
-        due_to_timeout=due_to_timeout,
-        paths=tuple(chosen),
-        rng_=rng,
-    )
+    return action.model_copy(update={"paths": tuple(chosen)})
 
 
 def _legal_paths_for_terrace(

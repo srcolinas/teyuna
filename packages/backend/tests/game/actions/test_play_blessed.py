@@ -1,3 +1,4 @@
+import random
 from src.game import actions, entities
 import teyuna_core
 
@@ -5,7 +6,6 @@ import teyuna_core
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
     action = teyuna_core.PlayBlessedAction(
-        by=other,
         resources=(
             teyuna_core.ResourceCard.WOOD,
             teyuna_core.ResourceCard.STONE,
@@ -13,6 +13,7 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     )
     result = actions.handle_dice_play_blessed(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -23,7 +24,6 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
 def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
     action = teyuna_core.PlayBlessedAction(
-        by=other,
         resources=(
             teyuna_core.ResourceCard.WOOD,
             teyuna_core.ResourceCard.STONE,
@@ -31,6 +31,7 @@ def test_trade_and_build_raises_when_player_not_in_turn(game: entities.Game) -> 
     )
     result = actions.handle_trade_and_build_play_blessed(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -45,7 +46,6 @@ def test_raises_when_supply_lacks_requested_resource(
     game.resource_supply[teyuna_core.ResourceCard.WOOD] = 0
 
     action = teyuna_core.PlayBlessedAction(
-        by=player,
         resources=(
             teyuna_core.ResourceCard.WOOD,
             teyuna_core.ResourceCard.STONE,
@@ -53,6 +53,7 @@ def test_raises_when_supply_lacks_requested_resource(
     )
     result = actions.handle_dice_play_blessed(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -67,7 +68,6 @@ def test_raises_when_supply_lacks_duplicate_resource(
     game.resource_supply[teyuna_core.ResourceCard.WOOD] = 1
 
     action = teyuna_core.PlayBlessedAction(
-        by=player,
         resources=(
             teyuna_core.ResourceCard.WOOD,
             teyuna_core.ResourceCard.WOOD,
@@ -75,6 +75,7 @@ def test_raises_when_supply_lacks_duplicate_resource(
     )
     result = actions.handle_dice_play_blessed(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -91,11 +92,11 @@ def test_takes_from_supply_and_returns_to_dice_roll(
 
     resources = (teyuna_core.ResourceCard.WOOD, teyuna_core.ResourceCard.STONE)
     action = teyuna_core.PlayBlessedAction(
-        by=player,
         resources=resources,
     )
     result = actions.handle_dice_play_blessed(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -118,11 +119,11 @@ def test_takes_from_supply_and_returns_to_trade_and_build(
 
     resources = (teyuna_core.ResourceCard.WOOD, teyuna_core.ResourceCard.STONE)
     action = teyuna_core.PlayBlessedAction(
-        by=player,
         resources=resources,
     )
     result = actions.handle_trade_and_build_play_blessed(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action

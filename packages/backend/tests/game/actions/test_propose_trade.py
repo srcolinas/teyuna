@@ -1,3 +1,4 @@
+import random
 import collections
 
 from src.game import actions, entities
@@ -15,13 +16,15 @@ def test_propose_trade_stores_proposal(game: entities.Game) -> None:
     request = collections.Counter({teyuna_core.ResourceCard.STONE: 1})
 
     action = teyuna_core.ProposeTradeAction(
-        by=proposer,
         offer=offer,
         request=request,
         to={target},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=proposer, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -50,13 +53,15 @@ def test_non_active_player_can_propose_to_active(game: entities.Game) -> None:
     )
 
     action = teyuna_core.ProposeTradeAction(
-        by=proposer,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={target},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=proposer, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -78,13 +83,15 @@ def test_non_active_player_can_propose_during_dice_roll(game: entities.Game) -> 
     )
 
     action = teyuna_core.ProposeTradeAction(
-        by=proposer,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={target},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=proposer, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -103,13 +110,15 @@ def test_active_player_cannot_propose_during_dice_roll(game: entities.Game) -> N
     )
 
     action = teyuna_core.ProposeTradeAction(
-        by=proposer,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={game.turn_order[1]},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=proposer, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -129,13 +138,15 @@ def test_non_active_player_cannot_propose_to_non_active(game: entities.Game) -> 
     )
 
     action = teyuna_core.ProposeTradeAction(
-        by=proposer,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={other},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=proposer, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -149,13 +160,15 @@ def test_non_active_player_cannot_propose_to_non_active(game: entities.Game) -> 
 def test_cannot_propose_if_not_enough_resources(game: entities.Game) -> None:
     game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     action = teyuna_core.ProposeTradeAction(
-        by=game.active_player,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={game.turn_order[1]},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -169,13 +182,15 @@ def test_cannot_propose_with_empty_targets(game: entities.Game) -> None:
         {teyuna_core.ResourceCard.GOLD: 2}
     )
     action = teyuna_core.ProposeTradeAction(
-        by=game.active_player,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to=set(),
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -190,13 +205,15 @@ def test_cannot_propose_to_self(game: entities.Game) -> None:
         {teyuna_core.ResourceCard.GOLD: 2}
     )
     action = teyuna_core.ProposeTradeAction(
-        by=proposer,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={proposer},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=proposer, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -210,13 +227,15 @@ def test_cannot_propose_to_unknown_player(game: entities.Game) -> None:
         {teyuna_core.ResourceCard.GOLD: 2}
     )
     action = teyuna_core.ProposeTradeAction(
-        by=game.active_player,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={"not-a-player"},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -232,13 +251,15 @@ def test_propose_does_not_move_resources(game: entities.Game) -> None:
     )
 
     action = teyuna_core.ProposeTradeAction(
-        by=proposer,
         offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 2}),
         request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
         to={game.turn_order[1]},
     )
     result = actions.handle_propose_trade(
         game,
+        actions.ExecutionContext(
+            by=proposer, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action

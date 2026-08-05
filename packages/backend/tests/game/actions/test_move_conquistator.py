@@ -1,3 +1,4 @@
+import random
 from src.game import actions, entities
 from src.game.actions.handlers import _placement
 import teyuna_core
@@ -5,9 +6,10 @@ import teyuna_core
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
-    action = teyuna_core.MoveConquistatorAction(by=other, q=1, r=0)
+    action = teyuna_core.MoveConquistatorAction(q=1, r=0)
     result = actions.handle_move_conquistator(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -26,9 +28,10 @@ def test_raises_when_location_is_unchanged(game: entities.Game) -> None:
         player=player,
         current_location=location,
     )
-    action = teyuna_core.MoveConquistatorAction(by=player, q=location.q, r=location.r)
+    action = teyuna_core.MoveConquistatorAction(q=location.q, r=location.r)
     result = actions.handle_move_conquistator(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -44,9 +47,10 @@ def test_moves_conquistator_and_returns_to_trade_and_build(
 ) -> None:
     player = game.active_player
 
-    action = teyuna_core.MoveConquistatorAction(by=player, q=1, r=-1)
+    action = teyuna_core.MoveConquistatorAction(q=1, r=-1)
     result = actions.handle_move_conquistator(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -68,9 +72,10 @@ def test_does_not_take_resources_when_from_player_is_none(
     other = game.turn_order[1]
     game.players[other].resources[teyuna_core.ResourceCard.WOOD] = 2
 
-    action = teyuna_core.MoveConquistatorAction(by=player, q=1, r=0, from_player=None)
+    action = teyuna_core.MoveConquistatorAction(q=1, r=0, from_player=None)
     result = actions.handle_move_conquistator(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -91,9 +96,10 @@ def test_takes_one_resource_when_from_player_is_set(
     other = game.turn_order[1]
     game.players[other].resources[teyuna_core.ResourceCard.WOOD] = 2
 
-    action = teyuna_core.MoveConquistatorAction(by=player, q=1, r=0, from_player=other)
+    action = teyuna_core.MoveConquistatorAction(q=1, r=0, from_player=other)
     result = actions.handle_move_conquistator(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action

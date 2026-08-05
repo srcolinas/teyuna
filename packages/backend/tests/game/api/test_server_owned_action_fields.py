@@ -21,5 +21,5 @@ def test_client_supplied_by_and_due_to_timeout_are_ignored(
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["action"]["by"] == active_player
-    assert body["action"]["due_to_timeout"] is False
+    assert "by" not in body["action"]
+    assert "due_to_timeout" not in body["action"]

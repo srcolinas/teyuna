@@ -22,6 +22,16 @@ ZERO = datetime.timedelta(0)
 NOW = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
 
 
+class RecordingBroker(broker.EventBroker):
+    def __init__(self) -> None:
+        super().__init__()
+        self.published: list[teyuna_core.AnyGameEvent] = []
+
+    async def publish(self, game_id: uuid.UUID, data: teyuna_core.AnyGameEvent) -> None:
+        self.published.append(data)
+        await super().publish(game_id, data)
+
+
 @pytest.mark.asyncio
 async def test_zero_timeout_executes_first_placement() -> None:
     game_id, repository, registry = _create_stored_game(
@@ -29,13 +39,12 @@ async def test_zero_timeout_executes_first_placement() -> None:
     )
     game = repository.retrieve(game_id)
     active = game.active_player
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(event_broker, game_id, ["successful_action", "turn_changed"])
     stored = repository.retrieve(game_id)
     assert len(list(stored.players[active].settlements.locations())) == 1
     assert len(stored.players[active].paths) == 1
@@ -48,13 +57,14 @@ async def test_zero_timeout_executes_second_placement() -> None:
     )
     game = repository.retrieve(game_id)
     active = game.active_player
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     stored = repository.retrieve(game_id)
     assert len(list(stored.players[active].settlements.locations())) == 1
     assert len(stored.players[active].paths) == 1
@@ -65,13 +75,14 @@ async def test_zero_timeout_executes_dice_roll() -> None:
     game_id, repository, registry = _create_stored_game(
         phase=teyuna_core.GamePhaseName.DICE_ROLL
     )
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     assert repository.retrieve(game_id).phase is not teyuna_core.GamePhaseName.DICE_ROLL
 
 
@@ -81,13 +92,16 @@ async def test_zero_timeout_executes_trade_and_build() -> None:
         phase=teyuna_core.GamePhaseName.TRADE_AND_BUILD
     )
     active = repository.retrieve(game_id).active_player
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker,
+        game_id,
+        ["successful_action", "phase_changed", "turn_changed"],
+    )
     stored = repository.retrieve(game_id)
     assert stored.phase is teyuna_core.GamePhaseName.DICE_ROLL
     assert stored.active_player != active
@@ -110,13 +124,14 @@ async def test_zero_timeout_executes_discard_resources() -> None:
         setup=setup,
     )
     nick = repository.retrieve(game_id).active_player
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     stored = repository.retrieve(game_id)
     assert nick not in stored.to_discard_resources
     assert stored.phase is teyuna_core.GamePhaseName.MOVE_CONQUISTATOR
@@ -128,13 +143,14 @@ async def test_zero_timeout_executes_move_conquistator() -> None:
         phase=teyuna_core.GamePhaseName.MOVE_CONQUISTATOR
     )
     before = repository.retrieve(game_id).conquistator_location
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     stored = repository.retrieve(game_id)
     assert stored.phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
     assert stored.conquistator_location != before
@@ -160,13 +176,14 @@ async def test_zero_timeout_executes_play_warrior(
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     before = repository.retrieve(game_id).conquistator_location
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     stored = repository.retrieve(game_id)
     assert stored.phase is expected_phase
     assert stored.conquistator_location != before
@@ -191,13 +208,14 @@ async def test_zero_timeout_executes_play_mamo(
     expected_phase: teyuna_core.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     assert repository.retrieve(game_id).phase is expected_phase
 
 
@@ -221,13 +239,14 @@ async def test_zero_timeout_executes_play_blessed(
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
     before_supply = sum(repository.retrieve(game_id).resource_supply.values())
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     stored = repository.retrieve(game_id)
     assert stored.phase is expected_phase
     assert sum(stored.resource_supply.values()) == before_supply - 2
@@ -252,14 +271,28 @@ async def test_zero_timeout_executes_play_pathfinder(
     expected_phase: teyuna_core.GamePhaseName,
 ) -> None:
     game_id, repository, registry = _create_stored_game(phase=phase)
-    event_broker = broker.EventBroker()
+    event_broker = RecordingBroker()
 
     result = await _apply_due(game_id, repository, registry, event_broker=event_broker)
 
     assert result is not None
-    assert result.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    _assert_timeout_events(
+        event_broker, game_id, ["successful_action", "phase_changed"]
+    )
     assert repository.retrieve(game_id).phase is expected_phase
+
+
+def _assert_timeout_events(
+    event_broker: RecordingBroker,
+    game_id: uuid.UUID,
+    expected_types: list[str],
+) -> None:
+    assert event_broker._next_id[game_id] == len(expected_types)
+    assert [event.type for event in event_broker.published] == expected_types
+    primary = event_broker.published[0]
+    assert isinstance(primary, teyuna_core.SuccessfulActionEvent)
+    assert primary.due_to_timeout is True
+    assert primary.model_dump()["type"] == "successful_action"
 
 
 def _zero_timeout_registry() -> actions.ActionsRegistry:

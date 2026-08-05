@@ -8,12 +8,14 @@ import teyuna_core
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     other = game.turn_order[1]
-    action = teyuna_core.PlayerAction(
-        by=other,
-        rng_=FixedRandom([1, 1]),
-    )
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=other,
+            due_to_timeout=False,
+            rng=FixedRandom([1, 1]),
+        ),
         action,
     )
     assert result.action == action
@@ -30,9 +32,14 @@ def test_rolls_seven_with_no_discards_moves_to_move_conquistator(
     game.player_idx = 0
     player = game.active_player
 
-    action = teyuna_core.PlayerAction(by=player, rng_=FixedRandom([3, 4]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=player,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 4]),
+        ),
         action,
     )
     assert result.action == action
@@ -62,9 +69,14 @@ def test_rolls_seven_with_players_over_seven_moves_to_discard_resources(
         {teyuna_core.ResourceCard.WOOD: 7}
     )
 
-    action = teyuna_core.PlayerAction(by=player, rng_=FixedRandom([3, 4]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=player,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 4]),
+        ),
         action,
     )
     assert result.action == action
@@ -84,9 +96,14 @@ def test_rolls_non_seven_moves_to_trade_and_build(
     game.player_idx = 0
     player = game.active_player
 
-    action = teyuna_core.PlayerAction(by=player, rng_=FixedRandom([2, 3]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=player,
+            due_to_timeout=False,
+            rng=FixedRandom([2, 3]),
+        ),
         action,
     )
     assert result.action == action
@@ -116,9 +133,14 @@ def test_produces_one_resource_from_terrace() -> None:
     active = game.active_player
     other = game.turn_order[1]
 
-    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=active,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 5]),
+        ),
         action,
     )
     assert result.action == action
@@ -148,9 +170,14 @@ def test_produces_two_resources_from_great_terrace() -> None:
     )
     active = game.active_player
 
-    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=active,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 5]),
+        ),
         action,
     )
     assert result.action == action
@@ -180,9 +207,14 @@ def test_does_not_grant_when_supply_is_empty() -> None:
     )
     active = game.active_player
 
-    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=active,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 5]),
+        ),
         action,
     )
     assert result.action == action
@@ -212,9 +244,14 @@ def test_grants_partial_when_supply_has_less_than_requested() -> None:
     )
     active = game.active_player
 
-    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=active,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 5]),
+        ),
         action,
     )
     assert result.action == action
@@ -252,9 +289,14 @@ def test_turn_order_gets_remaining_supply_first() -> None:
     active = game.active_player
     next_in_order = game.turn_order[1]
 
-    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=active,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 5]),
+        ),
         action,
     )
     assert result.action == action
@@ -285,9 +327,14 @@ def test_does_not_produce_from_conquistator_hex() -> None:
     active = game.active_player
     game.conquistator_location = teyuna_core.HexLocation(q=0, r=0)
 
-    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([3, 5]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=active,
+            due_to_timeout=False,
+            rng=FixedRandom([3, 5]),
+        ),
         action,
     )
     assert result.action == action
@@ -325,9 +372,14 @@ def test_does_not_produce_from_desert_or_non_matching_roll() -> None:
         }
     )
 
-    action = teyuna_core.PlayerAction(by=active, rng_=FixedRandom([2, 3]))
+    action = teyuna_core.PlayerAction()
     result = actions.handle_dice_roll(
         game,
+        actions.ExecutionContext(
+            by=active,
+            due_to_timeout=False,
+            rng=FixedRandom([2, 3]),
+        ),
         action,
     )
     assert result.action == action

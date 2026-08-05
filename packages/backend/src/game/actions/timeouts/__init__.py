@@ -1,6 +1,4 @@
 from ._builders import (
-    discard_resources_for,
-    resolve_free_placement,
     timeout_dice_roll,
     timeout_discard_resources,
     timeout_first_placement,
@@ -12,6 +10,7 @@ from ._builders import (
     timeout_second_placement,
     timeout_trade_and_build,
 )
+from ..handlers._advance import discard_resources_for, resolve_free_placement
 
 __all__ = [
     "discard_resources_for",

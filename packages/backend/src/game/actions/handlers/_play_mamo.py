@@ -1,13 +1,16 @@
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 
 
 def handle_dice_play_mamo(
-    game: entities.Game, action: teyuna_core.PlayMamoAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayMamoAction,
 ) -> teyuna_core.PlayedMamoResult:
     previous_phase = game.phase
-    error = _apply_mamo(game, action)
+    error = _apply_mamo(game, context, action)
     if error is not None:
         return teyuna_core.PlayedMamoResult(
             previous_phase=previous_phase,
@@ -25,10 +28,12 @@ def handle_dice_play_mamo(
 
 
 def handle_trade_and_build_play_mamo(
-    game: entities.Game, action: teyuna_core.PlayMamoAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayMamoAction,
 ) -> teyuna_core.PlayedMamoResult:
     previous_phase = game.phase
-    error = _apply_mamo(game, action)
+    error = _apply_mamo(game, context, action)
     if error is not None:
         return teyuna_core.PlayedMamoResult(
             previous_phase=previous_phase,
@@ -45,9 +50,13 @@ def handle_trade_and_build_play_mamo(
     )
 
 
-def _apply_mamo(game: entities.Game, action: teyuna_core.PlayMamoAction) -> str | None:
-    if game.active_player != action.by:
-        return f"Player {action.by} is not in turn"
+def _apply_mamo(
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.PlayMamoAction,
+) -> str | None:
+    if game.active_player != context.by:
+        return f"Player {context.by} is not in turn"
 
     game.monopoly_of_resource(action.resource)
     return None

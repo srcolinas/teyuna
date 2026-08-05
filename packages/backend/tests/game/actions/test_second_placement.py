@@ -1,3 +1,4 @@
+import random
 import datetime
 
 from src.game import actions, entities
@@ -11,9 +12,10 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
     other = game.turn_order[0]
 
-    action = teyuna_core.FreePlacementAction(by=other, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -39,9 +41,10 @@ def test_raises_when_terrace_invalid(game: entities.Game) -> None:
         restricted_vertices=game.restricted_verticies,
     )
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -63,9 +66,10 @@ def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
         restricted_vertices=game.restricted_verticies,
     )
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -89,9 +93,10 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -115,9 +120,10 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
         free_edges=game.free_edges,
     )
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -137,10 +143,12 @@ def test_rejects_path_adjacent_only_to_first_placement(game: entities.Game) -> N
     second_terrace = teyuna_core.canonical_vertex(0, -2, 2)
     network_path = teyuna_core.canonical_edge(0, 0, 1)
 
-    action = teyuna_core.FreePlacementAction(
-        by=player, terrace=second_terrace, path=network_path
+    action = teyuna_core.FreePlacementAction(terrace=second_terrace, path=network_path)
+    result = actions.handle_second_placement(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
     )
-    result = actions.handle_second_placement(game, action)
 
     assert result.error == _placement.format_invalid_path_location(
         target=network_path,
@@ -163,9 +171,10 @@ def test_decrements_player_idx_and_stays_in_second_placement(
     path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -194,9 +203,10 @@ def test_returns_dice_roll_and_keeps_player_idx_after_first_player(
     path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -217,9 +227,10 @@ def test_increments_players_resources_after_turn(game: entities.Game) -> None:
     path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -257,9 +268,10 @@ def test_grants_one_resource_per_adjacent_producing_hex() -> None:
     path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
     player = game.active_player
 
-    action = teyuna_core.FreePlacementAction(by=player, terrace=terrace, path=path)
+    action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
     result = actions.handle_second_placement(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action

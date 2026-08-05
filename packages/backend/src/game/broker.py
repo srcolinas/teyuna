@@ -9,8 +9,12 @@ import teyuna_core
 
 @dataclasses.dataclass
 class Event:
-    id: int
-    data: teyuna_core.AnyActionExecutionResult
+    id: str
+    data: teyuna_core.AnyGameEvent
+
+    @property
+    def type(self) -> str:
+        return self.data.type
 
 
 class EventBroker:
@@ -20,10 +24,8 @@ class EventBroker:
         )
         self._next_id: dict[uuid.UUID, int] = collections.defaultdict(int)
 
-    async def publish(
-        self, game_id: uuid.UUID, data: teyuna_core.AnyActionExecutionResult
-    ) -> None:
-        event = Event(id=self._next_id[game_id], data=data)
+    async def publish(self, game_id: uuid.UUID, data: teyuna_core.AnyGameEvent) -> None:
+        event = Event(id=str(self._next_id[game_id]), data=data)
         self._next_id[game_id] += 1
         for queue in tuple(self._subscribers[game_id]):
             queue.put_nowait(event)

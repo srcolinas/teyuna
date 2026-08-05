@@ -1,3 +1,4 @@
+import random
 import collections
 
 import pytest
@@ -13,12 +14,12 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     )
 
     action = teyuna_core.TradeWithSupplyAction(
-        by=other,
         offers=teyuna_core.ResourceCard.GOLD,
         requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
+        actions.ExecutionContext(by=other, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -32,12 +33,14 @@ def test_cannot_trade_if_not_enough_resources_from_player(
     game: entities.Game,
 ) -> None:
     action = teyuna_core.TradeWithSupplyAction(
-        by=game.active_player,
         offers=teyuna_core.ResourceCard.GOLD,
         requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -55,12 +58,14 @@ def test_cannot_trade_if_not_enough_resources_from_supply(
     )
     game.resource_supply[teyuna_core.ResourceCard.STONE] = 0
     action = teyuna_core.TradeWithSupplyAction(
-        by=game.active_player,
         offers=teyuna_core.ResourceCard.GOLD,
         requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -79,12 +84,12 @@ def test_default_rate_is_four_for_one(game: entities.Game) -> None:
     supply_stone_before = game.resource_supply[teyuna_core.ResourceCard.STONE]
 
     action = teyuna_core.TradeWithSupplyAction(
-        by=player,
         offers=teyuna_core.ResourceCard.GOLD,
         requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -116,12 +121,14 @@ def test_discounted_rate_if_player_has_generic_harbour(
         {teyuna_core.ResourceCard.GOLD: 3}
     )
     action = teyuna_core.TradeWithSupplyAction(
-        by=game.active_player,
         offers=teyuna_core.ResourceCard.GOLD,
         requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -153,12 +160,14 @@ def test_discounted_rate_if_player_has_specific_harbour(
     )
     game.players[game.active_player].resources = collections.Counter({resource: 2})
     action = teyuna_core.TradeWithSupplyAction(
-        by=game.active_player,
         offers=resource,
         requests=requests,
     )
     result = actions.handle_trade_with_supply(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -186,12 +195,12 @@ def test_specific_harbour_does_not_apply_to_other_resources(
     )
 
     action = teyuna_core.TradeWithSupplyAction(
-        by=player,
         offers=teyuna_core.ResourceCard.GOLD,
         requests=teyuna_core.ResourceCard.STONE,
     )
     result = actions.handle_trade_with_supply(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -224,11 +233,14 @@ def test_custom_harbour_applies_and_default_does_not(
         {teyuna_core.ResourceCard.GOLD: 2}
     )
     action = teyuna_core.TradeWithSupplyAction(
-        by=player,
         offers=teyuna_core.ResourceCard.GOLD,
         requests=teyuna_core.ResourceCard.STONE,
     )
-    result = actions.handle_trade_with_supply(game, action)
+    result = actions.handle_trade_with_supply(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
+    )
     assert result.error is None
     assert result.rate == 2
 
@@ -240,10 +252,13 @@ def test_custom_harbour_applies_and_default_does_not(
         {teyuna_core.ResourceCard.WOOD: 2}
     )
     action = teyuna_core.TradeWithSupplyAction(
-        by=player,
         offers=teyuna_core.ResourceCard.WOOD,
         requests=teyuna_core.ResourceCard.STONE,
     )
-    result = actions.handle_trade_with_supply(game, action)
+    result = actions.handle_trade_with_supply(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
+    )
     assert result.error == "You do not have enough wood to offer."
     assert result.rate == -1

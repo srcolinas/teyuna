@@ -77,9 +77,18 @@ function App() {
   useEffect(() => {
     if (!gameId) return
     const source = new EventSource(`${API_BASE_URL}/games/${gameId}/events`)
-    source.onopen = () => setEventConnection('live')
-    source.onerror = () => setEventConnection('waiting')
-    source.onmessage = (event) => {
+    const eventNames = [
+      'message',
+      'failed_action',
+      'successful_action',
+      'phase_changed',
+      'turn_changed',
+      'biggest_army_changed',
+      'longest_road_changed',
+      'end_game',
+    ] as const
+
+    const handleEvent = (event: MessageEvent<string>) => {
       if (!event.lastEventId) return
       try {
         const data = JSON.parse(event.data) as Record<string, unknown>
@@ -91,7 +100,18 @@ function App() {
         // Drop malformed SSE payloads rather than inventing event shapes.
       }
     }
-    return () => source.close()
+
+    source.onopen = () => setEventConnection('live')
+    source.onerror = () => setEventConnection('waiting')
+    for (const name of eventNames) {
+      source.addEventListener(name, handleEvent)
+    }
+    return () => {
+      for (const name of eventNames) {
+        source.removeEventListener(name, handleEvent)
+      }
+      source.close()
+    }
   }, [gameId])
 
   const playerColors = useMemo(() => {

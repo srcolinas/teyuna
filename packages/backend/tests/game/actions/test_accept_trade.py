@@ -1,3 +1,4 @@
+import random
 import collections
 import uuid
 
@@ -7,9 +8,12 @@ import teyuna_core
 
 def test_cannot_accept_if_not_in_trade_proposals(game: entities.Game) -> None:
     proposal_id = uuid.uuid4()
-    action = teyuna_core.AcceptTradeAction(by=game.active_player, id=proposal_id)
+    action = teyuna_core.AcceptTradeAction(id=proposal_id)
     result = actions.handle_accept_trade(
         game,
+        actions.ExecutionContext(
+            by=game.active_player, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -35,9 +39,12 @@ def test_cannot_accept_if_not_addressed_to_player(game: entities.Game) -> None:
         )
     }
 
-    action = teyuna_core.AcceptTradeAction(by=outsider, id=proposal_id)
+    action = teyuna_core.AcceptTradeAction(id=proposal_id)
     result = actions.handle_accept_trade(
         game,
+        actions.ExecutionContext(
+            by=outsider, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -65,9 +72,12 @@ def test_cannot_accept_if_not_enough_resources(game: entities.Game) -> None:
         {teyuna_core.ResourceCard.GOLD: 2}
     )
 
-    action = teyuna_core.AcceptTradeAction(by=accepts, id=proposal_id)
+    action = teyuna_core.AcceptTradeAction(id=proposal_id)
     result = actions.handle_accept_trade(
         game,
+        actions.ExecutionContext(
+            by=accepts, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -97,9 +107,12 @@ def test_cannot_accept_if_proposer_no_longer_has_offer(
         {teyuna_core.ResourceCard.STONE: 1}
     )
 
-    action = teyuna_core.AcceptTradeAction(by=accepts, id=proposal_id)
+    action = teyuna_core.AcceptTradeAction(id=proposal_id)
     result = actions.handle_accept_trade(
         game,
+        actions.ExecutionContext(
+            by=accepts, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -119,9 +132,12 @@ def test_accepted_trade_is_removed_from_trade_proposals(
     accepts = game.turn_order[0]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
-    action = teyuna_core.AcceptTradeAction(by=accepts, id=proposal_id)
+    action = teyuna_core.AcceptTradeAction(id=proposal_id)
     result = actions.handle_accept_trade(
         game,
+        actions.ExecutionContext(
+            by=accepts, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -142,9 +158,12 @@ def test_accepted_trade_changes_resources(game: entities.Game) -> None:
     accepts = game.turn_order[0]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
-    action = teyuna_core.AcceptTradeAction(by=accepts, id=proposal_id)
+    action = teyuna_core.AcceptTradeAction(id=proposal_id)
     result = actions.handle_accept_trade(
         game,
+        actions.ExecutionContext(
+            by=accepts, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -170,9 +189,12 @@ def test_non_active_player_can_accept_when_addressed(
     accepts = game.turn_order[1]
     _seed_successful_trade(game, proposal_id, proposes, accepts)
 
-    action = teyuna_core.AcceptTradeAction(by=accepts, id=proposal_id)
+    action = teyuna_core.AcceptTradeAction(id=proposal_id)
     result = actions.handle_accept_trade(
         game,
+        actions.ExecutionContext(
+            by=accepts, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action

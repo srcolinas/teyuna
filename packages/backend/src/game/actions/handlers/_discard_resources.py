@@ -1,19 +1,22 @@
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 
 
 def handle_discard_resources(
-    game: entities.Game, action: teyuna_core.DiscardResourcesAction
+    game: entities.Game,
+    context: _execution.ExecutionContext,
+    action: teyuna_core.DiscardResourcesAction,
 ) -> teyuna_core.DiscardedResourcesResult:
     previous_phase = game.phase
-    required = game.to_discard_resources.get(action.by)
+    required = game.to_discard_resources.get(context.by)
     if required is None:
         return teyuna_core.DiscardedResourcesResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not required to discard resources",
+            error=f"Player {context.by} is not required to discard resources",
         )
 
     if sum(action.count.values()) != required:
@@ -21,10 +24,10 @@ def handle_discard_resources(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} must discard {required} resources",
+            error=f"Player {context.by} must discard {required} resources",
         )
 
-    player_resources = game.players[action.by].resources
+    player_resources = game.players[context.by].resources
     for resource, amount in action.count.items():
         if player_resources[resource] < amount:
             return teyuna_core.DiscardedResourcesResult(
@@ -34,8 +37,8 @@ def handle_discard_resources(
                 error=f"Insufficient {resource.value} to discard",
             )
 
-    game.discard_resources(action.by, action.count)
-    del game.to_discard_resources[action.by]
+    game.discard_resources(context.by, action.count)
+    del game.to_discard_resources[context.by]
 
     if game.to_discard_resources:
         game.phase = teyuna_core.GamePhaseName.DISCARD_RESOURCES

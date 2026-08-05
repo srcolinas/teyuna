@@ -1,6 +1,7 @@
 import teyuna_core
 
 from ... import entities
+from .. import _execution
 from . import _victory
 
 _MIN_BIGGEST_ARMY: int = 3
@@ -8,26 +9,27 @@ _MIN_BIGGEST_ARMY: int = 3
 
 def play_wisdom_card(
     game: entities.Game,
+    context: _execution.ExecutionContext,
     action: teyuna_core.PlayWisdomCardAction,
     *,
     card_phases: dict[teyuna_core.WisdomCard, teyuna_core.GamePhaseName],
     phase_label: str,
 ) -> teyuna_core.PlayedWisdomCardResult:
     previous_phase = game.phase
-    if game.active_player != action.by:
+    if game.active_player != context.by:
         return teyuna_core.PlayedWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} is not in turn",
+            error=f"Player {context.by} is not in turn",
         )
 
-    if game.players[action.by].cards[action.card] <= 0:
+    if game.players[context.by].cards[action.card] <= 0:
         return teyuna_core.PlayedWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
             action=action,
-            error=f"Player {action.by} does not have card {action.card.value}",
+            error=f"Player {context.by} does not have card {action.card.value}",
         )
 
     next_phase = card_phases.get(action.card)
@@ -42,11 +44,11 @@ def play_wisdom_card(
             ),
         )
 
-    game.use_card(action.by, action.card)
+    game.use_card(context.by, action.card)
     if action.card is teyuna_core.WisdomCard.WARRIOR:
-        _update_biggest_army(game, action.by)
+        _update_biggest_army(game, context.by)
     if action.card is teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS:
-        game.phase = _victory.phase_after_victory_check(game, action.by, next_phase)
+        game.phase = _victory.phase_after_victory_check(game, context.by, next_phase)
         return teyuna_core.PlayedWisdomCardResult(
             previous_phase=previous_phase,
             next_phase=game.phase,

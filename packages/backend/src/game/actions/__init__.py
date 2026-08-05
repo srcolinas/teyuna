@@ -47,7 +47,9 @@ from ._registry import (
     PhaseTimeout,
     TimeoutFn,
 )
-from . import timeouts
+from . import _execution, timeouts
+
+ExecutionContext = _execution.ExecutionContext
 
 __all__ = [
     "handle_accept_trade",
@@ -81,6 +83,7 @@ __all__ = [
     "update_longest_road",
     "ActionNotAllowedError",
     "ActionsRegistry",
+    "ExecutionContext",
     "GamePhaseHanlderNotImplementedError",
     "PhaseTimeout",
     "TimeoutFn",

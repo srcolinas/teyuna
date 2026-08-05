@@ -1,3 +1,4 @@
+import random
 import collections
 
 from src.game import actions, entities
@@ -11,11 +12,11 @@ def test_raises_when_player_not_required_to_discard(
     game.to_discard_resources = {game.turn_order[1]: 4}
 
     action = teyuna_core.DiscardResourcesAction(
-        by=player,
         count=collections.Counter({teyuna_core.ResourceCard.WOOD: 4}),
     )
     result = actions.handle_discard_resources(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -31,11 +32,11 @@ def test_raises_when_discard_count_is_wrong(game: entities.Game) -> None:
     )
 
     action = teyuna_core.DiscardResourcesAction(
-        by=player,
         count=collections.Counter({teyuna_core.ResourceCard.WOOD: 5}),
     )
     result = actions.handle_discard_resources(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -56,11 +57,11 @@ def test_raises_when_insufficient_resources_of_type(
     )
 
     action = teyuna_core.DiscardResourcesAction(
-        by=player,
         count=collections.Counter({teyuna_core.ResourceCard.GOLD: 4}),
     )
     result = actions.handle_discard_resources(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -81,11 +82,11 @@ def test_discard_removes_player_and_stays_in_phase_when_others_remain(
 
     count = collections.Counter({teyuna_core.ResourceCard.WOOD: 4})
     action = teyuna_core.DiscardResourcesAction(
-        by=player,
         count=count,
     )
     result = actions.handle_discard_resources(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -117,11 +118,11 @@ def test_last_discard_moves_to_move_conquistator(
         }
     )
     action = teyuna_core.DiscardResourcesAction(
-        by=player,
         count=count,
     )
     result = actions.handle_discard_resources(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action

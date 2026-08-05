@@ -1,3 +1,4 @@
+import random
 from src.game import actions, entities
 import teyuna_core
 
@@ -269,9 +270,10 @@ def test_handle_build_path_awards_longest_road(game: entities.Game) -> None:
     fifth = teyuna_core.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=fifth)
+    action = teyuna_core.BuildPathAction(coordinate=fifth)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -293,9 +295,10 @@ def test_handle_build_path_can_end_game_via_longest_road(
     fifth = teyuna_core.canonical_edge(0, 0, 4)
     _give_path_resources(game, player)
 
-    action = teyuna_core.BuildPathAction(by=player, coordinate=fifth)
+    action = teyuna_core.BuildPathAction(coordinate=fifth)
     result = actions.handle_build_path(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action
@@ -326,12 +329,14 @@ def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
     )
 
     action = teyuna_core.BuildSettlementAction(
-        by=breaker,
         item=teyuna_core.SettlementType.TERRACE,
         coordinate=vertex,
     )
     result = actions.handle_build_terrace(
         game,
+        actions.ExecutionContext(
+            by=breaker, due_to_timeout=False, rng=random.Random(0)
+        ),
         action,
     )
     assert result.action == action
@@ -354,9 +359,10 @@ def test_pathfinder_awards_longest_road_on_fifth_path(
     fourth = teyuna_core.canonical_edge(0, 0, 3)
     fifth = teyuna_core.canonical_edge(0, 0, 4)
 
-    action = teyuna_core.PlayPathfinderAction(by=player, paths=(fourth, fifth))
+    action = teyuna_core.PlayPathfinderAction(paths=(fourth, fifth))
     result = actions.handle_dice_play_pathfinder(
         game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
         action,
     )
     assert result.action == action

@@ -42,11 +42,20 @@ def test_timeout_dice_roll_executes(game: entities.Game) -> None:
     registry = actions.ActionsRegistry()
     registry.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
     rng = random.Random(0)
-    action = timeouts.timeout_dice_roll(game, rng)
+    timeout_action = timeouts.timeout_dice_roll(game, rng)
+    action = cast(teyuna_core.PlayerAction, timeout_action.action)
     game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     result = cast(
         teyuna_core.DiceRollResult,
-        registry.execute(game, action),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=timeout_action.by,
+                due_to_timeout=True,
+                rng=rng,
+            ),
+            action,
+        ),
     )
     assert result.error is None
     assert 1 <= result.die_1 <= 6
@@ -65,11 +74,21 @@ def test_timeout_trade_and_build_ends_turn(game: entities.Game) -> None:
         actions.handle_end_trade_and_build
     )
     active = game.active_player
-    action = timeouts.timeout_trade_and_build(game, random.Random(0))
+    rng = random.Random(0)
+    timeout_action = timeouts.timeout_trade_and_build(game, rng)
+    action = cast(teyuna_core.PlayerAction, timeout_action.action)
     game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     result = cast(
         teyuna_core.EndedTradeAndBuildResult,
-        registry.execute(game, action),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=timeout_action.by,
+                due_to_timeout=True,
+                rng=rng,
+            ),
+            action,
+        ),
     )
     assert result.error is None
     assert result.next_phase is teyuna_core.GamePhaseName.DICE_ROLL
@@ -89,17 +108,27 @@ def test_timeout_first_placement_executes() -> None:
     registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(
         actions.handle_first_placement
     )
-    action = timeouts.timeout_first_placement(game, random.Random(1))
+    rng = random.Random(1)
+    timeout_action = timeouts.timeout_first_placement(game, rng)
+    action = cast(teyuna_core.FreePlacementAction, timeout_action.action)
     result = cast(
         teyuna_core.PlacedBuildingsResult,
-        registry.execute(game, action),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=timeout_action.by,
+                due_to_timeout=True,
+                rng=rng,
+            ),
+            action,
+        ),
     )
     assert result.error is None
     assert result.next_phase is teyuna_core.GamePhaseName.FIRST_PLACEMENT
     assert result.settlement == action.terrace
     assert result.path == action.path
-    assert len(list(game.players[action.by].settlements.locations())) == 1
-    assert len(game.players[action.by].paths) == 1
+    assert len(list(game.players[timeout_action.by].settlements.locations())) == 1
+    assert len(game.players[timeout_action.by].paths) == 1
 
 
 def test_timeout_discard_resources_executes(game: entities.Game) -> None:
@@ -115,11 +144,21 @@ def test_timeout_discard_resources_executes(game: entities.Game) -> None:
     registry.register(teyuna_core.GamePhaseName.DISCARD_RESOURCES)(
         actions.handle_discard_resources
     )
-    action = timeouts.timeout_discard_resources(game, random.Random(0))
+    rng = random.Random(0)
+    timeout_action = timeouts.timeout_discard_resources(game, rng)
+    action = cast(teyuna_core.DiscardResourcesAction, timeout_action.action)
     game.phase = teyuna_core.GamePhaseName.DISCARD_RESOURCES
     result = cast(
         teyuna_core.DiscardedResourcesResult,
-        registry.execute(game, action),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=timeout_action.by,
+                due_to_timeout=True,
+                rng=rng,
+            ),
+            action,
+        ),
     )
     assert nick not in game.to_discard_resources
     assert result.error is None
@@ -140,11 +179,21 @@ def test_timeout_move_conquistator_executes() -> None:
         actions.handle_move_conquistator
     )
     before = game.conquistator_location
-    action = timeouts.timeout_move_conquistator(game, random.Random(2))
+    rng = random.Random(2)
+    timeout_action = timeouts.timeout_move_conquistator(game, rng)
+    action = cast(teyuna_core.MoveConquistatorAction, timeout_action.action)
     game.phase = teyuna_core.GamePhaseName.MOVE_CONQUISTATOR
     result = cast(
         teyuna_core.MovedConquistatorResult,
-        registry.execute(game, action),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=timeout_action.by,
+                due_to_timeout=True,
+                rng=rng,
+            ),
+            action,
+        ),
     )
     assert result.error is None
     assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
@@ -164,19 +213,39 @@ def test_timeout_play_mamo_and_blessed(game: entities.Game) -> None:
         actions.handle_dice_play_blessed
     )
     game.phase = teyuna_core.GamePhaseName.DICE_PLAY_MAMO
-    mamo = timeouts.timeout_play_mamo(game, random.Random(0))
+    mamo_rng = random.Random(0)
+    mamo_timeout = timeouts.timeout_play_mamo(game, mamo_rng)
+    mamo = cast(teyuna_core.PlayMamoAction, mamo_timeout.action)
     mamo_result = cast(
         teyuna_core.PlayedMamoResult,
-        registry.execute(game, mamo),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=mamo_timeout.by,
+                due_to_timeout=True,
+                rng=mamo_rng,
+            ),
+            mamo,
+        ),
     )
     assert mamo_result.error is None
     assert mamo_result.resource is mamo.resource
     assert mamo_result.next_phase is teyuna_core.GamePhaseName.DICE_ROLL
     game.phase = teyuna_core.GamePhaseName.DICE_PLAY_BLESSED
-    blessed = timeouts.timeout_play_blessed(game, random.Random(0))
+    blessed_rng = random.Random(0)
+    blessed_timeout = timeouts.timeout_play_blessed(game, blessed_rng)
+    blessed = cast(teyuna_core.PlayBlessedAction, blessed_timeout.action)
     blessed_result = cast(
         teyuna_core.PlayedBlessedResult,
-        registry.execute(game, blessed),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=blessed_timeout.by,
+                due_to_timeout=True,
+                rng=blessed_rng,
+            ),
+            blessed,
+        ),
     )
     assert blessed_result.error is None
     assert blessed_result.resources == blessed.resources
@@ -188,12 +257,22 @@ def test_timeout_play_pathfinder_allows_empty(game: entities.Game) -> None:
     registry.register(teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER)(
         actions.handle_dice_play_pathfinder
     )
-    action = timeouts.timeout_play_pathfinder(game, random.Random(0))
+    rng = random.Random(0)
+    timeout_action = timeouts.timeout_play_pathfinder(game, rng)
+    action = cast(teyuna_core.PlayPathfinderAction, timeout_action.action)
     assert action.paths == ()
     game.phase = teyuna_core.GamePhaseName.DICE_PLAY_PATHFINDER
     result = cast(
         teyuna_core.PlayedPathfinderResult,
-        registry.execute(game, action),
+        registry.execute(
+            game,
+            actions.ExecutionContext(
+                by=timeout_action.by,
+                due_to_timeout=True,
+                rng=rng,
+            ),
+            action,
+        ),
     )
     assert result.error is None
     assert result.next_phase is teyuna_core.GamePhaseName.DICE_ROLL
@@ -243,9 +322,15 @@ async def test_apply_player_action_resets_deadline() -> None:
     waiter = asyncio.create_task(_next_broker_event(event_broker, game_id))
     await asyncio.sleep(0)
 
-    action = teyuna_core.PlayerAction(by=active_player, rng_=random.Random(0))
+    rng = random.Random(0)
+    action = teyuna_core.PlayerAction()
     result, _ = await services.apply_player_action(
         game_id,
+        actions.ExecutionContext(
+            by=active_player,
+            due_to_timeout=False,
+            rng=rng,
+        ),
         action,
         repository=repository,
         registry=registry,
@@ -255,9 +340,12 @@ async def test_apply_player_action_resets_deadline() -> None:
     )
     assert result.action == action
 
-    assert result.action.by == active_player
     published = await waiter
-    assert published.data is result
+    assert isinstance(published.data, teyuna_core.SuccessfulActionEvent)
+    assert published.data.by == active_player
+    assert published.data.due_to_timeout is False
+    assert published.data.action == action
+    assert published.data.result is result
 
     stored = repository.retrieve(game_id)
     assert stored.phase is result.next_phase
@@ -355,9 +443,10 @@ async def test_apply_timeout_if_due_advances_phase() -> None:
 
     assert result is not None
     assert result.error is None
-    assert result.action.due_to_timeout is True
     published = await waiter
-    assert published.data is result
+    assert isinstance(published.data, teyuna_core.SuccessfulActionEvent)
+    assert published.data.due_to_timeout is True
+    assert published.data.result is result
     assert repository.retrieve(game_id).phase is not teyuna_core.GamePhaseName.DICE_ROLL
 
 
@@ -411,8 +500,7 @@ async def test_second_timeout_is_noop_after_deadline_refresh() -> None:
         now=now,
     )
     assert first is not None
-    assert first.action.due_to_timeout is True
-    assert event_broker._next_id[game_id] == 1
+    assert event_broker._next_id[game_id] == 2
 
     phase_after = repository.retrieve(game_id).phase
     second = await services.apply_timeout_if_due(
@@ -425,7 +513,7 @@ async def test_second_timeout_is_noop_after_deadline_refresh() -> None:
         now=now,
     )
     assert second is None
-    assert event_broker._next_id[game_id] == 1
+    assert event_broker._next_id[game_id] == 2
     assert repository.retrieve(game_id).phase is phase_after
 
 

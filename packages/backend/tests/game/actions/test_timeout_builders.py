@@ -5,6 +5,7 @@ import random
 import pytest
 
 from src.game import entities
+from src.game import actions
 from src.game.actions import timeouts
 import teyuna_core
 
@@ -37,29 +38,31 @@ def game() -> entities.Game:
 def test_timeout_dice_roll_returns_active_player_action(
     game: entities.Game,
 ) -> None:
-    action = timeouts.timeout_dice_roll(game, random.Random(0))
+    timeout_action = timeouts.timeout_dice_roll(game, random.Random(0))
+    action = timeout_action.action
 
     assert type(action) is teyuna_core.PlayerAction
-    assert action.by == game.active_player
+    assert timeout_action.by == game.active_player
 
 
 def test_timeout_trade_and_build_returns_active_player_action(
     game: entities.Game,
 ) -> None:
-    action = timeouts.timeout_trade_and_build(game, random.Random(0))
+    timeout_action = timeouts.timeout_trade_and_build(game, random.Random(0))
+    action = timeout_action.action
 
     assert type(action) is teyuna_core.PlayerAction
-    assert action.by == game.active_player
+    assert timeout_action.by == game.active_player
 
 
 def test_timeout_first_placement_returns_explicit_free_placement(
     game: entities.Game,
 ) -> None:
-    action = timeouts.timeout_first_placement(game, random.Random(0))
+    timeout_action = timeouts.timeout_first_placement(game, random.Random(0))
+    action = timeout_action.action
 
     assert type(action) is teyuna_core.FreePlacementAction
-    assert action.by == game.active_player
-    assert action.due_to_timeout is True
+    assert timeout_action.by == game.active_player
     assert action.terrace is not None
     assert action.path is not None
     assert action.terrace in teyuna_core.vertices_of_edge(action.path)
@@ -68,11 +71,11 @@ def test_timeout_first_placement_returns_explicit_free_placement(
 def test_timeout_second_placement_returns_explicit_free_placement(
     game: entities.Game,
 ) -> None:
-    action = timeouts.timeout_second_placement(game, random.Random(1))
+    timeout_action = timeouts.timeout_second_placement(game, random.Random(1))
+    action = timeout_action.action
 
     assert type(action) is teyuna_core.FreePlacementAction
-    assert action.by == game.active_player
-    assert action.due_to_timeout is True
+    assert timeout_action.by == game.active_player
     assert action.terrace is not None
     assert action.path is not None
     assert action.terrace in teyuna_core.vertices_of_edge(action.path)
@@ -84,15 +87,16 @@ def test_resolve_free_placement_fills_missing_path(
     terrace = teyuna_core.Coordinate(q=0, r=-1, d=2)
     action = timeouts.resolve_free_placement(
         game,
-        random.Random(0),
-        by=game.active_player,
-        terrace=terrace,
+        actions.ExecutionContext(
+            by=game.active_player,
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        teyuna_core.FreePlacementAction(terrace=terrace),
     )
 
-    assert action.by == game.active_player
     assert action.terrace == terrace
     assert action.path is not None
-    assert action.due_to_timeout is False
 
 
 def test_resolve_free_placement_fills_missing_terrace(
@@ -101,12 +105,14 @@ def test_resolve_free_placement_fills_missing_terrace(
     path = teyuna_core.Coordinate(q=0, r=-1, d=2)
     action = timeouts.resolve_free_placement(
         game,
-        random.Random(0),
-        by=game.active_player,
-        path=path,
+        actions.ExecutionContext(
+            by=game.active_player,
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        teyuna_core.FreePlacementAction(path=path),
     )
 
-    assert action.by == game.active_player
     assert action.path == path
     assert action.terrace is not None
     assert action.terrace in teyuna_core.vertices_of_edge(path)
@@ -119,10 +125,12 @@ def test_resolve_free_placement_keeps_both_when_provided(
     path = teyuna_core.Coordinate(q=0, r=-1, d=2)
     action = timeouts.resolve_free_placement(
         game,
-        random.Random(0),
-        by=game.active_player,
-        terrace=terrace,
-        path=path,
+        actions.ExecutionContext(
+            by=game.active_player,
+            due_to_timeout=False,
+            rng=random.Random(0),
+        ),
+        teyuna_core.FreePlacementAction(terrace=terrace, path=path),
     )
 
     assert action.terrace == terrace
@@ -148,30 +156,28 @@ def test_timeout_move_conquistator_returns_explicit_move() -> None:
         {teyuna_core.ResourceCard.WOOD: 2}
     )
 
-    action = timeouts.timeout_move_conquistator(game, random.Random(0))
+    timeout_action = timeouts.timeout_move_conquistator(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == active
 
     assert action == teyuna_core.MoveConquistatorAction(
-        by=active,
-        due_to_timeout=True,
         q=0,
         r=1,
         from_player=victim,
-        rng_=action.rng_,
     )
 
 
 def test_timeout_move_conquistator_without_victims_sets_from_player_none() -> None:
     game = _multi_hex_game()
 
-    action = timeouts.timeout_move_conquistator(game, random.Random(0))
+    timeout_action = timeouts.timeout_move_conquistator(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == game.active_player
 
     assert action == teyuna_core.MoveConquistatorAction(
-        by=game.active_player,
-        due_to_timeout=True,
         q=0,
         r=1,
         from_player=None,
-        rng_=action.rng_,
     )
 
 
@@ -186,47 +192,44 @@ def test_timeout_discard_resources_returns_explicit_count(
     )
     game.to_discard_resources = {"player-0": 4}
 
-    action = timeouts.timeout_discard_resources(game, random.Random(0))
+    timeout_action = timeouts.timeout_discard_resources(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == "player-0"
 
     assert action == teyuna_core.DiscardResourcesAction(
-        by="player-0",
-        due_to_timeout=True,
         count=collections.Counter(
             {
                 teyuna_core.ResourceCard.GOLD: 2,
                 teyuna_core.ResourceCard.WOOD: 2,
             }
         ),
-        rng_=action.rng_,
     )
 
 
 def test_timeout_play_mamo_returns_explicit_resource(
     game: entities.Game,
 ) -> None:
-    action = timeouts.timeout_play_mamo(game, random.Random(0))
+    timeout_action = timeouts.timeout_play_mamo(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == game.active_player
 
     assert action == teyuna_core.PlayMamoAction(
-        by=game.active_player,
-        due_to_timeout=True,
         resource=teyuna_core.ResourceCard.MAIZE,
-        rng_=action.rng_,
     )
 
 
 def test_timeout_play_blessed_samples_from_supply(
     game: entities.Game,
 ) -> None:
-    action = timeouts.timeout_play_blessed(game, random.Random(0))
+    timeout_action = timeouts.timeout_play_blessed(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == game.active_player
 
     assert action == teyuna_core.PlayBlessedAction(
-        by=game.active_player,
-        due_to_timeout=True,
         resources=(
             teyuna_core.ResourceCard.COTTON,
             teyuna_core.ResourceCard.COTTON,
         ),
-        rng_=action.rng_,
     )
 
 
@@ -235,26 +238,24 @@ def test_timeout_play_blessed_falls_back_when_supply_too_small(
 ) -> None:
     game.resource_supply = collections.Counter()
 
-    action = timeouts.timeout_play_blessed(game, random.Random(0))
+    timeout_action = timeouts.timeout_play_blessed(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == game.active_player
 
     assert action == teyuna_core.PlayBlessedAction(
-        by=game.active_player,
-        due_to_timeout=True,
         resources=(teyuna_core.ResourceCard.GOLD, teyuna_core.ResourceCard.STONE),
-        rng_=action.rng_,
     )
 
 
 def test_timeout_play_pathfinder_returns_empty_when_no_legal_paths(
     game: entities.Game,
 ) -> None:
-    action = timeouts.timeout_play_pathfinder(game, random.Random(0))
+    timeout_action = timeouts.timeout_play_pathfinder(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == game.active_player
 
     assert action == teyuna_core.PlayPathfinderAction(
-        by=game.active_player,
-        due_to_timeout=True,
         paths=(),
-        rng_=action.rng_,
     )
 
 
@@ -267,16 +268,15 @@ def test_timeout_play_pathfinder_returns_explicit_paths(
         teyuna_core.SettlementType.TERRACE,
     )
 
-    action = timeouts.timeout_play_pathfinder(game, random.Random(0))
+    timeout_action = timeouts.timeout_play_pathfinder(game, random.Random(0))
+    action = timeout_action.action
+    assert timeout_action.by == game.active_player
 
     assert action == teyuna_core.PlayPathfinderAction(
-        by=game.active_player,
-        due_to_timeout=True,
         paths=(
             teyuna_core.Coordinate(q=0, r=-1, d=1),
             teyuna_core.Coordinate(q=0, r=-1, d=2),
         ),
-        rng_=action.rng_,
     )
 
 

@@ -1,24 +1,13 @@
-import random
 import uuid
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 import pydantic
-from pydantic import json_schema
 
 from . import entities, board
 
 
 class PlayerActionBase(pydantic.BaseModel):
-    """Shared fields for every player action (no ``kind`` discriminant)."""
-
-    model_config = pydantic.ConfigDict(frozen=True, arbitrary_types_allowed=True)
-
-    by: json_schema.SkipJsonSchema[str] = ""
-    due_to_timeout: json_schema.SkipJsonSchema[bool] = False
-    rng_: json_schema.SkipJsonSchema[Any] = pydantic.Field(
-        default_factory=random.Random,
-        exclude=True,
-    )
+    model_config = pydantic.ConfigDict(frozen=True)
 
 
 class PlayerAction(PlayerActionBase):
