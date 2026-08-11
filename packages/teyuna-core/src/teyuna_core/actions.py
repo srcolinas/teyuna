@@ -217,16 +217,6 @@ class TradeWithSupplyAction(PlayerActionBase):
     requests: entities.ResourceCard
 
 
-class SentMessageAction(PlayerActionBase):
-    """Send a chat message to the game.
-
-    Valid in every phase except `lobby`.
-    """
-
-    kind: Literal["sent_message"] = "sent_message"
-    text: str
-
-
 AnyPlayerAction = Annotated[
     FreePlacementAction
     | DiscardResourcesAction
@@ -241,7 +231,6 @@ AnyPlayerAction = Annotated[
     | ProposeTradeAction
     | AcceptTradeAction
     | TradeWithSupplyAction
-    | SentMessageAction
     | PlayerAction,
     pydantic.Field(discriminator="kind"),
 ]
@@ -328,10 +317,6 @@ class ProposeTradeResult(ActionExecutionResultBase):
     proposal_id: uuid.UUID | None = None
 
 
-class SentMessageResult(ActionExecutionResultBase):
-    kind: Literal["sent_message"] = "sent_message"
-
-
 class AcceptedTradeResult(ActionExecutionResultBase):
     kind: Literal["accepted_trade"] = "accepted_trade"
     proposal_id: uuid.UUID | None = None
@@ -375,7 +360,6 @@ AnyActionExecutionResult = Annotated[
     | EndedTradeAndBuildResult
     | BoughtWisdomCardResult
     | ProposeTradeResult
-    | SentMessageResult
     | AcceptedTradeResult
     | TradedWithSupplyResult
     | DiceRollResult

@@ -46,6 +46,7 @@ def raise_if_failed(result: teyuna_core.ActionExecutionResultBase) -> None:
 _STATUS_BY_EXCEPTION: Final[dict[type[BaseException], int]] = {
     repository_module.GameDoesNotExistError: status.HTTP_404_NOT_FOUND,
     services.GameAlreadyStartedError: status.HTTP_400_BAD_REQUEST,
+    services.InvalidMessageError: status.HTTP_400_BAD_REQUEST,
     entities.GameAlreadyFullError: status.HTTP_400_BAD_REQUEST,
     entities.NicknameAlreadyTakenError: status.HTTP_400_BAD_REQUEST,
     actions.GamePhaseHanlderNotImplementedError: status.HTTP_501_NOT_IMPLEMENTED,

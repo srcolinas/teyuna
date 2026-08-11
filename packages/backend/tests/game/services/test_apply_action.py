@@ -204,12 +204,23 @@ async def test_failed_handler_result_publishes_only_failed_action() -> None:
     )
     game._turn_order = ["only"]
     game_id = repository.add(game)
+    action = teyuna_core.PlayerAction()
+
+    def _failing_handler(
+        game: entities.Game,
+        context: actions.ExecutionContext,
+        action: teyuna_core.PlayerAction,
+    ) -> teyuna_core.AnyActionExecutionResult:
+        return teyuna_core.ActionExecutionResult(
+            previous_phase=game.phase,
+            next_phase=game.phase,
+            action=action,
+            error="action failed",
+        )
+
     registry = actions.ActionsRegistry()
-    registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(
-        actions.handle_sent_message
-    )
+    registry.register(teyuna_core.GamePhaseName.FIRST_PLACEMENT)(_failing_handler)
     broker = RecordingBroker()
-    action = teyuna_core.SentMessageAction(text=" ")
 
     result, _ = await services.apply_player_action(
         game_id,
@@ -226,13 +237,13 @@ async def test_failed_handler_result_publishes_only_failed_action() -> None:
         now=NOW,
     )
 
-    assert result.error == "message text must not be empty"
+    assert result.error == "action failed"
     assert broker.events == [
         teyuna_core.FailedActionEvent(
             by="only",
             due_to_timeout=False,
             action=action,
-            error="message text must not be empty",
+            error="action failed",
         )
     ]
 

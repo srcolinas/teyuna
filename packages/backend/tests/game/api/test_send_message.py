@@ -50,6 +50,34 @@ def test_send_message_appears_on_events(
     }
 
 
+def test_sent_message_action_is_rejected(client: testclient.TestClient) -> None:
+    game_id, tokens = utils.create_active_game_with_tokens(client)
+    sender = client.get(f"/games/{game_id}").json()["turn_order"][0]
+
+    response = utils.post_action(
+        client,
+        game_id,
+        {"kind": "sent_message", "text": "hello"},
+        token=tokens[sender],
+    )
+
+    assert response.status_code == 422
+
+
+def test_empty_message_is_rejected(client: testclient.TestClient) -> None:
+    game_id, tokens = utils.create_active_game_with_tokens(client)
+    sender = client.get(f"/games/{game_id}").json()["turn_order"][0]
+
+    response = client.post(
+        f"/games/{game_id}/messages",
+        json={"text": "   "},
+        headers=utils.auth_headers(tokens[sender]),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "message text must not be empty"
+
+
 class _Server:
     def __init__(self, app: fastapi.FastAPI, port: int) -> None:
         self._config = uvicorn.Config(

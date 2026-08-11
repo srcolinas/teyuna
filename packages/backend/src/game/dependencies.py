@@ -114,11 +114,6 @@ def get_actions_registry() -> actions.ActionsRegistry:
     )
     reg.register(teyuna_core.GamePhaseName.END_GAME)(actions.handle_end_game)
 
-    for phase in teyuna_core.GamePhaseName:
-        if phase is teyuna_core.GamePhaseName.LOBBY:
-            continue
-        reg.register(phase)(actions.handle_sent_message)
-
     timeouts = (
         (
             teyuna_core.GamePhaseName.LOBBY,

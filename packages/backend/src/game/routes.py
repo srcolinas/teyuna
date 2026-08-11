@@ -235,31 +235,16 @@ async def send_message(
     _active: Annotated[uuid.UUID, fastapi.Depends(dependencies.require_active_game)],
     game_id: uuid.UUID,
     payload: SendMessagePayload,
-    repository: Annotated[
-        repository_module.InMemoryGameRepository,
-        fastapi.Depends(dependencies.get_repository),
-    ],
-    registry: Annotated[
-        actions.ActionsRegistry, fastapi.Depends(dependencies.get_actions_registry)
-    ],
-    game_locks: Annotated[
-        locks.GameLockManager, fastapi.Depends(dependencies.get_game_locks)
-    ],
     broker: Annotated[
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
-    rng: Annotated[random.Random, fastapi.Depends(dependencies.random_generator)],
 ) -> None:
-    result, _ = await services.apply_player_action(
+    await services.send_message(
         game_id,
-        actions.ExecutionContext(by=nickname, due_to_timeout=False, rng=rng),
-        teyuna_core.SentMessageAction(text=payload.text),
-        repository=repository,
-        registry=registry,
-        game_locks=game_locks,
+        nickname,
+        payload.text,
         broker=broker,
     )
-    http.raise_if_failed(result)
 
 
 @router.get("/{game_id}/events", response_class=sse.EventSourceResponse)

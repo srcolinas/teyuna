@@ -229,13 +229,6 @@ async def _publish_events(
                 error=result.error,
             )
         )
-    elif isinstance(action, teyuna_core.SentMessageAction):
-        events.append(
-            teyuna_core.MessageEvent(
-                by=context.by,
-                text=action.text,
-            )
-        )
     else:
         events.append(
             teyuna_core.SuccessfulActionEvent(

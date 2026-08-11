@@ -32,8 +32,6 @@ from .actions import (
     PlayerActionBase,
     ProposeTradeAction,
     ProposeTradeResult,
-    SentMessageAction,
-    SentMessageResult,
     TradeWithSupplyAction,
     TradedWithSupplyResult,
 )
@@ -182,8 +180,6 @@ __all__ = [
     "ResourceCard",
     "ResourceCount",
     "SPECIFIC_HARBOUR_TRADE_RATE",
-    "SentMessageAction",
-    "SentMessageResult",
     "SettlementType",
     "SuccessfulActionEvent",
     "TERRACE_COST",

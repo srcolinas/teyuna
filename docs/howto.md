@@ -43,7 +43,7 @@ Exact `Game.phase` strings:
 | `trade and build` | Active; accept trade by target | `build_settlement`, `build_path`, `buy_wisdom_card`, `propose_trade`, `accept_trade`, `trade_with_supply`, `play_wisdom_card`, `advance` (end turn) |
 | `end game` | — | Stop |
 
-Chat: prefer `POST /games/{id}/messages`. `sent_message` is also accepted on `/actions` in every phase except `lobby`.
+Chat: `POST /games/{id}/messages`.
 
 ### Meaning of `advance`
 
