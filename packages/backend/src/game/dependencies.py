@@ -203,10 +203,7 @@ def get_game(
         fastapi.Depends(get_repository),
     ],
 ) -> teyuna_core.Game:
-    try:
-        return services.retrieve_game(game_id, repository=repository)
-    except repository_module.GameDoesNotExistError:
-        raise
+    return services.retrieve_game(game_id, repository=repository)
 
 
 def require_active_game(
