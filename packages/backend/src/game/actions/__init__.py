@@ -34,7 +34,6 @@ from .handlers._trade_and_build import (
 )
 from .handlers._victory import phase_after_victory_check
 from .handlers._longest_road import (
-    player_longest_path_length,
     recompute_longest_road,
     update_longest_road,
 )
@@ -76,7 +75,6 @@ __all__ = [
     "handle_move_conquistator",
     "handle_second_placement",
     "phase_after_victory_check",
-    "player_longest_path_length",
     "recompute_longest_road",
     "update_longest_road",
     "ActionNotAllowedError",

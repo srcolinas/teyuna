@@ -81,9 +81,6 @@ def _apply_pathfinder(
                 _placement.format_invalid_path_location(
                     target=path,
                     player=context.by,
-                    existing_settlements=player_state.settlements.locations(),
-                    existing_paths=player_state.paths,
-                    free_edges=game.free_edges,
                 ),
                 (),
             )

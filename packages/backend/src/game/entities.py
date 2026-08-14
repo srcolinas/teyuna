@@ -149,10 +149,11 @@ class Game:
     )
     _free_verticies: set[teyuna_core.Coordinate] = dataclasses.field(init=False)
     _free_edges: set[teyuna_core.Coordinate] = dataclasses.field(init=False)
-    _restricted_verticies: set[teyuna_core.Coordinate] = dataclasses.field(init=False)
+    _restricted_verticies: set[teyuna_core.Coordinate] = dataclasses.field(
+        init=False, default_factory=set
+    )
 
     def __post_init__(self) -> None:
-        self._turn_order = []
         free_verticies: set[teyuna_core.Coordinate] = set()
         free_edges: set[teyuna_core.Coordinate] = set()
         for q, r, d in itertools.product(range(-2, 3), range(-2, 3), range(0, 6)):
@@ -161,7 +162,6 @@ class Game:
                 free_edges.add(teyuna_core.canonical_edge(q, r, d))
         self._free_verticies = free_verticies
         self._free_edges = free_edges
-        self._restricted_verticies = set()
 
     @property
     def harbour_locations(

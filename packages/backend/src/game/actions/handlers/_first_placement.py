@@ -45,8 +45,6 @@ def handle_first_placement(
             error=_placement.format_invalid_settlement_location(
                 target=action.terrace,
                 player=context.by,
-                free_vertices=game.free_verticies,
-                restricted_vertices=game.restricted_verticies,
             ),
         )
 
@@ -67,9 +65,6 @@ def handle_first_placement(
             error=_placement.format_invalid_path_location(
                 target=action.path,
                 player=context.by,
-                existing_settlements=player_state.settlements.locations(),
-                existing_paths=player_state.paths,
-                free_edges=game.free_edges,
             ),
         )
 

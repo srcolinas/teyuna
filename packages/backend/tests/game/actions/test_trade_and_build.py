@@ -164,13 +164,9 @@ def test_raises_invalid_path_location_when_disconnected(
             teyuna_core.ResourceCard.WOOD: 1,
         }
     )
-    player_state = game.players[player]
     expected = _placement.format_invalid_path_location(
         target=disconnected,
         player=player,
-        existing_settlements=player_state.settlements.locations(),
-        existing_paths=player_state.paths,
-        free_edges=game.free_edges,
     )
 
     action = teyuna_core.BuildPathAction(coordinate=disconnected)
@@ -200,13 +196,9 @@ def test_raises_invalid_path_location_when_already_taken(
             teyuna_core.ResourceCard.WOOD: 1,
         }
     )
-    player_state = game.players[player]
     expected = _placement.format_invalid_path_location(
         target=path,
         player=player,
-        existing_settlements=player_state.settlements.locations(),
-        existing_paths=player_state.paths,
-        free_edges=game.free_edges,
     )
 
     action = teyuna_core.BuildPathAction(coordinate=path)
@@ -440,13 +432,9 @@ def test_raises_invalid_settlement_location_without_path(
             teyuna_core.ResourceCard.MAIZE: 1,
         }
     )
-    player_state = game.players[player]
     expected = _placement.format_invalid_settlement_location(
         target=terrace,
         player=player,
-        free_vertices=game.free_verticies,
-        restricted_vertices=game.restricted_verticies,
-        existing_paths=player_state.paths,
     )
 
     action = teyuna_core.BuildSettlementAction(
@@ -488,13 +476,9 @@ def test_raises_invalid_settlement_location_when_restricted(
             teyuna_core.ResourceCard.MAIZE: 1,
         }
     )
-    player_state = game.players[player]
     expected = _placement.format_invalid_settlement_location(
         target=restricted,
         player=player,
-        free_vertices=game.free_verticies,
-        restricted_vertices=game.restricted_verticies,
-        existing_paths=player_state.paths,
     )
 
     action = teyuna_core.BuildSettlementAction(
@@ -530,13 +514,9 @@ def test_raises_invalid_settlement_location_when_occupied(
             teyuna_core.ResourceCard.MAIZE: 1,
         }
     )
-    player_state = game.players[player]
     expected = _placement.format_invalid_settlement_location(
         target=terrace,
         player=player,
-        free_vertices=game.free_verticies,
-        restricted_vertices=game.restricted_verticies,
-        existing_paths=player_state.paths,
     )
 
     action = teyuna_core.BuildSettlementAction(
@@ -628,14 +608,9 @@ def test_raises_when_upgrading_without_terrace(game: entities.Game) -> None:
             teyuna_core.ResourceCard.MAIZE: 2,
         }
     )
-    player_state = game.players[player]
     expected = _placement.format_invalid_settlement_location(
         target=terrace,
         player=player,
-        free_vertices=game.free_verticies,
-        restricted_vertices=game.restricted_verticies,
-        existing_paths=player_state.paths,
-        existing_settlements=dict(player_state.settlements.items()),
         reason="You must first build a terrace at specified location.",
     )
 
@@ -664,14 +639,9 @@ def test_raises_when_already_great_terrace(game: entities.Game) -> None:
             teyuna_core.ResourceCard.MAIZE: 2,
         }
     )
-    player_state = game.players[player]
     expected = _placement.format_invalid_settlement_location(
         target=terrace,
         player=player,
-        free_vertices=game.free_verticies,
-        restricted_vertices=game.restricted_verticies,
-        existing_paths=player_state.paths,
-        existing_settlements=dict(player_state.settlements.items()),
         reason="You have already built a great terrace at specified location.",
     )
 
@@ -877,6 +847,7 @@ def test_play_wisdom_card_raises_when_card_cannot_be_played(
     game.players[player].cards[unknown_card] = 1  # type: ignore[index]
 
     action = teyuna_core.PlayWisdomCardAction.model_construct(card=unknown_card)
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
     result = actions.handle_trade_and_build_play_wisdom_card(
         game,
         actions.ExecutionContext(
@@ -892,6 +863,145 @@ def test_play_wisdom_card_raises_when_card_cannot_be_played(
         == "Card 'unknown card' cannot be played during the trade and build phase."
     )
     assert result.card is None
+
+
+def test_handle_build_path_awards_longest_road(game: entities.Game) -> None:
+    player = game.active_player
+    game.use_vertex(
+        player,
+        teyuna_core.canonical_vertex(0, 0, 0),
+        teyuna_core.SettlementType.TERRACE,
+    )
+    for d in range(4):
+        game.use_edge(
+            player,
+            teyuna_core.canonical_edge(0, 0, d),
+        )
+
+    fifth = teyuna_core.canonical_edge(0, 0, 4)
+    action = teyuna_core.BuildPathAction(coordinate=fifth)
+    game.players[player].resources.update(
+        {
+            teyuna_core.ResourceCard.STONE: 1,
+            teyuna_core.ResourceCard.WOOD: 1,
+        }
+    )
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    result = actions.handle_build_path(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
+    )
+    assert result.action == action
+
+    assert result.error is None
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    assert result.coordinate == fifth
+    assert game.longest_road == (player, 5)
+    assert fifth in game.players[player].paths
+
+
+def test_handle_build_path_can_end_game_via_longest_road(
+    game: entities.Game,
+) -> None:
+    player = game.active_player
+    # Seed terrace (1) + 7 Legacy + longest road (2) = 10.
+    game.use_vertex(
+        player,
+        teyuna_core.canonical_vertex(0, 0, 0),
+        teyuna_core.SettlementType.TERRACE,
+    )
+    game.players[player].played_cards[teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS] = 7
+    for d in range(4):
+        game.use_edge(
+            player,
+            teyuna_core.canonical_edge(0, 0, d),
+        )
+    fifth = teyuna_core.canonical_edge(0, 0, 4)
+    action = teyuna_core.BuildPathAction(coordinate=fifth)
+    game.players[player].resources.update(
+        {
+            teyuna_core.ResourceCard.STONE: 1,
+            teyuna_core.ResourceCard.WOOD: 1,
+        }
+    )
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    result = actions.handle_build_path(
+        game,
+        actions.ExecutionContext(by=player, due_to_timeout=False, rng=random.Random(0)),
+        action,
+    )
+    assert result.action == action
+
+    assert result.error is None
+    assert result.next_phase is teyuna_core.GamePhaseName.END_GAME
+    assert result.coordinate == fifth
+    assert game.longest_road == (player, 5)
+    assert entities.victory_points(game, player) == 10
+
+
+def test_handle_build_terrace_clears_longest_road_when_breaking_holder(
+    game: entities.Game,
+) -> None:
+    holder = game.turn_order[1]
+    game.use_vertex(
+        holder,
+        teyuna_core.canonical_vertex(0, 0, 0),
+        teyuna_core.SettlementType.TERRACE,
+    )
+    for d in range(5):
+        actions.handle_build_path(
+            game,
+            actions.ExecutionContext(
+                by=holder,
+                due_to_timeout=False,
+                rng=random.Random(0),
+            ),
+            teyuna_core.BuildPathAction(coordinate=teyuna_core.canonical_edge(0, 0, d)),
+        )
+
+    breaker = game.active_player
+    game.use_vertex(
+        breaker,
+        teyuna_core.canonical_vertex(-1, 1, 3),
+        teyuna_core.SettlementType.TERRACE,
+    )
+    for d in (1, 2):
+        game.use_edge(
+            breaker,
+            teyuna_core.canonical_edge(-1, 1, d),
+        )
+    game.phase = teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    vertex = teyuna_core.canonical_vertex(0, 0, 3)
+    action = teyuna_core.BuildSettlementAction(
+        item=teyuna_core.SettlementType.TERRACE,
+        coordinate=vertex,
+    )
+    game.players[breaker].resources.update(
+        {
+            teyuna_core.ResourceCard.STONE: 1,
+            teyuna_core.ResourceCard.WOOD: 1,
+            teyuna_core.ResourceCard.COTTON: 1,
+            teyuna_core.ResourceCard.MAIZE: 1,
+        }
+    )
+    result = actions.handle_build_terrace(
+        game,
+        actions.ExecutionContext(
+            by=breaker, due_to_timeout=False, rng=random.Random(0)
+        ),
+        action,
+    )
+    assert result.action == action
+
+    assert result.error is None
+    assert result.next_phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD
+    assert result.item is teyuna_core.SettlementType.TERRACE
+    assert result.coordinate == vertex
+    assert game.longest_road == (None, 0)
+    assert (
+        game.players[breaker].settlements[vertex] is teyuna_core.SettlementType.TERRACE
+    )
 
 
 @pytest.mark.parametrize(

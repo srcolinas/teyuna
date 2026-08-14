@@ -192,9 +192,6 @@ def _build_terrace(
         return _placement.format_invalid_settlement_location(
             target=action.coordinate,
             player=context.by,
-            free_vertices=game.free_verticies,
-            restricted_vertices=game.restricted_verticies,
-            existing_paths=player_state.paths,
         )
 
     game.use_vertex(
@@ -203,7 +200,7 @@ def _build_terrace(
         teyuna_core.SettlementType.TERRACE,
     )
     game.discard_resources(context.by, teyuna_core.TERRACE_COST)
-    _longest_road.recompute_longest_road(game, context.by, vertex=action.coordinate)
+    _longest_road.recompute_longest_road(game, vertex=action.coordinate)
     return None
 
 
@@ -227,20 +224,12 @@ def _build_great_terrace(
         return _placement.format_invalid_settlement_location(
             target=action.coordinate,
             player=context.by,
-            free_vertices=game.free_verticies,
-            restricted_vertices=game.restricted_verticies,
-            existing_paths=player_state.paths,
-            existing_settlements=dict(settlements.items()),
             reason="You must first build a terrace at specified location.",
         )
     if settlements[action.coordinate] is teyuna_core.SettlementType.GREAT_TERRACE:
         return _placement.format_invalid_settlement_location(
             target=action.coordinate,
             player=context.by,
-            free_vertices=game.free_verticies,
-            restricted_vertices=game.restricted_verticies,
-            existing_paths=player_state.paths,
-            existing_settlements=dict(settlements.items()),
             reason="You have already built a great terrace at specified location.",
         )
 
@@ -272,9 +261,6 @@ def _build_path(
         return _placement.format_invalid_path_location(
             target=action.coordinate,
             player=context.by,
-            existing_settlements=player_state.settlements.locations(),
-            existing_paths=player_state.paths,
-            free_edges=game.free_edges,
         )
 
     game.use_edge(context.by, action.coordinate)

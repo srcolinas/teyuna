@@ -33,8 +33,6 @@ def test_raises_when_terrace_invalid(game: entities.Game) -> None:
     expected = _placement.format_invalid_settlement_location(
         target=terrace,
         player=player,
-        free_vertices=game.free_verticies,
-        restricted_vertices=game.restricted_verticies,
     )
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -57,8 +55,6 @@ def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
     expected = _placement.format_invalid_settlement_location(
         target=terrace,
         player=player,
-        free_vertices=game.free_verticies,
-        restricted_vertices=game.restricted_verticies,
     )
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -77,13 +73,9 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
     path = teyuna_core.canonical_edge(1, 1, 1)
     player = game.active_player
-    player_state = game.players[player]
     expected = _placement.format_invalid_path_location(
         target=path,
         player=player,
-        existing_settlements=player_state.settlements.locations(),
-        existing_paths=player_state.paths,
-        free_edges=game.free_edges,
     )
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -103,13 +95,9 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
     path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
     game.use_edge(game.turn_order[1], path)
     player = game.active_player
-    player_state = game.players[player]
     expected = _placement.format_invalid_path_location(
         target=path,
         player=player,
-        existing_settlements=player_state.settlements.locations(),
-        existing_paths=player_state.paths,
-        free_edges=game.free_edges,
     )
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)

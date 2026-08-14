@@ -25,8 +25,9 @@ lint:
 slow-test:
 	uv run pytest -m "slow" tests -vv
 
+CASES ?= tests
 test:
-	uv run pytest -n auto -m "not slow" tests -vv
+	uv run pytest -n auto -m "not slow" $(CASES)  -vv
 
 check: lint test
 	@echo "All checks passed!"

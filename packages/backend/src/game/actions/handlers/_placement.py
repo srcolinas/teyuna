@@ -1,4 +1,4 @@
-from collections.abc import Collection, Container, Mapping
+from collections.abc import Collection, Container
 
 import teyuna_core
 
@@ -13,11 +13,6 @@ def format_invalid_settlement_location(
     *,
     target: teyuna_core.Coordinate,
     player: str,
-    free_vertices: Collection[teyuna_core.Coordinate],
-    restricted_vertices: Collection[teyuna_core.Coordinate],
-    existing_paths: Collection[teyuna_core.Coordinate] = (),
-    existing_settlements: Mapping[teyuna_core.Coordinate, teyuna_core.SettlementType]
-    | None = None,
     reason: str | None = None,
 ) -> str:
     parts = [
@@ -25,16 +20,6 @@ def format_invalid_settlement_location(
     ]
     if reason is not None:
         parts.append(reason)
-    parts.append(f"free_vertices={_sorted_coords(free_vertices)}")
-    parts.append(f"restricted_vertices={_sorted_coords(restricted_vertices)}")
-    if existing_paths:
-        parts.append(f"existing_paths={_sorted_coords(existing_paths)}")
-    if existing_settlements is not None:
-        settlements = {
-            coord: settlement_type
-            for coord, settlement_type in sorted(existing_settlements.items())
-        }
-        parts.append(f"existing_settlements={settlements}")
     return "; ".join(parts)
 
 
@@ -42,16 +27,8 @@ def format_invalid_path_location(
     *,
     target: teyuna_core.Coordinate,
     player: str,
-    existing_settlements: Collection[teyuna_core.Coordinate],
-    existing_paths: Collection[teyuna_core.Coordinate],
-    free_edges: Collection[teyuna_core.Coordinate],
 ) -> str:
-    return (
-        f"Player {player} cannot place path at {target}; "
-        f"existing_settlements={_sorted_coords(existing_settlements)}; "
-        f"existing_paths={_sorted_coords(existing_paths)}; "
-        f"free_edges={_sorted_coords(free_edges)}"
-    )
+    return f"Player {player} cannot place path at {target}; "
 
 
 def format_invalid_conquistator_location(
