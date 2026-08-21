@@ -265,7 +265,7 @@ def _build_path(
 
     game.use_edge(context.by, action.coordinate)
     game.discard_resources(context.by, teyuna_core.PATH_COST)
-    _longest_road.update_longest_road(game, context.by, edge=action.coordinate)
+    _longest_road.maybe_add_to_longest_road(game, context.by, edge=action.coordinate)
     return None
 
 

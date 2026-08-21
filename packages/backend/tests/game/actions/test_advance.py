@@ -48,7 +48,11 @@ def test_resolve_free_placement_path_always_touches_new_terrace(
 ) -> None:
     player = game.active_player
     first_terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    first_path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    first_path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     game.use_vertex(player, first_terrace, teyuna_core.SettlementType.TERRACE)
     game.use_edge(player, first_path)
 

@@ -1,3 +1,6 @@
+from collections.abc import Container, Set
+from typing import Callable, Iterable
+
 import teyuna_core
 
 from ... import entities
@@ -5,7 +8,7 @@ from ... import entities
 _MIN_LONGEST_ROAD: int = 5
 
 
-def update_longest_road(
+def maybe_add_to_longest_road(
     game: entities.Game,
     by: str,
     /,
@@ -19,7 +22,13 @@ def update_longest_road(
     if len(game.players[by].paths) < _MIN_LONGEST_ROAD:
         return
 
-    length = _longest_path_length_through(game, by, edge)
+    length = longest_road_in_network(
+        edge,
+        player_paths=game.players[by].paths,
+        traversable_vertices=set(game.players[by].settlements.locations()).union(
+            game.free_verticies
+        ),
+    )
     if length < _MIN_LONGEST_ROAD:
         return
 
@@ -42,7 +51,7 @@ def recompute_longest_road(
     # NOTE: if there are less than 3 edges around the vertex, the longest road is
     # not affected, beacuse all means to get to the vertex should have been counted
     # already
-    edges = teyuna_core.edges_adjacent_to_vertex(vertex.q, vertex.r, vertex.d)
+    edges = teyuna_core.edges_adjacent_to_vertex(vertex)
     if len(edges) < 3:
         return None
 
@@ -63,7 +72,14 @@ def recompute_longest_road(
             continue
 
         length = max(
-            _longest_path_length_through(game, nickname, edge) for edge in player.paths
+            longest_road_in_network(
+                edge,
+                player_paths=player.paths,
+                traversable_vertices=set(player.settlements.locations()).union(
+                    game.free_verticies
+                ),
+            )
+            for edge in player.paths
         )
         if length < _MIN_LONGEST_ROAD:
             continue
@@ -80,39 +96,93 @@ def recompute_longest_road(
         game.longest_road = (None, best_length)
 
 
-def _longest_path_length_through(
-    game: entities.Game,
-    by: str,
-    start: teyuna_core.Coordinate,
+def longest_road_in_network(
+    seed: teyuna_core.Coordinate,
+    *,
+    player_paths: Container[teyuna_core.Coordinate],
+    traversable_vertices: Container[teyuna_core.Coordinate],
 ) -> int:
-    paths = game.players[by].paths
-    settlements = game.players[by].settlements
 
-    def can_traverse_vertex(vertex: teyuna_core.Coordinate) -> bool:
-        return vertex in settlements or vertex in game.free_verticies
+    network = road_network(
+        seed, player_paths=player_paths, traversable_vertices=traversable_vertices
+    )
 
-    def num_pieces(vertex: teyuna_core.Coordinate) -> int:
-        if not can_traverse_vertex(vertex):
-            return 0
-        visited = {start}
-        longest = 0
-        stack: list[tuple[teyuna_core.Coordinate, int]] = [(vertex, 0)]
+    lengths = (
+        longest_road_from_seed(
+            edge, network=network, traversable_vertices=traversable_vertices
+        )
+        for edge in network
+    )
+    return max(lengths)
+
+
+def longest_road_from_seed(
+    seed: teyuna_core.Coordinate,
+    *,
+    network: Container[teyuna_core.Coordinate],
+    traversable_vertices: Container[teyuna_core.Coordinate],
+) -> int:
+    # NOTE: we build a road from each of the vertices of
+    # the seed edge becasue it is more convenient to do the
+    # search if vertices are nodes in the graph. There is a
+    # path from one node to the next if there is an edge
+    # in the network between them.
+    def num_edges_from_vertex(vertex: teyuna_core.Coordinate) -> int:
+        max_length = 0
+        stack: list[tuple[teyuna_core.Coordinate, set[teyuna_core.Coordinate]]] = [
+            (vertex, set())
+        ]
         while stack:
-            current, length = stack.pop()
-            longest = max(longest, length)
-            for edge in teyuna_core.edges_adjacent_to_vertex(
-                current.q, current.r, current.d
-            ):
-                if edge in paths and edge not in visited:
-                    new_length = length + 1
-                    longest = max(longest, new_length)
-                    visited.add(edge)
-                    # Continue from the far vertex when traversable; an edge that
-                    # ends on an opponent settlement still counts above.
-                    for other in teyuna_core.vertices_of_edge(edge):
-                        if other != current and can_traverse_vertex(other):
-                            stack.append((other, new_length))
-        return longest
+            current, path = stack.pop()
+            edges = tuple(
+                edge
+                for edge in teyuna_core.edges_adjacent_to_vertex(current)
+                if edge in network and edge not in path and edge != seed
+            )
+            if len(edges) == 0:
+                max_length = max(max_length, len(path))
+                continue
+            for edge in edges:
+                new_path = path.union({edge})
+                for vertex in teyuna_core.vertices_of_edge(edge):
+                    if vertex in traversable_vertices and vertex != current:
+                        stack.append((vertex, new_path))
+        return max_length
 
-    v1, v2 = teyuna_core.vertices_of_edge(start)
-    return max(num_pieces(v1), num_pieces(v2)) + 1
+    v1, v2 = teyuna_core.vertices_of_edge(seed)
+    length_from_v1 = num_edges_from_vertex(v1)
+    length_from_v2 = num_edges_from_vertex(v2)
+    return max(length_from_v1, length_from_v2) + 1
+
+
+def road_network(
+    seed: teyuna_core.Coordinate,
+    *,
+    player_paths: Container[teyuna_core.Coordinate],
+    traversable_vertices: Container[teyuna_core.Coordinate],
+) -> Set[teyuna_core.Coordinate]:
+    edges_in_network = {seed}
+    stack = [seed]
+    while stack:
+        current = stack.pop()
+        for _, edge in _child_edges(
+            current,
+            traversable_vertices=traversable_vertices,
+            key=lambda edge: edge in player_paths and edge not in edges_in_network,
+        ):
+            edges_in_network.add(edge)
+            stack.append(edge)
+    return edges_in_network
+
+
+def _child_edges(
+    edge: teyuna_core.Coordinate,
+    *,
+    traversable_vertices: Container[teyuna_core.Coordinate],
+    key: Callable[[teyuna_core.Coordinate], bool],
+) -> Iterable[tuple[teyuna_core.Coordinate, teyuna_core.Coordinate]]:
+    for vertex in teyuna_core.vertices_of_edge(edge):
+        if vertex in traversable_vertices:
+            for child in teyuna_core.edges_adjacent_to_vertex(vertex):
+                if child != edge and key(child):
+                    yield vertex, child

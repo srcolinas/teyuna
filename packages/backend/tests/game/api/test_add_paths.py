@@ -103,9 +103,7 @@ def test_returns_400_when_insufficient_resources(
     repository = repository_module.InMemoryGameRepository()
     game = _create_game()
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[game.active_player].settlements[terrace] = (
         teyuna_core.SettlementType.TERRACE
     )
@@ -196,9 +194,7 @@ def _setup_trade_and_build(
     active_player = game.active_player
     other = game.turn_order[1]
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[active_player].settlements[terrace] = (
         teyuna_core.SettlementType.TERRACE
     )

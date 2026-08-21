@@ -85,6 +85,6 @@ def _apply_pathfinder(
                 (),
             )
         game.use_edge(context.by, path)
-        _longest_road.update_longest_road(game, context.by, edge=path)
+        _longest_road.maybe_add_to_longest_road(game, context.by, edge=path)
         placed.append(path)
     return None, tuple(placed)

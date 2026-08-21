@@ -277,7 +277,9 @@ def test_edges_for_free_placement_returns_adjacent_free_edges() -> None:
     )
     terrace = teyuna_core.Coordinate(q=0, r=0, d=0)
     edges = rules.edges_for_free_placement(game, terrace)
-    expected = teyuna_core.edges_adjacent_to_vertex(0, 0, 0)
+    expected = teyuna_core.edges_adjacent_to_vertex(
+        teyuna_core.Coordinate(q=0, r=0, d=0)
+    )
 
     assert set(edges) == expected
     assert edges

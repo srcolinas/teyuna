@@ -9,7 +9,11 @@ import teyuna_core
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     other = game.turn_order[0]
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -28,7 +32,11 @@ def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
 def test_raises_when_terrace_invalid(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     adjacent_terrace = teyuna_core.canonical_vertex(0, 0, 1)
     game.use_vertex(
         game.active_player, adjacent_terrace, teyuna_core.SettlementType.TERRACE
@@ -54,7 +62,11 @@ def test_raises_when_terrace_invalid(game: entities.Game) -> None:
 def test_raises_when_terrace_already_occupied(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     game.use_vertex(game.turn_order[0], terrace, teyuna_core.SettlementType.TERRACE)
     player = game.active_player
     expected = _placement.format_invalid_settlement_location(
@@ -100,7 +112,11 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
 def test_raises_when_path_already_taken(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     game.use_edge(game.turn_order[0], path)
     player = game.active_player
     expected = _placement.format_invalid_path_location(
@@ -153,7 +169,11 @@ def test_decrements_player_idx_and_stays_in_second_placement(
 ) -> None:
     game.player_idx = len(game.players) - 1
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     player = game.active_player
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -185,7 +205,11 @@ def test_returns_dice_roll_and_keeps_player_idx_after_first_player(
 ) -> None:
     game.player_idx = 0
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     player = game.active_player
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -209,7 +233,11 @@ def test_returns_dice_roll_and_keeps_player_idx_after_first_player(
 def test_increments_players_resources_after_turn(game: entities.Game) -> None:
     game.player_idx = len(game.players) - 1
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     player = game.active_player
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -250,7 +278,11 @@ def test_grants_one_resource_per_adjacent_producing_hex() -> None:
     game.start(datetime.timedelta(seconds=60))
     game.player_idx = len(game.players) - 1
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     player = game.active_player
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)

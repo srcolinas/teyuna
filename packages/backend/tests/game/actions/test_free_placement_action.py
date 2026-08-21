@@ -3,7 +3,11 @@ import teyuna_core
 
 def test_free_placement_action_canonicalizes_coordinates() -> None:
     terrace_alias = next(iter(teyuna_core.vertex_aliases(0, 0, 0)))
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
     path_alias = teyuna_core.edge_alias(path.q, path.r, path.d)
 
     action = teyuna_core.FreePlacementAction(

@@ -12,9 +12,7 @@ import teyuna_core
 
 def test_raises_when_player_not_in_turn(game: entities.Game) -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     player = game.active_player
     other = game.turn_order[1]
     game.players[player].paths.add(path)
@@ -47,9 +45,7 @@ def test_builds_terrace_spends_resources_and_stays_in_phase(
 ) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].paths.add(path)
     game._free_edges.discard(path)
     game.players[player].resources.update(
@@ -90,9 +86,7 @@ def test_builds_path_spends_resources_and_stays_in_phase(
 ) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].settlements[terrace] = teyuna_core.SettlementType.TERRACE
     game.players[player].resources.update(
         {
@@ -124,9 +118,7 @@ def test_builds_path_chained_from_owned_path(game: entities.Game) -> None:
     owned_path = teyuna_core.canonical_edge(0, 0, 0)
     v0, v1 = teyuna_core.vertices_of_edge(owned_path)
     adjacent = next(
-        e
-        for e in teyuna_core.edges_adjacent_to_vertex(v1.q, v1.r, v1.d)
-        if e != owned_path
+        e for e in teyuna_core.edges_adjacent_to_vertex(v1) if e != owned_path
     )
     game.players[player].paths.add(owned_path)
     game._free_edges.discard(owned_path)
@@ -185,9 +177,7 @@ def test_raises_invalid_path_location_when_already_taken(
 ) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].settlements[terrace] = teyuna_core.SettlementType.TERRACE
     game.use_edge(game.turn_order[1], path)
     game.players[player].resources.update(
@@ -251,9 +241,7 @@ def test_builds_great_terrace_upgrades_and_stays_in_phase(
 def test_building_terrace_to_ten_vp_ends_game(game: entities.Game) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].paths.add(path)
     game._free_edges.discard(path)
     game.players[player].played_cards[teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
@@ -317,9 +305,7 @@ def test_building_great_terrace_to_ten_vp_ends_game(
 def test_building_path_at_ten_vp_ends_game(game: entities.Game) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].settlements[terrace] = teyuna_core.SettlementType.TERRACE
     game.players[player].played_cards[teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS] = 9
     game.players[player].resources.update(
@@ -347,9 +333,7 @@ def test_building_path_below_ten_vp_stays_in_phase(
 ) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].settlements[terrace] = teyuna_core.SettlementType.TERRACE
     game.players[player].played_cards[teyuna_core.WisdomCard.LEGACY_OF_THE_ELDERS] = 8
     game.players[player].resources.update(
@@ -377,9 +361,7 @@ def test_raises_insufficient_resources_for_terrace(
 ) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].paths.add(path)
 
     action = teyuna_core.BuildSettlementAction(
@@ -460,13 +442,7 @@ def test_raises_invalid_settlement_location_when_restricted(
     restricted = teyuna_core.canonical_vertex(0, 0, 1)
     game.use_vertex(game.turn_order[1], owned, teyuna_core.SettlementType.TERRACE)
     assert restricted in game.restricted_verticies
-    path = next(
-        iter(
-            teyuna_core.edges_adjacent_to_vertex(
-                restricted.q, restricted.r, restricted.d
-            )
-        )
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(restricted)))
     game.players[player].paths.add(path)
     game.players[player].resources.update(
         {
@@ -501,9 +477,7 @@ def test_raises_invalid_settlement_location_when_occupied(
 ) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.use_vertex(game.turn_order[1], terrace, teyuna_core.SettlementType.TERRACE)
     game.players[player].paths.add(path)
     game.players[player].resources.update(
@@ -537,9 +511,7 @@ def test_raises_invalid_settlement_location_when_occupied(
 def test_raises_when_terrace_cap_reached(game: entities.Game) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].paths.add(path)
     game.players[player].resources.update(
         {
@@ -663,9 +635,7 @@ def test_raises_when_already_great_terrace(game: entities.Game) -> None:
 def test_raises_when_path_cap_reached(game: entities.Game) -> None:
     player = game.active_player
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     game.players[player].settlements[terrace] = teyuna_core.SettlementType.TERRACE
     game.players[player].resources.update(
         {

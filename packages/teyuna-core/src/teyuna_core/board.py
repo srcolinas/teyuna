@@ -116,13 +116,14 @@ def vertices_of_edge(
     )
 
 
-def edges_adjacent_to_vertex(q: int, r: int, d: int) -> set[Coordinate]:
-    dq5, dr5 = delta_to_neighbor((d + 5) % 6)
+def edges_adjacent_to_vertex(vertex: Coordinate) -> set[Coordinate]:
+
+    dq5, dr5 = delta_to_neighbor((vertex.d + 5) % 6)
     adjacent: set[Coordinate] = set()
     for edge_q, edge_r, edge_d in (
-        (q, r, (d + 5) % 6),
-        (q, r, d),
-        (q + dq5, r + dr5, (d + 1) % 6),
+        (vertex.q, vertex.r, (vertex.d + 5) % 6),
+        (vertex.q, vertex.r, vertex.d),
+        (vertex.q + dq5, vertex.r + dr5, (vertex.d + 1) % 6),
     ):
         try:
             adjacent.add(canonical_edge(edge_q, edge_r, edge_d))

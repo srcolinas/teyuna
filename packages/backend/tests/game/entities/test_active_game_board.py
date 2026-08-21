@@ -51,7 +51,11 @@ def test_use_vertex_keeps_adjacent_vertices_in_free(
 def test_use_edge_assigns_path_and_removes_free_edge(
     game: entities.Game,
 ) -> None:
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(0, 0, 0)))
+    path = next(
+        iter(
+            teyuna_core.edges_adjacent_to_vertex(teyuna_core.Coordinate(q=0, r=0, d=0))
+        )
+    )
 
     game.use_edge("player", path)
 

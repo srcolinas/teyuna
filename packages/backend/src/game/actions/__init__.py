@@ -35,7 +35,7 @@ from .handlers._trade_and_build import (
 from .handlers._victory import phase_after_victory_check
 from .handlers._longest_road import (
     recompute_longest_road,
-    update_longest_road,
+    maybe_add_to_longest_road,
 )
 
 from ._registry import (
@@ -76,7 +76,7 @@ __all__ = [
     "handle_second_placement",
     "phase_after_victory_check",
     "recompute_longest_road",
-    "update_longest_road",
+    "maybe_add_to_longest_road",
     "ActionNotAllowedError",
     "ActionsRegistry",
     "ExecutionContext",

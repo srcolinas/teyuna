@@ -68,7 +68,7 @@ def can_add_free_path_at(
         if v in existing_settlements:
             return True
         if v in free_vertices:
-            for e in teyuna_core.edges_adjacent_to_vertex(v.q, v.r, v.d):
+            for e in teyuna_core.edges_adjacent_to_vertex(v):
                 if e != target and e in existing_paths:
                     return True
     return False
@@ -102,6 +102,5 @@ def can_build_terrace_at(
     if target not in free_verticies or target in restricted_verticies:
         return False
     return any(
-        edge in existing_paths
-        for edge in teyuna_core.edges_adjacent_to_vertex(target.q, target.r, target.d)
+        edge in existing_paths for edge in teyuna_core.edges_adjacent_to_vertex(target)
     )

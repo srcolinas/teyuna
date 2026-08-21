@@ -255,7 +255,7 @@ def _legal_paths_for_terrace(
     existing_settlements: set[teyuna_core.Coordinate],
     existing_paths: set[teyuna_core.Coordinate],
 ) -> list[teyuna_core.Coordinate]:
-    adjacent = teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d)
+    adjacent = teyuna_core.edges_adjacent_to_vertex(terrace)
     return [
         edge
         for edge in adjacent

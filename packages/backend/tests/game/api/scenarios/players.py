@@ -72,9 +72,7 @@ class GreedyBuilder(BasePlayer):
         available = game.free_verticies - game.restricted_verticies
         paths = game.players[game.active_player].paths
         for location in available:
-            for edge in teyuna_core.edges_adjacent_to_vertex(
-                location.q, location.r, location.d
-            ):
+            for edge in teyuna_core.edges_adjacent_to_vertex(location):
                 if edge in paths:
                     success, reason = self._post_settlement(
                         teyuna_core.SettlementType.TERRACE, location
@@ -92,9 +90,7 @@ class GreedyBuilder(BasePlayer):
         for path in player_.paths:
             vertices.update(teyuna_core.vertices_of_edge(path))
         for vertex in vertices:
-            for edge in teyuna_core.edges_adjacent_to_vertex(
-                vertex.q, vertex.r, vertex.d
-            ):
+            for edge in teyuna_core.edges_adjacent_to_vertex(vertex):
                 if edge not in player_.paths and edge in game.free_edges:
                     success, reason = self._post_path(edge)
                     if success:

@@ -5,9 +5,7 @@ import teyuna_core
 
 def test_free_path_returns_true_when_adjacent_to_owned_settlement() -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
 
     assert (
         _placement.can_add_free_path_at(
@@ -23,9 +21,7 @@ def test_free_path_returns_true_when_adjacent_to_owned_settlement() -> None:
 
 def test_free_path_returns_false_when_path_not_free() -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
 
     assert (
         _placement.can_add_free_path_at(
@@ -42,7 +38,7 @@ def test_free_path_returns_false_when_path_not_free() -> None:
 def test_free_path_returns_false_when_disconnected() -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
     other = teyuna_core.canonical_vertex(1, 0, 0)
-    path = next(iter(teyuna_core.edges_adjacent_to_vertex(other.q, other.r, other.d)))
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(other)))
     assert terrace not in teyuna_core.vertices_of_edge(path)
 
     assert (
@@ -61,9 +57,7 @@ def test_free_path_returns_true_when_adjacent_to_free_vertex_with_owned_path() -
     owned_path = teyuna_core.canonical_edge(0, 0, 0)
     v0, v1 = teyuna_core.vertices_of_edge(owned_path)
     adjacent = next(
-        e
-        for e in teyuna_core.edges_adjacent_to_vertex(v1.q, v1.r, v1.d)
-        if e != owned_path
+        e for e in teyuna_core.edges_adjacent_to_vertex(v1) if e != owned_path
     )
 
     assert (
@@ -80,9 +74,7 @@ def test_free_path_returns_true_when_adjacent_to_free_vertex_with_owned_path() -
 
 def test_free_path_returns_false_when_neighbor_settlement_not_owned() -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
 
     assert (
         _placement.can_add_free_path_at(
@@ -98,9 +90,7 @@ def test_free_path_returns_false_when_neighbor_settlement_not_owned() -> None:
 
 def test_free_path_returns_true_when_adjacent_to_new_settlement() -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
 
     assert (
         _placement.can_add_free_path_at(
@@ -146,9 +136,7 @@ def test_free_path_rejects_network_extension_when_new_settlement_set() -> None:
 
 def test_free_path_accepts_settlements_collection_locations() -> None:
     terrace = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     settlements = entities.SettlementsCollection()
     settlements[terrace] = teyuna_core.SettlementType.TERRACE
 
@@ -206,9 +194,7 @@ def test_free_terrace_returns_false_when_target_is_restricted() -> None:
 
 def test_build_terrace_returns_true_when_free_and_adjacent_to_owned_path() -> None:
     target = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(target.q, target.r, target.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(target)))
 
     assert (
         _placement.can_build_terrace_at(
@@ -237,9 +223,7 @@ def test_build_terrace_returns_false_when_no_adjacent_owned_path() -> None:
 
 def test_build_terrace_returns_false_when_target_is_restricted() -> None:
     target = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(target.q, target.r, target.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(target)))
 
     assert (
         _placement.can_build_terrace_at(
@@ -254,9 +238,7 @@ def test_build_terrace_returns_false_when_target_is_restricted() -> None:
 
 def test_build_terrace_returns_false_when_target_not_free() -> None:
     target = teyuna_core.canonical_vertex(0, 0, 0)
-    path = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(target.q, target.r, target.d))
-    )
+    path = next(iter(teyuna_core.edges_adjacent_to_vertex(target)))
 
     assert (
         _placement.can_build_terrace_at(

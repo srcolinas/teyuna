@@ -22,7 +22,7 @@ def vertices_available_for_building(
     player_paths = {path.location for path in game.paths if path.owner == by}
     available: list[teyuna_core.Coordinate] = []
     for vertex in buildable:
-        adjacent = teyuna_core.edges_adjacent_to_vertex(vertex.q, vertex.r, vertex.d)
+        adjacent = teyuna_core.edges_adjacent_to_vertex(vertex)
         if any(edge in player_paths for edge in adjacent):
             available.append(vertex)
     return tuple(available)
@@ -61,7 +61,7 @@ def edges_for_free_placement(
     terrace: teyuna_core.Coordinate,
 ) -> tuple[teyuna_core.Coordinate, ...]:
     _, free_edges = placement_sets(game)
-    adjacent = teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d)
+    adjacent = teyuna_core.edges_adjacent_to_vertex(terrace)
     return tuple(edge for edge in adjacent if edge in free_edges)
 
 
@@ -145,9 +145,7 @@ def _can_add_path_at(
         if vertex in existing_settlements:
             return True
         if vertex in free_vertices:
-            for edge in teyuna_core.edges_adjacent_to_vertex(
-                vertex.q, vertex.r, vertex.d
-            ):
+            for edge in teyuna_core.edges_adjacent_to_vertex(vertex):
                 if edge != target and edge in existing_paths:
                     return True
     return False

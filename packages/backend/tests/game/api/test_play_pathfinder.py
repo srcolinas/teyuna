@@ -199,16 +199,10 @@ def _setup_pathfinder_phase(
     game.players[active_player].settlements[terrace] = (
         teyuna_core.SettlementType.TERRACE
     )
-    first = next(
-        iter(teyuna_core.edges_adjacent_to_vertex(terrace.q, terrace.r, terrace.d))
-    )
+    first = next(iter(teyuna_core.edges_adjacent_to_vertex(terrace)))
     v0, v1 = teyuna_core.vertices_of_edge(first)
     shared = v1 if v1 != terrace else v0
-    second = next(
-        e
-        for e in teyuna_core.edges_adjacent_to_vertex(shared.q, shared.r, shared.d)
-        if e != first
-    )
+    second = next(e for e in teyuna_core.edges_adjacent_to_vertex(shared) if e != first)
 
     game.phase_deadline = datetime.datetime(2099, 1, 1, tzinfo=datetime.UTC)
     game_id = repository.add(game)
