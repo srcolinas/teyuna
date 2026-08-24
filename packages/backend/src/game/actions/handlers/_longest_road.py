@@ -127,26 +127,42 @@ def longest_road_from_seed(
     # search if vertices are nodes in the graph. There is a
     # path from one node to the next if there is an edge
     # in the network between them.
-    def num_edges_from_vertex(vertex: teyuna_core.Coordinate) -> int:
+    type Edge = teyuna_core.Coordinate
+    type Vertex = teyuna_core.Coordinate
+    type Choices = list[tuple[Edge, Vertex]]
+
+    def possible_paths(vertex: Vertex, seen: set[Edge]) -> Choices:
+        choices: Choices = []
+        for edge in teyuna_core.edges_adjacent_to_vertex(vertex):
+            if edge in network and edge not in seen:
+                for v in teyuna_core.vertices_of_edge(edge):
+                    if v in traversable_vertices and v != vertex:
+                        choices.append((edge, v))
+        return choices
+
+    def num_edges_from_vertex(vertex: Vertex) -> int:
         max_length = 0
-        stack: list[tuple[teyuna_core.Coordinate, set[teyuna_core.Coordinate]]] = [
-            (vertex, set())
-        ]
+        seen = {seed}
+        # NOTE: keep track of the of the edge that led to
+        # the vertex, as well as all the choices that come up
+        # from that vertex
+        stack = [(seed, possible_paths(vertex, seen))]
         while stack:
-            current, path = stack.pop()
-            edges = tuple(
-                edge
-                for edge in teyuna_core.edges_adjacent_to_vertex(current)
-                if edge in network and edge not in path and edge != seed
-            )
-            if len(edges) == 0:
-                max_length = max(max_length, len(path))
+            edge, choices = stack[-1]
+            if len(choices) == 0:
+                # NOTE: ``seen`` holds the seed as well, which the
+                # caller accounts for separately.
+                max_length = max(max_length, len(seen) - 1)
+                stack.pop()
+                seen.remove(edge)
                 continue
-            for edge in edges:
-                new_path = path.union({edge})
-                for vertex in teyuna_core.vertices_of_edge(edge):
-                    if vertex in traversable_vertices and vertex != current:
-                        stack.append((vertex, new_path))
+            # NOTE: if there are still choices, explore
+            # one of them.
+            edge, vertex = choices.pop()
+            seen.add(edge)
+            choices = possible_paths(vertex, seen)
+            stack.append((edge, choices))
+
         return max_length
 
     v1, v2 = teyuna_core.vertices_of_edge(seed)
