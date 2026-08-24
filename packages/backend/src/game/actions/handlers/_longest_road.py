@@ -1,5 +1,4 @@
 from collections.abc import Container, Set
-from typing import Callable, Iterable
 
 import teyuna_core
 
@@ -177,28 +176,14 @@ def road_network(
     player_paths: Container[teyuna_core.Coordinate],
     traversable_vertices: Container[teyuna_core.Coordinate],
 ) -> Set[teyuna_core.Coordinate]:
-    edges_in_network = {seed}
+    network = {seed}
     stack = [seed]
     while stack:
         current = stack.pop()
-        for _, edge in _child_edges(
-            current,
-            traversable_vertices=traversable_vertices,
-            key=lambda edge: edge in player_paths and edge not in edges_in_network,
-        ):
-            edges_in_network.add(edge)
-            stack.append(edge)
-    return edges_in_network
-
-
-def _child_edges(
-    edge: teyuna_core.Coordinate,
-    *,
-    traversable_vertices: Container[teyuna_core.Coordinate],
-    key: Callable[[teyuna_core.Coordinate], bool],
-) -> Iterable[tuple[teyuna_core.Coordinate, teyuna_core.Coordinate]]:
-    for vertex in teyuna_core.vertices_of_edge(edge):
-        if vertex in traversable_vertices:
-            for child in teyuna_core.edges_adjacent_to_vertex(vertex):
-                if child != edge and key(child):
-                    yield vertex, child
+        for vertex in teyuna_core.vertices_of_edge(current):
+            if vertex in traversable_vertices:
+                for edge in teyuna_core.edges_adjacent_to_vertex(vertex):
+                    if edge != current and edge in player_paths and edge not in network:
+                        network.add(edge)
+                        stack.append(edge)
+    return network
