@@ -130,6 +130,10 @@ def longest_road_from_seed(
     type Edge = teyuna_core.Coordinate
     type Vertex = teyuna_core.Coordinate
 
+    type Stack = list[tuple[Edge, list[tuple[Edge, Vertex]]]]
+
+    seen: set[Edge] = set()
+
     def possible_paths(vertex: Vertex) -> list[tuple[Edge, Vertex]]:
         choices: list[tuple[Edge, Vertex]] = []
         for edge in teyuna_core.edges_adjacent_to_vertex(vertex):
@@ -139,12 +143,11 @@ def longest_road_from_seed(
                         choices.append((edge, v))
         return choices
 
-    def backtrack(vertex: Vertex) -> int:
+    def backtrack(stack: Stack) -> int:
         max_length = 0
         # NOTE: keep track of the of the edge that led to
         # the vertex, as well as all the choices that come up
         # from that vertex
-        stack = [(seed, possible_paths(vertex))]
         while stack:
             edge, choices = stack[-1]
             if len(choices) == 0:
@@ -156,17 +159,16 @@ def longest_road_from_seed(
             # one of them.
             edge, vertex = choices.pop()
             seen.add(edge)
-            choices = possible_paths(vertex)
-            stack.append((edge, choices))
+            stack.append((edge, possible_paths(vertex)))
 
         return max_length
 
-    v1, v2 = teyuna_core.vertices_of_edge(seed)
-    seen = {seed}
-    length_from_v1 = backtrack(v1)
-    seen = {seed}
-    length_from_v2 = backtrack(v2)
-    return max(length_from_v1, length_from_v2)
+    def length_from(vertex: Vertex) -> int:
+        seen.clear()
+        seen.add(seed)
+        return backtrack([(seed, possible_paths(vertex))])
+
+    return max(length_from(v) for v in teyuna_core.vertices_of_edge(seed))
 
 
 def road_network(
