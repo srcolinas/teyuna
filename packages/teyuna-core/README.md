@@ -11,5 +11,5 @@ Publish **`teyuna-core` before `teyuna-sdk`**, because the SDK depends on this
 package on PyPI.
 
 ```bash
-make publish
+task core:publish
 ```

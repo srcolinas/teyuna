@@ -3,22 +3,22 @@
 From the repository root, install and validate everything with:
 
 ```bash
-make setup
-make format
-make lint
-make test
+task setup
+task format
+task lint
+task test
 # or
-make check
+task check
 ```
 
-Those targets cover Python packages and the frontend (`apps/frontend`, pnpm).
-Pre-commit runs `make format`, `make lint`, and `make test`.
+Those tasks cover Python packages and the frontend (`apps/frontend`, pnpm).
+Pre-commit runs `task format`, `task lint`, and `task test`.
 
 Package-specific guidelines:
 
 | Package | Guide |
 | --- | --- |
-| Backend | [packages/backend/README.md](packages/backend/README.md) |
+| Backend | [apps/backend/README.md](apps/backend/README.md) |
 | Teyuna core | [packages/teyuna-core/README.md](packages/teyuna-core/README.md) |
 | Python SDK | [packages/sdk-python/README.md](packages/sdk-python/README.md) |
 | Frontend | [apps/frontend/README.md](apps/frontend/README.md) |

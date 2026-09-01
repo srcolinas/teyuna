@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ActiveGame, PrivatePlayerInfo } from './types'
-import { API_BASE_URL, apiClient, apiErrorMessage } from './api'
+import { apiClient, apiErrorMessage, isNotFoundError } from './api'
 import GameBoard from './components/GameBoard'
 import PlayerPanel from './components/PlayerPanel'
 import EventFeed, { GameEvent } from './components/EventFeed'
@@ -11,6 +11,7 @@ function App() {
   const [game, setGame] = useState<ActiveGame | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [notFound, setNotFound] = useState(false)
   const [events, setEvents] = useState<GameEvent[]>([])
   const [eventConnection, setEventConnection] = useState<'connecting' | 'live' | 'waiting'>(
     'connecting',
@@ -24,12 +25,18 @@ function App() {
       setLoading(false)
       return
     }
+    // A missing game never comes back: the server keeps games in memory only.
+    if (notFound) return
 
     const fetchGame = async () => {
       try {
         setGame(await apiClient.getGame(gameId))
         setError(null)
       } catch (err) {
+        if (isNotFoundError(err)) {
+          setNotFound(true)
+          return
+        }
         setError(`Failed to load game: ${apiErrorMessage(err)}`)
       } finally {
         setLoading(false)
@@ -39,10 +46,10 @@ function App() {
     void fetchGame()
     const interval = window.setInterval(fetchGame, 2000)
     return () => window.clearInterval(interval)
-  }, [gameId])
+  }, [gameId, notFound])
 
   useEffect(() => {
-    if (!gameId) return
+    if (!gameId || notFound) return
     const entries = Object.entries(playerTokens)
     if (entries.length === 0) return
 
@@ -72,11 +79,11 @@ function App() {
     void fetchPrivateInfo()
     const interval = window.setInterval(fetchPrivateInfo, 2000)
     return () => window.clearInterval(interval)
-  }, [gameId, playerTokens])
+  }, [gameId, notFound, playerTokens])
 
   useEffect(() => {
-    if (!gameId) return
-    const source = new EventSource(`${API_BASE_URL}/games/${gameId}/events`)
+    if (!gameId || notFound) return
+    const source = new EventSource(`/games/${gameId}/events`)
     const eventNames = [
       'message',
       'failed_action',
@@ -112,7 +119,7 @@ function App() {
       }
       source.close()
     }
-  }, [gameId])
+  }, [gameId, notFound])
 
   const playerColors = useMemo(() => {
     if (!game) return {}
@@ -150,6 +157,8 @@ function App() {
   }
 
   if (!gameId) return <GameFinder />
+
+  if (notFound) return <GameNotFound gameId={gameId} />
 
   if (loading && !game) {
     return (
@@ -284,6 +293,32 @@ function App() {
         </footer>
       </div>
       <EventFeed events={events} connection={eventConnection} />
+    </main>
+  )
+}
+
+function GameNotFound({ gameId }: { gameId: string }) {
+  return (
+    <main className="min-h-screen grid place-items-center bg-slate-100 p-4">
+      <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow">
+        <p className="text-sm font-semibold uppercase tracking-widest text-emerald-700">
+          Simulation observer
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-red-600">Game not found</h1>
+        <p className="mt-2 break-all text-slate-600">
+          The server has no game with id <code>{gameId}</code>.
+        </p>
+        <p className="mt-2 text-slate-600">
+          Games are kept in memory, so ids from an earlier server run stop working once it restarts.
+          Use the id printed by the current <code>teyuna-simulate</code> run.
+        </p>
+        <a
+          href="/"
+          className="mt-5 inline-block rounded bg-blue-600 px-4 py-2 font-semibold text-white"
+        >
+          Watch another game
+        </a>
+      </div>
     </main>
   )
 }

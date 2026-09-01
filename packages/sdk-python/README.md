@@ -118,10 +118,10 @@ teyuna-simulate join <uuid> builder sleepy skipper builder:builder-2
 From this directory:
 
 ```bash
-make setup    # sync deps and install pre-commit
-make format
-make lint
-make check
+task sdk:setup    # sync deps
+task sdk:format
+task sdk:lint
+task sdk:check
 ```
 
 Publish to PyPI (maintainers):
@@ -129,8 +129,8 @@ Publish to PyPI (maintainers):
 Publish **`teyuna-core` first**, then this package (the SDK depends on core on PyPI):
 
 ```bash
-cd ../teyuna-core && make publish
-cd ../sdk-python && make publish
+task core:publish
+task sdk:publish
 ```
 
 ## License

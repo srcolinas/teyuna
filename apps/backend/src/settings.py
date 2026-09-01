@@ -1,5 +1,6 @@
 import datetime
 import functools
+import pathlib
 from typing import Literal
 
 import pydantic_settings
@@ -10,6 +11,7 @@ class Settings(pydantic_settings.BaseSettings):
     environment: Literal["production", "development", "staging", "local"] = "local"
 
     loglevel: Literal["DEBUG", "INFO", "WARNING", "ERRROR", "CRITICAL"] = "INFO"
+    static_dir: pathlib.Path
 
     lobby_timeout: datetime.timedelta = datetime.timedelta(minutes=2)
     first_placement_timeout: datetime.timedelta = datetime.timedelta(seconds=60)
@@ -43,7 +45,7 @@ class Settings(pydantic_settings.BaseSettings):
 
 @functools.cache
 def settings() -> Settings:
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
 
 
 def get_settings() -> Settings:

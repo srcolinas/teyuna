@@ -1,14 +1,14 @@
 # Backend
 
-If you haven't contributed in a while, you may want to run `make clean` and then `make setup` to get the project up and running.
+If you haven't contributed in a while, you may want to run `task clean` and then `task setup` from the repository root to get the project up and running.
 
 Always validate code changes with the following three commands:
 
-- `make format`
-- `make lint`
-- `make test`
+- `task backend:format`
+- `task backend:lint`
+- `task backend:test`
 
-Always run `make coverage` to see the test coverage, we should aim for 100% coverage on functions and classes that do not perform IO bound tasks.
+Always run `task backend:coverage` to see the test coverage, we should aim for 100% coverage on functions and classes that do not perform IO bound tasks.
 
 ## API
 

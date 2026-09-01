@@ -1,11 +1,14 @@
 import asyncio
 import contextlib
 import logging
+import pathlib
 import random
 from collections.abc import AsyncIterator, Callable
 from typing import TypeVar
 import fastapi
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 
 from . import game, settings
@@ -59,6 +62,7 @@ def create_app() -> fastapi.FastAPI:
         return {"status": "ok"}
 
     app.include_router(game.routes.router)
+    _mount_observer(app, settings_.static_dir)
 
     return app
 
@@ -94,3 +98,25 @@ async def _apply_due_timeouts(*, app: fastapi.FastAPI, rng: random.Random) -> No
             broker=broker,
             rng=rng,
         )
+
+
+def _mount_observer(app: fastapi.FastAPI, static_dir: pathlib.Path) -> None:
+    index = static_dir / "index.html"
+    if not index.is_file():
+        return
+
+    assets_dir = static_dir / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    def observer(full_path: str) -> FileResponse:
+        if full_path:
+            candidate = (static_dir / full_path).resolve()
+            try:
+                candidate.relative_to(static_dir.resolve())
+            except ValueError:
+                return FileResponse(index)
+            if candidate.is_file():
+                return FileResponse(candidate)
+        return FileResponse(index)

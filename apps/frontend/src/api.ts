@@ -1,13 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 import { ActiveGame, Coordinate, HexLocation, PrivatePlayerInfo, SettlementType } from './types'
 
-const rawApiUrl = import.meta.env.VITE_API_URL
-if (typeof rawApiUrl !== 'string' || rawApiUrl.trim() === '') {
-  throw new Error('VITE_API_URL must be set (see apps/frontend/.env.example)')
-}
-
-export const API_BASE_URL = rawApiUrl.replace(/\/$/, '')
-
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` }
 }
@@ -16,9 +9,7 @@ class ApiClient {
   private client: AxiosInstance
 
   constructor() {
-    this.client = axios.create({
-      baseURL: API_BASE_URL,
-    })
+    this.client = axios.create()
   }
 
   async joinGame(gameId: string, nickname: string): Promise<string> {
@@ -134,6 +125,10 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient()
+
+export function isNotFoundError(error: unknown): boolean {
+  return axios.isAxiosError(error) && error.response?.status === 404
+}
 
 export function apiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
