@@ -54,8 +54,8 @@ tasks:
     desc: Remove caches, frontend artifacts, and the workspace venv
     deps: [core:clean, backend:clean, sdk:clean, frontend:clean]
     cmds:
-      - rm -rf .venv
-      - rm -rf logs
+      - rm -rf .venv logs .mypy_cache .pnpm-store .pytest_cache .ruff_cache 
+
 
   run:
     desc: Build the observer and serve API + UI with uvicorn
