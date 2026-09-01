@@ -1,0 +1,44 @@
+version: '3'
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf node_modules dist coverage
+      - rm -rf node_modules/.vite node_modules/.tmp
+      - rm -rf *.tsbuildinfo
+
+  setup:
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  format:
+    cmds:
+      - pnpm run format
+      - pnpm run lint
+
+  lint:
+    cmds:
+      - pnpm run format:check
+      - pnpm run lint:check
+      - pnpm run typecheck
+
+  test:
+    cmds:
+      - pnpm run test
+
+  check:
+    deps: [lint, test]
+    cmds:
+      - echo "All checks passed!"
+
+  coverage:
+    cmds:
+      - pnpm run coverage
+
+  build:
+    desc: Production Vite build into STATIC_DIR
+    vars:
+      OUT: '{{.STATIC_DIR | default "dist"}}'
+    cmds:
+      - pnpm exec tsc -b
+      - pnpm exec vite build --outDir "{{.OUT}}" --emptyOutDir

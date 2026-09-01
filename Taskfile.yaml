@@ -1,0 +1,99 @@
+version: "3"
+
+vars:
+  BACKEND_PORT: '{{.BACKEND_PORT | default "8000"}}'
+  STATIC_DIR: "{{.ROOT_DIR}}/apps/frontend/dist"
+
+dotenv: [".env"]
+
+includes:
+  core:
+    taskfile: packages/teyuna-core/Taskfile.yaml
+    dir: packages/teyuna-core
+  backend:
+    taskfile: apps/backend/Taskfile.yaml
+    dir: apps/backend
+  sdk:
+    taskfile: packages/sdk-python/Taskfile.yaml
+    dir: packages/sdk-python
+  frontend:
+    taskfile: apps/frontend/Taskfile.yaml
+    dir: apps/frontend
+    vars:
+      STATIC_DIR: "{{.ROOT_DIR}}/apps/frontend/dist"
+
+tasks:
+  default:
+    cmds:
+      - task: check
+
+  setup:
+    desc: Install workspace and frontend dependencies
+    cmds:
+      - uv sync --all-packages --dev
+      - uv run pre-commit install
+      - task: frontend:setup
+
+  format:
+    desc: Format Python packages and the frontend
+    deps: [core:format, backend:format, sdk:format, frontend:format]
+
+  lint:
+    desc: Lint Python packages and the frontend
+    deps: [core:lint, backend:lint, sdk:lint, frontend:lint]
+
+  test:
+    desc: Test Python packages and the frontend
+    deps: [core:test, backend:test, sdk:test, frontend:test]
+
+  check:
+    desc: Lint and test every package
+    deps: [core:check, backend:check, sdk:check, frontend:check]
+
+  clean:
+    desc: Remove caches, frontend artifacts, and the workspace venv
+    deps: [core:clean, backend:clean, sdk:clean, frontend:clean]
+    cmds:
+      - rm -rf .venv
+      - rm -rf logs
+
+  run:
+    desc: Build the observer and serve API + UI with uvicorn
+    deps:
+      - task: frontend:build
+        vars:
+          STATIC_DIR: "{{.STATIC_DIR}}"
+    dir: apps/backend
+    env:
+      TEYUNA_STATIC_DIR: "{{.STATIC_DIR}}"
+    cmds:
+      - uv run uvicorn src.main:create_app --factory --host 127.0.0.1 --port {{.BACKEND_PORT}}
+
+  simulate:
+    desc: Build observer, run server, create a game, join sample agents
+    deps:
+      - task: frontend:build
+        vars:
+          STATIC_DIR: "{{.STATIC_DIR}}"
+    dir: apps/backend
+    env:
+      TEYUNA_STATIC_DIR: "{{.STATIC_DIR}}"
+    cmds:
+      - |
+        set -e
+        uv run uvicorn src.main:create_app --factory --host 127.0.0.1 --port {{.BACKEND_PORT}} &
+        SERVER_PID=$!
+        trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+        echo "Waiting for backend at http://127.0.0.1:{{.BACKEND_PORT}}/health ..."
+        until curl -sf "http://127.0.0.1:{{.BACKEND_PORT}}/health" >/dev/null; do sleep 1; done
+        echo "Server: http://127.0.0.1:{{.BACKEND_PORT}}"
+        GAME_ID=$(uv run teyuna-simulate create --host "http://127.0.0.1:{{.BACKEND_PORT}}")
+        WATCH="http://127.0.0.1:{{.BACKEND_PORT}}/?gameId=$GAME_ID"
+        echo "Watch: $WATCH"
+        uv run teyuna-simulate join "$GAME_ID" --host "http://127.0.0.1:{{.BACKEND_PORT}}" \
+          --logdir "{{.ROOT_DIR}}/logs/$(date +%Y-%m-%d-%H-%M)" \
+          trader:alice buyer:bob builder:carol
+        # Games live in memory, so keep serving until Ctrl+C or the final board is lost.
+        echo "Simulation finished. Watch: $WATCH"
+        echo "Press Ctrl+C to stop the server."
+        wait "$SERVER_PID"
