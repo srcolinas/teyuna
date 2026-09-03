@@ -1,3 +1,4 @@
+import logging
 import random
 import uuid
 from typing import Annotated, AsyncIterable
@@ -23,7 +24,13 @@ from . import (
     broker as broker_module,
 )
 
+logger = logging.getLogger(__name__)
+
 router = fastapi.APIRouter(prefix="/games", route_class=http.GameRoute)
+
+
+def _dump(value: pydantic.BaseModel) -> str:
+    return value.model_dump_json()
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -59,6 +66,11 @@ def join_game(
     ],
     settings_: Annotated[settings.Settings, fastapi.Depends(settings.get_settings)],
 ) -> teyuna_core.JoinGameResponse:
+    """
+    Allows players to join a game and provide them with an authentication
+    token to use for endpoints that require it.
+    """
+    logger.debug("join_game input game_id=%s payload=%s", game_id, _dump(payload))
     result, token = services.add_player(
         game_id=game_id,
         nickname=payload.nickname,
@@ -66,17 +78,17 @@ def join_game(
         auth=auth,
         first_placement_timeout=settings_.first_placement_timeout,
     )
-    """
-    Allows players to join a game and provie them with an authentication
-    token to use for endpoinds that require it.
-    """
-    return teyuna_core.JoinGameResponse(game=result, token=token)
+    response = teyuna_core.JoinGameResponse(game=result, token=token)
+    logger.debug("join_game output %s", _dump(response))
+    return response
 
 
 @router.get("/{game_id}")
 def get_game(
     game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
 ) -> teyuna_core.Game:
+    logger.debug("get_game input game_id=%s", game.id)
+    logger.debug("get_game output %s", _dump(game))
     return game
 
 
@@ -127,6 +139,12 @@ async def submit_action(
     Illegal, wrong-phase actions or attempts to perform an action when it is not
     your turn, will return HTTP 400 with a `detail` message.
     """
+    logger.debug(
+        "submit_action input game_id=%s by=%s payload=%s",
+        game_id,
+        nickname,
+        _dump(payload),
+    )
     context = actions.ExecutionContext(
         by=nickname,
         due_to_timeout=False,
@@ -143,6 +161,7 @@ async def submit_action(
         broker=broker,
     )
     http.raise_if_failed(result)
+    logger.debug("submit_action output %s", _dump(result))
     return result
 
 
@@ -177,7 +196,10 @@ def get_hand(
     Retrieves a player hand, including its current resources and widwom cards
     that haven't been played.
     """
-    return services.retrieve_hand(game_id, nickname, repository=repository)
+    logger.debug("get_hand input game_id=%s nickname=%s", game_id, nickname)
+    hand = services.retrieve_hand(game_id, nickname, repository=repository)
+    logger.debug("get_hand output %s", _dump(hand))
+    return hand
 
 
 @router.get("/{game_id}/settlements")
