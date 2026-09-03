@@ -87,8 +87,6 @@ def join_game(
 def get_game(
     game: Annotated[teyuna_core.Game, fastapi.Depends(dependencies.get_game)],
 ) -> teyuna_core.Game:
-    logger.debug("get_game input game_id=%s", game.id)
-    logger.debug("get_game output %s", _dump(game))
     return game
 
 
