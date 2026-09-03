@@ -19,3 +19,4 @@ logs/
 .pnpm-store/
 .DS_Store
 
+node_modules

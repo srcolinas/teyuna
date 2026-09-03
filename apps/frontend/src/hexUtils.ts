@@ -2,22 +2,19 @@ import { Hex } from './types'
 
 const HEX_SIZE = 60
 
-function backendDirectionToVisual(direction: number): number {
-  return (direction + 5) % 6
-}
-
 export function hexToPixel(q: number, r: number): { x: number; y: number } {
-  const x = HEX_SIZE * ((3 / 2) * q)
-  const y = HEX_SIZE * ((Math.sqrt(3) / 2) * q + Math.sqrt(3) * r)
+  const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2)
+  const y = HEX_SIZE * (3 / 2) * r
   return { x, y }
 }
 
+/** Corners of a pointy-top hex, index 0 at the top corner then clockwise. */
 export function getHexVertices(q: number, r: number): Array<[number, number]> {
   const { x, y } = hexToPixel(q, r)
   const vertices: Array<[number, number]> = []
 
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i
+    const angle = -Math.PI / 2 + (Math.PI / 3) * i
     const px = x + HEX_SIZE * Math.cos(angle)
     const py = y + HEX_SIZE * Math.sin(angle)
     vertices.push([px, py])
@@ -46,9 +43,8 @@ export function getHexEdges(
   const edges = []
 
   for (let direction = 0; direction < 6; direction++) {
-    const visualDirection = backendDirectionToVisual(direction)
-    const v1 = vertices[visualDirection]
-    const v2 = vertices[(visualDirection + 1) % 6]
+    const v1 = vertices[direction]
+    const v2 = vertices[(direction + 1) % 6]
     edges.push({
       x: (v1[0] + v2[0]) / 2,
       y: (v1[1] + v2[1]) / 2,
@@ -69,8 +65,7 @@ export function getHexVertexCoord(
   direction: number,
 ): { x: number; y: number } {
   const vertices = getHexVertices(q, r)
-  const visualDirection = backendDirectionToVisual(direction)
-  return { x: vertices[visualDirection][0], y: vertices[visualDirection][1] }
+  return { x: vertices[direction][0], y: vertices[direction][1] }
 }
 
 export function getBoardOffset(hexes: Hex[]): { offsetX: number; offsetY: number } {
