@@ -62,7 +62,15 @@ class ActiveTradeProposal(pydantic.BaseModel):
 
 
 class Harbour(pydantic.BaseModel):
-    """A trading harbour spanning two docking vertices."""
+    """
+    A trading harbour spanning two docking vertices.
+    If it is not associated with a resource, it
+    is a 3:1 harbour; otherwise it is a 2:1 harbour,
+    which means that if you have a terrace or great
+    terrace in one of its vertices you can trade 2
+    of the referenced resource to 1 of what you want
+    with the supply.
+    """
 
     resource: entities.ResourceCard | None = None
     vertices: tuple[board.Coordinate, board.Coordinate]

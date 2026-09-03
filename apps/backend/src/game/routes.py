@@ -66,6 +66,10 @@ def join_game(
         auth=auth,
         first_placement_timeout=settings_.first_placement_timeout,
     )
+    """
+    Allows players to join a game and provie them with an authentication
+    token to use for endpoinds that require it.
+    """
     return teyuna_core.JoinGameResponse(game=result, token=token)
 
 
@@ -120,17 +124,8 @@ async def submit_action(
 ) -> teyuna_core.AnyActionExecutionResult:
     """Submit a player action for the current game phase.
 
-    Workflow for agents:
-    1. Poll `GET /games/{game_id}` (and optionally `GET .../hand`).
-    2. If your nickname is in `to_discard_resources`, submit `discard_resources`.
-    3. Otherwise act when `turn_order[0]` is you (except trade propose/accept rules).
-    4. Choose a payload `kind` that is legal for `phase` — see each action schema.
-    5. Use `kind: advance` to roll (`dice roll`), end turn (`trade and build`), or
-       apply a random legal move in placement / conquistador / card-resolve phases.
-       `advance` is **not** allowed during `discard resources`.
-
-    Illegal or wrong-phase actions return HTTP 400 with a `detail` message.
-    The server supplies the authenticated actor and execution RNG separately.
+    Illegal, wrong-phase actions or attempts to perform an action when it is not
+    your turn, will return HTTP 400 with a `detail` message.
     """
     context = actions.ExecutionContext(
         by=nickname,
@@ -178,6 +173,10 @@ def get_hand(
         fastapi.Depends(dependencies.get_repository),
     ],
 ) -> teyuna_core.PlayerHand:
+    """
+    Retrieves a player hand, including its current resources and widwom cards
+    that haven't been played.
+    """
     return services.retrieve_hand(game_id, nickname, repository=repository)
 
 
@@ -239,6 +238,11 @@ async def send_message(
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
 ) -> None:
+    """
+    Post a message to the room. Players can use this to influence each other's
+    decisions. Messages are delivered as a game server event and only players
+    subscribed will be able to see them.
+    """
     await services.send_message(
         game_id,
         nickname,
@@ -255,6 +259,10 @@ async def stream_items(
         broker_module.EventBroker, fastapi.Depends(dependencies.get_event_broker)
     ],
 ) -> AsyncIterable[sse.ServerSentEvent]:
+    """
+    Retrieve all relevant server events in real time. Includes the results of
+    actions and messages sent by any player.
+    """
     yield sse.ServerSentEvent(comment="connected")
     async for event in broker.iterate(game_id):
         yield sse.ServerSentEvent(

@@ -4,7 +4,13 @@ The game is meant to be played through the its REST API. This document complemen
 
 ## Joining a game
 
-Once a game is created, players wait for the expected number of players to join before they can take any action. To join a game, you send a `POST` request to `/games/{game_id}/players` with a nickname of choice in your payload (e.g `{"nickname": "srcolinas"}`); you will be given an object representing the state of the game and a token that you must use to identify yourself with the backend when performing an action or retrieving your hand. 
+Once a game is created, players wait for the expected number of players to join before they can take any action. To join a game, you send a `POST` request to `/games/{id}/players` with a nickname of choice in your payload (e.g `{"nickname": "srcolinas"}`); you will be given an object representing the state of the game and a token that you must use to identify yourself with the backend when performing an action or retrieving your hand. 
+
+## Game state
+
+There is a public game state that you can retrieve with a `GET` request to `/games/{id}` and it will tell you, among other things, where are the buildins already played and which vertices, the turn oder, the current phase of the game, where are some harbours, etc., you can check all returned fields from `/openapi.json` and `/docs`. 
+
+The object will also tell you information about players, but some of that information is hiden and it is only available to them, like the specific resources they hold and the wisdom cards they have not played. Any player can keep track of their own hand based on production upon dice roll and the wisdom cards they buy, but a player can also retrieve their own hand if they make a `GET` request to `/games/{id}/hand` using the token given upon authentication.
 
 ## Map
 
