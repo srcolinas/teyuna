@@ -191,6 +191,8 @@ def _validate_trade_targets(
     context: _execution.ExecutionContext,
     action: teyuna_core.ProposeTradeAction,
 ) -> str | None:
+    if game.phase is not teyuna_core.GamePhaseName.TRADE_AND_BUILD:
+        return f"Trades cannot be proposed during the '{game.phase.value}' phase."
     if not action.to:
         return "Trade proposal must target at least one player."
     for target in action.to:
@@ -198,11 +200,8 @@ def _validate_trade_targets(
             return "Trade proposal cannot target the proposing player."
         if target not in game.players:
             return f"Trade proposal targets unknown player {target}."
-    if context.by != game.active_player:
-        if action.to != {game.active_player}:
-            return "Non-active players may only propose trades to the active player."
-    elif game.phase is not teyuna_core.GamePhaseName.TRADE_AND_BUILD:
-        return f"Active player cannot propose trades during the '{game.phase.value}' phase."
+    if context.by != game.active_player and action.to != {game.active_player}:
+        return "Non-active players may only propose trades to the active player."
     return None
 
 

@@ -194,10 +194,8 @@ class BuyWisdomCardAction(PlayerActionBase):
 class ProposeTradeAction(PlayerActionBase):
     """Propose a player-to-player trade.
 
-    Valid phases:
-    - `trade and build`: the active player may propose to other players.
-    - `dice roll`: non-active players may propose only to the active player;
-      the active player cannot propose.
+    Valid phase: `trade and build`. The active player may propose to other
+    players; non-active players may propose only to the active player.
     """
 
     kind: Literal["propose_trade"] = "propose_trade"

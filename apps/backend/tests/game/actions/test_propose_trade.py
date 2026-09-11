@@ -74,7 +74,9 @@ def test_non_active_player_can_propose_to_active(game: entities.Game) -> None:
     assert proposal.to == {target}
 
 
-def test_non_active_player_can_propose_during_dice_roll(game: entities.Game) -> None:
+def test_non_active_player_cannot_propose_during_dice_roll(
+    game: entities.Game,
+) -> None:
     game.phase = teyuna_core.GamePhaseName.DICE_ROLL
     proposer = game.turn_order[1]
     target = game.active_player
@@ -96,10 +98,9 @@ def test_non_active_player_can_propose_during_dice_roll(game: entities.Game) -> 
     )
     assert result.action == action
 
-    assert result.error is None
-    assert result.next_phase is teyuna_core.GamePhaseName.DICE_ROLL
-    assert game.phase is teyuna_core.GamePhaseName.DICE_ROLL
-    assert result.proposal_id in game.trade_proposals
+    assert result.error == ("Trades cannot be proposed during the 'dice roll' phase.")
+    assert result.proposal_id is None
+    assert not game.trade_proposals
 
 
 def test_active_player_cannot_propose_during_dice_roll(game: entities.Game) -> None:
@@ -123,9 +124,7 @@ def test_active_player_cannot_propose_during_dice_roll(game: entities.Game) -> N
     )
     assert result.action == action
 
-    assert result.error == (
-        "Active player cannot propose trades during the 'dice roll' phase."
-    )
+    assert result.error == ("Trades cannot be proposed during the 'dice roll' phase.")
     assert result.proposal_id is None
 
 

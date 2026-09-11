@@ -20,7 +20,7 @@ async def build(
 ) -> None:
     """
     A player focused on trading:
-    * Off turn, during dice roll or trade and build, randomly proposes a valid
+    * Off turn, during trade and build, randomly proposes a valid
       1-for-1 trade to the active player when it can afford the offer.
     * On its trade and build turn, randomly proposes a trade, accepts an
       affordable proposal, or skips the turn.
@@ -45,10 +45,7 @@ async def build(
         turn_order = game.turn_order
         is_active = bool(turn_order) and turn_order[0] == context.nickname
         if not is_active:
-            if game.phase in (
-                teyuna_core.GamePhaseName.TRADE_AND_BUILD,
-                teyuna_core.GamePhaseName.DICE_ROLL,
-            ):
+            if game.phase is teyuna_core.GamePhaseName.TRADE_AND_BUILD:
                 await _maybe_propose_off_turn_trade(context, logger, game)
             await asyncio.sleep(sleep_time)
             continue

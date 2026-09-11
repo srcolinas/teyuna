@@ -44,7 +44,6 @@ def get_actions_registry() -> actions.ActionsRegistry:
     reg.register(teyuna_core.GamePhaseName.SECOND_PLACEMENT)(actions.handle_advance)
     reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_dice_roll)
     reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_play_wisdom_card)
-    reg.register(teyuna_core.GamePhaseName.DICE_ROLL)(actions.handle_propose_trade)
     reg.register(teyuna_core.GamePhaseName.DISCARD_RESOURCES)(
         actions.handle_discard_resources
     )

@@ -220,7 +220,7 @@ def test_non_active_player_can_propose(
     assert proposals[0]["to"] == [active_player]
 
 
-def test_non_active_player_can_propose_during_dice_roll(
+def test_non_active_player_cannot_propose_during_dice_roll(
     app: fastapi.FastAPI,
     client: testclient.TestClient,
 ) -> None:
@@ -243,19 +243,10 @@ def test_non_active_player_can_propose_during_dice_roll(
         token=tokens[other],
     )
 
-    assert response.status_code == 200, response.text
-    assert response.json()["proposal_id"] is not None
+    assert response.status_code == 400, response.text
     game = repository.retrieve(game_id)
     assert game.phase is teyuna_core.GamePhaseName.DICE_ROLL
-    assert (
-        teyuna_core.TradeProposal(
-            by=other,
-            to={active_player},
-            offer=collections.Counter({teyuna_core.ResourceCard.GOLD: 1}),
-            request=collections.Counter({teyuna_core.ResourceCard.STONE: 1}),
-        )
-        in game.trade_proposals.values()
-    )
+    assert not game.trade_proposals
 
 
 def test_non_active_player_cannot_propose_to_non_active(
