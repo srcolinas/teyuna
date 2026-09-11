@@ -13,15 +13,19 @@ class PlayerActionBase(pydantic.BaseModel):
 class PlayerAction(PlayerActionBase):
     """Advance / skip action (`kind: advance`).
 
-    Valid phases and meaning:
-    - `dice roll`: roll the dice (active player).
-    - `trade and build`: end the turn (active player).
+    Valid phases and meaning (active player):
+    - `dice roll`: roll the dice.
+    - `trade and build`: end the turn.
     - `first placement` / `second placement`: place a random legal terrace+path.
-    - `move conquistator` and `* play warrior` / `mamo` / `blessed` / `pathfinder`:
-      apply a random legal typed move for that phase.
+    - `move conquistator`, `dice play warrior`, `trade and build play warrior`:
+      a random legal `move_conquistator`.
+    - `dice play mamo` / `trade and build play mamo`: a random legal `play_mamo`.
+    - `dice play blessed` / `trade and build play blessed`: a random legal `play_blessed`.
+    - `dice play pathfinder` / `trade and build play pathfinder`: a random legal
+      `play_pathfinder` (up to two paths).
 
     Not allowed during `discard resources` (submit `discard_resources` instead).
-    Not useful in `lobby` or `end game`.
+    Not a useful player move in `lobby` or `end game`.
     """
 
     kind: Literal["advance"] = "advance"
@@ -31,7 +35,8 @@ class FreePlacementAction(PlayerActionBase):
     """Place one free terrace and one adjacent path during setup.
 
     Valid phases: `first placement`, `second placement` (active player only).
-    Omit both coordinates (or use `advance`) to let the server pick a legal placement.
+    Omit `terrace`, `path`, or both (or use `advance`) to let the server fill in
+    the missing legal coordinate(s).
     """
 
     kind: Literal["free_placement"] = "free_placement"
@@ -67,10 +72,12 @@ class DiscardResourcesAction(PlayerActionBase):
 
 
 class MoveConquistatorAction(PlayerActionBase):
-    """Move the conquistator to a hex and optionally steal from an adjacent player.
+    """Move the conquistator to a different hex; optionally steal one resource.
 
     Valid phases (active player): `move conquistator`, `dice play warrior`,
-    `trade and build play warrior`. Use `advance` for a random legal move.
+    `trade and build play warrior`. Destination must not be the current
+    conquistator hex. If `from_player` is set and they hold cards, one random
+    resource is stolen. Use `advance` for a random legal move.
     """
 
     kind: Literal["move_conquistator"] = "move_conquistator"
@@ -80,10 +87,11 @@ class MoveConquistatorAction(PlayerActionBase):
 
 
 class PlayWisdomCardAction(PlayerActionBase):
-    """Play a wisdom card from your hand, entering the matching resolve phase.
+    """Play a wisdom card from the playable hand (not cards bought this turn).
 
     Valid phases (active player): `dice roll`, `trade and build`.
-    Legacy of the Elders resolves immediately; other cards enter `* play *` phases.
+    Legacy of the Elders stays in the current phase after a victory check.
+    Other cards enter the matching `dice play *` / `trade and build play *` phase.
     """
 
     kind: Literal["play_wisdom_card"] = "play_wisdom_card"
@@ -111,10 +119,11 @@ class PlayBlessedAction(PlayerActionBase):
 
 
 class PlayPathfinderAction(PlayerActionBase):
-    """Resolve Pathfinder: place up to two free paths.
+    """Resolve Pathfinder: place the given free paths (empty tuple allowed).
 
     Valid phases (active player): `dice play pathfinder`,
-    `trade and build play pathfinder`.
+    `trade and build play pathfinder`. The server truncates `paths` to remaining
+    path supply. Use `advance` to pick up to two legal paths.
     """
 
     kind: Literal["play_pathfinder"] = "play_pathfinder"
@@ -186,8 +195,9 @@ class ProposeTradeAction(PlayerActionBase):
     """Propose a player-to-player trade.
 
     Valid phases:
-    - `trade and build`: active player may propose to any other players.
-    - `dice roll`: any player may propose only to the active player.
+    - `trade and build`: the active player may propose to other players.
+    - `dice roll`: non-active players may propose only to the active player;
+      the active player cannot propose.
     """
 
     kind: Literal["propose_trade"] = "propose_trade"
