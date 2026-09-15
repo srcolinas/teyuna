@@ -69,18 +69,19 @@ def _apply_pathfinder(
     placed: list[teyuna_core.Coordinate] = []
 
     for path in to_place:
-        can = _placement.can_add_free_path_at(
+        reason = _placement.can_add_free_path_at(
             target=path,
             free_edges=game.free_edges,
             existing_settlements=player_state.settlements.locations(),
             existing_paths=player_state.paths,
             free_vertices=game.free_verticies,
         )
-        if not can:
+        if reason is not None:
             return (
                 _placement.format_invalid_path_location(
                     target=path,
                     player=context.by,
+                    reason=reason,
                 ),
                 (),
             )

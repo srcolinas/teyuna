@@ -1,12 +1,6 @@
-from collections.abc import Collection, Container
+from collections.abc import Container
 
 import teyuna_core
-
-
-def _sorted_coords(
-    coords: Collection[teyuna_core.Coordinate],
-) -> list[teyuna_core.Coordinate]:
-    return sorted(coords)
 
 
 def format_invalid_settlement_location(
@@ -27,8 +21,14 @@ def format_invalid_path_location(
     *,
     target: teyuna_core.Coordinate,
     player: str,
+    reason: str | None = None,
 ) -> str:
-    return f"Player {player} cannot place path at {target}; "
+    parts = [
+        f"Player {player} cannot place path at {target}",
+    ]
+    if reason is not None:
+        parts.append(reason)
+    return "; ".join(parts)
 
 
 def format_invalid_conquistator_location(
@@ -43,6 +43,13 @@ def format_invalid_conquistator_location(
     )
 
 
+PATH_EDGE_NOT_FREE = "The edge is occupied or is not a valid path location."
+PATH_MUST_ADJOIN_NEW_TERRACE = "The path must adjoin the terrace being placed."
+PATH_MUST_CONNECT_NETWORK = (
+    "The path must adjoin one of your settlements or extend your path network."
+)
+
+
 def can_add_free_path_at(
     *,
     target: teyuna_core.Coordinate,
@@ -51,27 +58,30 @@ def can_add_free_path_at(
     existing_paths: Container[teyuna_core.Coordinate],
     free_vertices: Container[teyuna_core.Coordinate],
     new_settlement: teyuna_core.Coordinate | None = None,
-) -> bool:
+) -> str | None:
     """Coordinates are expected in canonical form.
 
-    When ``new_settlement`` is set (first/second free placement), the path must
-    adjoin that terrace only. Otherwise the path may adjoin an owned settlement
-    or extend an owned path network (paid builds / pathfinder).
+    Returns ``None`` if the path may be placed, otherwise a player-facing
+    reason. When ``new_settlement`` is set (first/second free placement), the
+    path must adjoin that terrace only. Otherwise the path may adjoin an owned
+    settlement or extend an owned path network (paid builds / pathfinder).
     """
     if target not in free_edges:
-        return False
+        return PATH_EDGE_NOT_FREE
 
     if new_settlement is not None:
-        return new_settlement in teyuna_core.vertices_of_edge(target)
+        if new_settlement in teyuna_core.vertices_of_edge(target):
+            return None
+        return PATH_MUST_ADJOIN_NEW_TERRACE
 
     for v in teyuna_core.vertices_of_edge(target):
         if v in existing_settlements:
-            return True
+            return None
         if v in free_vertices:
             for e in teyuna_core.edges_adjacent_to_vertex(v):
                 if e != target and e in existing_paths:
-                    return True
-    return False
+                    return None
+    return PATH_MUST_CONNECT_NETWORK
 
 
 def can_add_free_terrace_at(

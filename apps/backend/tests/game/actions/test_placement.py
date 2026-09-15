@@ -15,7 +15,7 @@ def test_free_path_returns_true_when_adjacent_to_owned_settlement() -> None:
             existing_paths=set(),
             free_vertices=set(),
         )
-        is True
+        is None
     )
 
 
@@ -31,7 +31,7 @@ def test_free_path_returns_false_when_path_not_free() -> None:
             existing_paths=set(),
             free_vertices=set(),
         )
-        is False
+        == _placement.PATH_EDGE_NOT_FREE
     )
 
 
@@ -49,7 +49,7 @@ def test_free_path_returns_false_when_disconnected() -> None:
             existing_paths=set(),
             free_vertices=set(),
         )
-        is False
+        == _placement.PATH_MUST_CONNECT_NETWORK
     )
 
 
@@ -68,7 +68,7 @@ def test_free_path_returns_true_when_adjacent_to_free_vertex_with_owned_path() -
             existing_paths={owned_path},
             free_vertices={v1},
         )
-        is True
+        is None
     )
 
 
@@ -84,7 +84,7 @@ def test_free_path_returns_false_when_neighbor_settlement_not_owned() -> None:
             existing_paths=set(),
             free_vertices=set(),
         )
-        is False
+        == _placement.PATH_MUST_CONNECT_NETWORK
     )
 
 
@@ -101,7 +101,7 @@ def test_free_path_returns_true_when_adjacent_to_new_settlement() -> None:
             free_vertices=set(),
             new_settlement=terrace,
         )
-        is True
+        is None
     )
 
 
@@ -120,7 +120,7 @@ def test_free_path_rejects_network_extension_when_new_settlement_set() -> None:
             free_vertices={v1},
             new_settlement=new_terrace,
         )
-        is False
+        == _placement.PATH_MUST_ADJOIN_NEW_TERRACE
     )
     assert (
         _placement.can_add_free_path_at(
@@ -130,7 +130,7 @@ def test_free_path_rejects_network_extension_when_new_settlement_set() -> None:
             existing_paths={owned_path},
             free_vertices={v1},
         )
-        is True
+        is None
     )
 
 
@@ -149,7 +149,7 @@ def test_free_path_accepts_settlements_collection_locations() -> None:
             existing_paths=set(),
             free_vertices=set(),
         )
-        is True
+        is None
     )
 
 

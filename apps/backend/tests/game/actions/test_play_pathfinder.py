@@ -131,6 +131,7 @@ def test_raises_when_path_is_invalid(game: entities.Game) -> None:
     expected = _placement.format_invalid_path_location(
         target=disconnected,
         player=player,
+        reason=_placement.PATH_MUST_CONNECT_NETWORK,
     )
 
     action = teyuna_core.PlayPathfinderAction(paths=(disconnected,))
@@ -153,6 +154,7 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
     expected = _placement.format_invalid_path_location(
         target=path,
         player=player,
+        reason=_placement.PATH_EDGE_NOT_FREE,
     )
 
     action = teyuna_core.PlayPathfinderAction(paths=(path,))

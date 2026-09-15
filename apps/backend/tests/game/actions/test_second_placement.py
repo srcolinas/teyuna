@@ -95,6 +95,7 @@ def test_raises_when_path_invalid(game: entities.Game) -> None:
     expected = _placement.format_invalid_path_location(
         target=path,
         player=player,
+        reason=_placement.PATH_MUST_ADJOIN_NEW_TERRACE,
     )
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -122,6 +123,7 @@ def test_raises_when_path_already_taken(game: entities.Game) -> None:
     expected = _placement.format_invalid_path_location(
         target=path,
         player=player,
+        reason=_placement.PATH_EDGE_NOT_FREE,
     )
 
     action = teyuna_core.FreePlacementAction(terrace=terrace, path=path)
@@ -157,6 +159,7 @@ def test_rejects_path_adjacent_only_to_first_placement(game: entities.Game) -> N
     assert result.error == _placement.format_invalid_path_location(
         target=network_path,
         player=player,
+        reason=_placement.PATH_MUST_ADJOIN_NEW_TERRACE,
     )
     assert result.settlement is None
     assert result.path is None

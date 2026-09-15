@@ -159,6 +159,7 @@ def test_raises_invalid_path_location_when_disconnected(
     expected = _placement.format_invalid_path_location(
         target=disconnected,
         player=player,
+        reason=_placement.PATH_MUST_CONNECT_NETWORK,
     )
 
     action = teyuna_core.BuildPathAction(coordinate=disconnected)
@@ -189,6 +190,7 @@ def test_raises_invalid_path_location_when_already_taken(
     expected = _placement.format_invalid_path_location(
         target=path,
         player=player,
+        reason=_placement.PATH_EDGE_NOT_FREE,
     )
 
     action = teyuna_core.BuildPathAction(coordinate=path)

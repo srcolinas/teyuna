@@ -229,6 +229,7 @@ def random_play_pathfinder(
             existing_paths=player_state.paths,
             free_vertices=game.free_verticies,
         )
+        is None
     ]
     context.rng.shuffle(legal)
     chosen: list[teyuna_core.Coordinate] = []
@@ -237,12 +238,15 @@ def random_play_pathfinder(
         if len(chosen) >= min(2, remaining):
             break
         provisional = owned_paths | set(chosen)
-        if _placement.can_add_free_path_at(
-            target=edge,
-            free_edges=set(game.free_edges) - set(chosen),
-            existing_settlements=player_state.settlements.locations(),
-            existing_paths=provisional,
-            free_vertices=game.free_verticies,
+        if (
+            _placement.can_add_free_path_at(
+                target=edge,
+                free_edges=set(game.free_edges) - set(chosen),
+                existing_settlements=player_state.settlements.locations(),
+                existing_paths=provisional,
+                free_vertices=game.free_verticies,
+            )
+            is None
         ):
             chosen.append(edge)
     return action.model_copy(update={"paths": tuple(chosen)})
@@ -267,6 +271,7 @@ def _legal_paths_for_terrace(
             free_vertices=game.free_verticies,
             new_settlement=terrace,
         )
+        is None
     ]
 
 

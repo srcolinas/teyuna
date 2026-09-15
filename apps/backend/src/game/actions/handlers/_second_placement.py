@@ -51,7 +51,7 @@ def handle_second_placement(
         )
 
     player_state = game.players[context.by]
-    can = _placement.can_add_free_path_at(
+    reason = _placement.can_add_free_path_at(
         target=action.path,
         free_edges=game.free_edges,
         existing_settlements=player_state.settlements.locations(),
@@ -59,7 +59,7 @@ def handle_second_placement(
         free_vertices=game.free_verticies,
         new_settlement=action.terrace,
     )
-    if not can:
+    if reason is not None:
         return teyuna_core.PlacedBuildingsResult(
             previous_phase=previous_phase,
             next_phase=game.phase,
@@ -67,6 +67,7 @@ def handle_second_placement(
             error=_placement.format_invalid_path_location(
                 target=action.path,
                 player=context.by,
+                reason=reason,
             ),
         )
 
